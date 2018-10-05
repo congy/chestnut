@@ -4,6 +4,7 @@ from schema import *
 from query import *
 from pred import *
 from nesting import *
+from plan_search import *
 
 workload_name = "usergroup"
 set_db_name(workload_name)
@@ -34,8 +35,12 @@ q.pfilter(ConnectOp(BinOp(f('id'), EQ, Parameter('userA')), AND, \
 q.project([f('id'), f('name')])
 q.complete()
 
-dsmanagers = enumerate_nestings_for_query(q)
-for i,ds in enumerate(dsmanagers):
-  print "Nesting {}:\n".format(i)
-  print ds
-  print '--------'
+# test enumerate nesting
+# dsmanagers = enumerate_nestings_for_query(q)
+# for i,ds in enumerate(dsmanagers):
+#   print "Nesting {}:\n".format(i)
+#   print ds
+#   print '--------'
+
+# test search plan
+search_plans_for_one_query(q)

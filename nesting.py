@@ -132,14 +132,14 @@ def helper_get_assoc_exist_idx(qf, for_scan_pred=False):
     assoc_qf = QueryField(reverse_assoc_field_name, main_t)
     keys = [id_qf]
     if for_scan_pred:
-      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, QueryField('id', table)))
+      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, UpperQueryField('id', table)))
     else:
       condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('{}_id'.format(table.name))))
   else:
     if for_scan_pred:
       assoc_qf = QueryField('{}_id'.format(reverse_assoc_field_name), main_t)
       # not index pred, so do not add parameter, but query field instead
-      return [assoc_qf], BinOp(assoc_qf, EQ, QueryField('id', table=qf.table))
+      return [assoc_qf], BinOp(assoc_qf, EQ, UpperQueryField('id', table=qf.table))
     else:
       assoc_qf = AssocOp(QueryField(reverse_assoc_field_name, main_t), QueryField('id', table))
       keys = [assoc_qf]
@@ -177,8 +177,7 @@ def enumerate_nesting_helper(nesting, table, level):
       next_lst = enumerate_nesting_helper(assoc, nested_t, level+1)
       for (next_obj,next_dsmng) in next_lst:
         temp_obj = MemObject(table)
-        next_ds = IndexPlaceHolder(nested_t, OBJECT)
-        next_ds.value.add_nested_object(next_obj)
+        next_ds = IndexPlaceHolder(nested_t, IndexValue(OBJECT, next_obj))
         temp_obj.add_nested_object(next_ds)
         lst[i].append((temp_obj, next_dsmng))
 

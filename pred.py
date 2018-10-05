@@ -88,7 +88,7 @@ class Parameter(object):
   def idx_pred_eq(self, other):
     return isinstance(other, Parameter)
   def query_pred_eq(self, other):
-    return type(self)==type(other) and (not isinstance(other, DoubleParam)) and self.symbol == other.symbol
+    return type(self)==type(other) and (not isinstance(other, MultiParam)) and self.symbol == other.symbol
   def get_curlevel_fields(self, include_assoc=False):
     return []
   def to_json(self):
@@ -154,6 +154,8 @@ class QueryField(object):
     self.table = table
     self.field_name = field
     self.field_class = None
+    if table is not None:
+      self.complete_field(table)
   def field_eq(self, other):
     return type(self) == type(other) and self.field_name == other.field_name and get_main_table(self.table) == get_main_table(other.table)
   def __eq__(self, other):
@@ -315,7 +317,7 @@ class AssocOp(Pred):
     assoc = table.get_nested_table_by_name(self.lh.field_name)
     assert(assoc)
     next_table = assoc.related_table
-    self.rh.complete_field(next_table, table, self.lh.field_name)
+    self.rh.complete_field(next_table)
   def __str__(self):
     return "({} . {})".format(self.lh, self.rh)
   def __hash__(self):
@@ -441,8 +443,9 @@ class BinOp(Pred):
         index_params.append((type_min_value(get_query_field(self.rh).get_type()), self.rh))
       elif self.op in [GT, GE]:
         index_params.append((self.rh, type_max_value(get_query_field(self.rh).get_type())))
-    elif isinstance(self.rh, DoubleParam):
-      index_params.append((self.rh.p1, self.rh.p2))
+    elif isinstance(self.rh, MultiParam):
+      assert(len(self.rh.params)==2)
+      index_params.append((self.rh.params[0], self.rh.params[1]))
     return index_params
   def complete_field(self, table):
     self.lh.complete_field(table)
@@ -463,8 +466,8 @@ class BinOp(Pred):
   def split_into_dnf(self):
     return [self]
   def get_reverse(self):
-    if isinstance(self.lh, DoubleParam):
-      return ConnectOp(BinOp(self.lh, LE, self.rh.p1), OR, BinOp(self.lh, GE, self.rh.p2))
+    if isinstance(self.lh, MultiParam):
+      return ConnectOp(BinOp(self.lh, LE, self.rh.params[0]), OR, BinOp(self.lh, GE, self.rh.params[1]))
     else:
       return BinOp(self.lh, reversed_op[self.op], self.rh)
   def contain_exist_forall(self):

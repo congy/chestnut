@@ -219,8 +219,6 @@ class Table(object):
     return self.nested_tables[n]
   def has_assoc(self, n):
     return self.get_assoc_by_name(n) != None 
-  def contains_index(self, idx):
-    return idx.table == self
   def add_nested_table(self, name, table):
     self.nested_tables[name] = table
   def get_full_type(self, return_list=False):
@@ -230,6 +228,8 @@ class Table(object):
       return get_capitalized_name(self.name)
   def get_id_index(self):
     return self.id_index
+  def contain_table(self, table):
+    return self == table
 
 class NestedTable(Table):
   def __init__(self, upper_table, related_table, name, sz, is_temp=False):

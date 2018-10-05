@@ -42,8 +42,14 @@ SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False)))))
 q_mp_2.aggr(UnaryExpr(COUNT), 'count_issue')
 q_mp_2.complete()
 
+q = q_mp_2
+
+# test enumerate nesting
 dsmanagers = enumerate_nestings_for_query(q)
 for i,ds in enumerate(dsmanagers):
   print "Nesting {}:\n".format(i)
   print ds
   print '--------'
+
+# test search plan
+# search_plans_for_one_query(q)

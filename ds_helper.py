@@ -1,3 +1,6 @@
+from pred import *
+from ds import *
+
 def contain_range_count(pred):
   if isinstance(pred, ConnectOp):
     return contain_range_count(pred.lh) + contain_range_count(pred.rh)
@@ -74,7 +77,7 @@ def is_basic_idx(idx):
   return False
 
 def is_aggr_idx(idx):
-  return is_type_or_subtype(idx.value, AggrResult)
+  return isinstance(idx.value, AggrResult)
  
 def require_basic_ary(idx, relates):
   if isinstance(idx, ObjBasicArray):
@@ -155,19 +158,21 @@ def index_conflict(idx1, idx2):
 
 
 def get_idxop_and_params_by_pred(pred, keys, nonexternal={}):
+  if isinstance(keys, IndexKeys):
+    keys = keys.keys
   qs = [pred]
   params = {}
   op = POINT
   while len(qs) > 0:
     q = qs.pop()
-    if is_type_or_subtype(q, ConnectOp):
+    if isinstance(q, ConnectOp):
       qs.append(q.lh)
       qs.append(q.rh)
-    elif is_type_or_subtype(q, SetOp):
+    elif isinstance(q, SetOp):
       qs.append(q.rh)
-    elif is_type_or_subtype(q, UnaryOp):
+    elif isinstance(q, UnaryOp):
       qs.append(q.operand)
-    elif is_type_or_subtype(q.rh, Parameter):
+    elif isinstance(q.rh, Parameter):
       if q.op in [LT, LE]:
         params[q.lh] = ([q.lh.field_class.get_min_value(), q.rh])
         op = RANGE
@@ -227,7 +232,7 @@ def merge_order_pred(idx, order):
       r_param_2.add_param(o, o.field_class.get_max_value())
 
   # FIXME: only tree index
-  new_idx = ObjTreeIndex(idx.table, keys, cond, value=idx.value.value_type)
+  new_idx = ObjTreeIndex(idx.table, keys, cond, value=idx.value)
   return new_idx, RANGE, [r_param_1, r_param_2]
 
 def replace_subpred_with_var(pred, placeholder):
