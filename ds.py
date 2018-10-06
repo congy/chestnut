@@ -71,6 +71,9 @@ class MemObject(object):
     assert(get_main_table(self.table).contain_table(f.table))
     if not any([f==f1 for f1 in self.fields]):
       self.fields.append(f)
+  def add_fields(self, fs):
+    for f in fs:
+      self.add_field(f)
   def add_nested_object(self, obj, replace=False):
     assert(not isinstance(obj, MemObject))
     for i,o in enumerate(self.nested_objects):
@@ -90,9 +93,10 @@ class MemObject(object):
   def __str__(self):
     if len(self.nested_objects) == 0:
       return 'memobj({}-{})'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
-    s = 'memobj({}-{}), nested = {{'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
+    s = 'memobj({}-{}), nested = {{\n'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
     for o in self.nested_objects:
       s += '\n'.join(['  '+l for l in str(o).split('\n')])
+      s += '\n'
     s += '}\n'
     return s
   def to_json(self):
@@ -366,7 +370,7 @@ class ObjBasicArray(IndexMeta):
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and self.value == other.value
   def __str__(self):
-    return 'Basic array: {}, value = {}'.format(self.table.get_full_type(), value_to_str_short(self.value))
+    return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), value_to_str_short(self.value))
   def compute_mem_cost(self):
     self.cost = self.compute_size()
     ele_sz = 1 if self.value.is_main_ptr() else sum([f.field_class.get_sz() for f in self.pool_ref.fields])

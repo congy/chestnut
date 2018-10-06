@@ -344,5 +344,5 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False):
         print new_dsmnger
         print '=============\n'
         cnt += 1
-
       plans.append(p)
+  return plans

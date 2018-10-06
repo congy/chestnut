@@ -5,6 +5,8 @@ from query import *
 from pred import *
 from nesting import *
 from plan_search import *
+from ilp.ilp import *
+from ds_manager import *
 
 workload_name = "usergroup"
 set_db_name(workload_name)
@@ -43,4 +45,7 @@ q.complete()
 #   print '--------'
 
 # test search plan
-search_plans_for_one_query(q)
+# search_plans_for_one_query(q)
+
+test_merge(q)
+
