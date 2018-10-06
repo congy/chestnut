@@ -170,7 +170,7 @@ class ExecStepSeq(ExecStepSuper):
     obj = cur_obj
     for s in self.steps:
       obj = s.get_used_ds(obj, struct_pool)
-    return obj
+    return cur_obj
   def get_all_variables(self):
     r = []
     for s in self.steps:
@@ -264,7 +264,7 @@ class ExecGetAssocStep(ExecStepSuper):
   def template_eq(self, other):
     return self.__eq__(other)
   def __str__(self):
-    return 'GetAssoc {} via {}\n'.format(self.field, self.idx.value)
+    return 'GetAssoc {} via {}\n'.format(self.field, self.idx.value if self.idx else None)
   def compatible(self, other):
     return self.__eq__(other)
   def get_read_queries(self):
@@ -279,13 +279,22 @@ class ExecGetAssocStep(ExecStepSuper):
       return
     next_obj = None
     idx = self.idx.fork_without_memobj()
-    assert(cur_obj is not None)
     if idx.value.is_object():
       next_obj = idx.value.get_object()
     elif idx.value.is_main_ptr():
       primary_ary = ds_manager.find_primary_array(self.field.field_class)
       next_obj = primary_ary.value.get_object()
     return next_obj
+  def retrieves_field(self, f): 
+    if self.idx is None:
+      return self.field == f
+    table = self.idx.table
+    if self.field == f:
+      return True
+    if is_atomic_field(f):
+      return table.contain_table(f.table)
+    else:
+      return table.contain_table(f.field_class)
   def get_all_variables(self):
     return []
 

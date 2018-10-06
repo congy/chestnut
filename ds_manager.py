@@ -47,9 +47,32 @@ class DSManager(object):
     return None
   def merge(self, other):
     for o1 in other.data_structures:
+      exist = False
       for o in self.data_structures:
         if o == o1:
           o.merge(o1)
+          exist = True
+      if not exist:
+        self.data_structures.append(o1)
+  def merge_self(self):
+    # TODO: should be more than 1 pass?
+    temp_ds = []
+    for i in range(0, len(self.data_structures)):
+      merged = False
+      o1 = self.data_structures[i]
+      for j in range(0, len(self.data_structures)):
+        if i == j:
+          continue
+        o2 = self.data_structures[j]
+        # only keep the denormalized table if both table A and denormalized A*B exist (merge them if necessary)
+        if type(o1) == type(o2) and (not o1.table == o2.table):
+          if o2.table.contain_table(o1.table):
+            o2.merge(o1)
+            merged = True
+            break
+      if not merged:
+        temp_ds.append(o1)
+    self.data_structures = temp_ds
   def fork(self):
     new_ds = DSManager()
     for ds in self.data_structures:

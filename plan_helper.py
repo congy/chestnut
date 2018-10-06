@@ -73,16 +73,32 @@ class PlanTree(object):
     pt.index_step = self.index_step.fork()
     pt.sort_step = self.sort_step
     pt.element_steps = [s.fork() for s in self.element_steps]
+    pt.pred_goal = self.pred_goal
     pt.next_level_pred = {k:v.fork() for k,v in self.next_level_pred.items()}
     pt.next_level_query = {k:v.fork() for k,v in self.next_level_query.items()}
     return pt
+  def find_retrieve_assoc_step(self, field):
+    for s in self.element_steps:
+      if isinstance(s, ExecStepSeq) and s.steps[-1].retrieves_field(get_query_field(field)):
+        return s
+    assert(False)
   def to_steps(self):
     idx_step = self.index_step #self.index_step.fork()
     ele_ops = []
     for k,v in self.next_level_pred.items():
-      ele_ops += v.to_steps()
+      if is_assoc_field(k):
+        print k
+        print self.pred_goal
+        s = self.find_retrieve_assoc_step(k)
+        s.add_steps(v.to_steps())
+      else:
+        ele_ops += v.to_steps()
     for k,v in self.next_level_query.items():
-      ele_ops += v.to_steps()
+      if is_assoc_field(k):
+        s = self.find_retrieve_assoc_step(k)
+        s.add_steps(v.to_steps())
+      else:
+        ele_ops += v.to_steps()
     ele_ops += self.element_steps
     idx_step.ele_ops.add_steps(ele_ops)
     if self.sort_step:
@@ -151,17 +167,18 @@ def search_steps_for_assoc(obj, dsmng, pred):
     o = obj.find_nested_obj_by_field(f)
     if o is None: # use id to retrieve
       foreignkey_idx = is_foreignkey_indexed(dsmng, f)
+      ary = dsmng.find_placeholder(f.field_class)
       if foreignkey_idx:
         steps.append(ExecGetAssocStep(f, foreignkey_idx))
-        next_obj = foreignkey_idx.value.get_object()
       else:
-        ary = dsmng.find_placeholder(f.field_class)
-        steps.append(ExecGetAssocStep(f, ary))
-        next_obj = ary.value.get_object()
+        steps.append(ExecGetAssocStep(f, ObjBasicArray(ary.table, ary.value)))
+      next_obj = ary.value.get_object()
     else:
-      steps.append(ExecGetAssocStep(f, o))
+      steps.append(ExecGetAssocStep(f, ObjBasicArray(o.table, o.value)))
       if o.value.is_main_ptr():
-        next_obj = dsmng.placeholder(f.field_class).value.get_object()
+        next_obj = dsmng.find_placeholder(f.field_class).value.get_object()
+      else:
+        next_obj = o.value.get_object()
   if isinstance(pred, AssocOp):
     steps = steps + search_steps_for_assoc(next_obj, dsmng, pred.rh)
   return steps
@@ -188,10 +205,17 @@ def rewrite_pred_for_denormalized_table(pred, table):
     has_change = False
     temp_clauses = [c for c in clauses]
     for i,c in enumerate(temp_clauses):
-      if isinstance(c, SetOp) and (not is_assoc_field(c.lh)) and table.contain_table(c.lh.field_class):
-        clauses.pop(i)
-        clauses = clauses + c.rh.split()
-        has_change = True
+      if isinstance(c, SetOp):
+        if is_assoc_field(c.lh) and table.contain_table(c.lh.lh.field_class):
+          clauses.pop(i)
+          clauses.append(SetOp(c.lh.rh, c.op, c.rh))
+          has_change = True
+        elif (not is_assoc_field(c.lh)) and table.contain_table(c.lh.field_class):
+          clauses.pop(i)
+          clauses = clauses + c.rh.split()
+          has_change = True
+        if has_change:
+          break
   new_pred = merge_into_cnf(clauses)
   #print 'REWRITE: table = {}, old = {}, new = {}'.format(table.get_full_type(), pred, new_pred)
   return new_pred

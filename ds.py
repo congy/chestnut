@@ -86,7 +86,7 @@ class MemObject(object):
     return newo
   def __eq__(self, other):
     # TODO
-    return True
+    return self.table == other.table
   def __str__(self):
     if len(self.nested_objects) == 0:
       return 'memobj({}-{})'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
@@ -104,14 +104,14 @@ class MemObject(object):
   def merge(self, other):
     for f in other.fields:
       self.add_field(f)
-    for o in self.nested_objects:
+    for o in other.nested_objects:
       exist = False
-      for o1 in other.nested_objects:
+      for o1 in self.nested_objects:
         if o == o1:
-          o.merge(o1)
+          o1.merge(o)
           exist = True
       if not exist:
-        self.nested_objects.append(o1)
+        self.nested_objects.append(o)
   def find_nested_obj_by_field(self, field):
     for o in self.nested_objects:
       if get_main_table(o.table.upper_table) == field.table and o.table.name == field.field_name:
@@ -170,7 +170,7 @@ class IndexMeta(object):
   # id, table, value
   def merge(self, other):
     if self.value.is_object():
-      self.value.value.merge(other)
+      self.value.value.merge(other.value.value)
   def clean_obj(self):
     self.value = self.value.clean_obj()
     return self
@@ -201,7 +201,7 @@ class IndexBase(IndexMeta):
       self.keys = IndexKeys(keys, range_keys_)
     self.condition = get_idx_condition(condition)
     self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
-    if self.value.is_object():
+    if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
   def to_json(self):
     tables = [self.table.name]
@@ -335,7 +335,7 @@ class ObjBasicArray(IndexMeta):
     self.id = 0 
     self.table = table #table ~ obj_type
     self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
-    if self.value.is_object():
+    if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
   def to_json(self):
     tables = [self.table.name]
@@ -391,10 +391,10 @@ class IndexPlaceHolder(IndexMeta):
   def __init__(self, table, value):
     self.table = table
     self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
-    if self.value.is_object():
+    if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
   def fork(self):
-    return IndexPlaceHolder(self.table, self.value.fork())
+    return IndexPlaceHolder(self.table, self.value)
   def fork_without_memobj(self):
     assert(False)
   def __eq__(self, other):

@@ -164,6 +164,13 @@ def break_pred_assoc_field(pred):
       pred.rh = break_pred_assoc_field_helper(pred.rh)
       return pred
 
+def table_contain_association(table, pred):
+  if isinstance(pred, QueryField):
+    return table.contain_table(pred.field_class)
+  elif isinstance(pred, AssocOp):
+    if table.contain_table(pred.lh.field_class):
+      return table_contain_association(table, pred.rh)
+
 def get_assoc_fieldname_list(f):
   if isinstance(f, QueryField):
     return [f.field_name]

@@ -189,6 +189,8 @@ class QueryField(object):
     return "{}.{}".format(self.table.name, self.field_name)
   def __str__(self):
     return "{}:{}".format(self.table.name, self.field_name)
+  def __hash__(self):
+    return hash(str(self))
   def has_param(self):
     return False
   def get_all_params(self):

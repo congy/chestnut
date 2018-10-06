@@ -36,7 +36,7 @@ def enumerate_indexes_for_pred(upper_pred, upper_pred_var, dsmng, idx_placeholde
           rest_preds = set_minus(clauses, idx_combination, eq_func=(lambda x,y: x.query_pred_eq(y)))
           index_steps, added_rest_preds = helper_get_idx_step_by_pred(idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
           rest_preds = rest_preds + added_rest_preds
-          rest_pred, assoc_steps, nextlevel_fields, nextlevel_tree_combs  = \
+          rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs  = \
                 enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds)
 
           if len(rest_preds) > 0:
@@ -73,7 +73,7 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
   query_plans = []
   aggr_assoc_fields = []
   for v,aggr in query.aggrs:
-    for f in aggr.get_curlevel_field(include_assoc=True):
+    for f in aggr.get_curlevel_fields(include_assoc=True):
       if is_assoc_field(f):
         aggr_assoc_fields.append(f)
 
@@ -94,7 +94,7 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
           rest_preds = set_minus(clauses, idx_combination, eq_func=(lambda x,y: x.query_pred_eq(y)))
           index_steps, added_rest_preds = helper_get_idx_step_by_pred(idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
           rest_preds = rest_preds + added_rest_preds
-          rest_pred, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
+          rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
                 enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds)
           if len(rest_preds) > 0:
             cond_expr = rest_pred
@@ -106,7 +106,8 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
             for v,aggr in query.aggrs:
               new_aggr = replace_subexpr_with_var(aggr, placeholder)
               set_steps.append(ExecSetVarStep(v, new_aggr, cond=cond_expr))
-            set_steps.append(ExecSetVarStep(variable_to_set, None, cond_expr))
+            if variable_to_set:
+              set_steps.append(ExecSetVarStep(variable_to_set, None, cond_expr))
           else:
             if variable_to_set:
               set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr))
@@ -164,17 +165,16 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
     if len(steps) == 0:
       assert(idx_placeholder.table.contain_table(qf.field_class))
       next_idxplaceholder = idx_placeholder
-      field = None
     else:
-      assoc_steps += steps
+      step = ExecStepSeq(steps)
+      assoc_steps.append(step)
       #if qf.table.has_one_or_many_field(qf.field_name) != 1:
       next_fields.append(qf)
-      assert(steps[-1].ds is not None)
-      if isinstance(steps[-1].ds, IndexPlaceHolder):
-        next_idx_placeholder = steps[-1].ds
+      assert(steps[-1].idx is not None)
+      if isinstance(steps[-1].idx, IndexPlaceHolder):
+        next_idx_placeholder = steps[-1].idx
       else:
         next_idx_placeholder = dsmng.find_placeholder(get_query_field(p.lh).field_class)
-    assert(field)
     next_level_query.append(\
       enumerate_indexes_for_query(next_query, dsmng, next_idx_placeholder, upper_assoc_qf=field))
 
@@ -252,34 +252,34 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
   assoc_steps_map = {}
   assoc_steps = []
   for f in rest_assoc_fields:   
-    steps = search_steps_for_assoc(obj, dsmng, f)     
-    placeholder[f] = steps[-1].var
-    assoc_steps_map[f] = steps
-    assoc_steps += steps
+    steps = search_steps_for_assoc(obj, dsmng, f) 
+    step = ExecStepSeq(steps)
+    assoc_steps_map[f] = step 
+    if len(steps) > 0:   
+      placeholder[f] = steps[-1].var
+      assoc_steps.append(step)
   if len(rest_preds) == 0:
-    return (None, assoc_steps, [], [])
+    return (None, placeholder, assoc_steps, [], [])
   
   nextlevel_step_combs = []
   nextlevel_fields = []
   for p in nextlevel_preds:
     field = get_query_field(p.lh)
-    nextlevel_fields.append(field)
+    nextlevel_fields.append(p.lh)
     if is_assoc_field(p.lh):
-      steps = assoc_steps_map[p.lh]
+      steps = assoc_steps_map[p.lh].steps
       if len(steps) == 0:
-        assert(obj.table.contain_table(p.lh.field_class))
+        assert(obj.table.contain_table(get_query_field(p.lh).field_class))
         next_idx_placeholder = idx_placeholder
       else:
-        assert(steps[-1].ds is not None)
-        if isinstance(steps[-1].ds, IndexPlaceHolder):
-          next_idx_placeholder = steps[-1].ds
+        assert(steps[-1].idx is not None)
+        if isinstance(steps[-1].idx, ObjBasicArray):
+          next_idx_placeholder = steps[-1].idx
         else:
           next_idx_placeholder = dsmng.find_placeholder(get_query_field(p.lh).field_class)
     else:
       next_idx_placeholder = find_next_idx_placeholder(idx_placeholder, dsmng, p.lh)
-    if idx_placeholder.table.contain_table(field.field_class):
-      field = None
-    assert(field)
+      
     assert(next_idx_placeholder)
     newvar = EnvAtomicVariable(get_envvar_name(p), 'bool', init_value=(p.op == FORALL))
     placeholder[p] = newvar
@@ -287,7 +287,7 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
             upper_assoc_qf=field))
   
   rest_pred = replace_subpred_with_var(new_pred, placeholder)
-  return (rest_pred, assoc_steps, nextlevel_fields, nextlevel_step_combs)
+  return (rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_step_combs)
 
 
 def search_plans_for_one_nesting(query, dsmng):

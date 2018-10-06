@@ -91,23 +91,23 @@ def get_obj_nesting_by_pred(cur_obj, pred):
       next_obj = get_obj_nesting_by_pred(cur_obj, pred.lh)
       next_obj.add_assoc(get_query_field(pred.lh), new_assoc_obj)
     else:
-      next_obj = cur_obj
       cur_obj.add_assoc(pred.lh, new_assoc_obj)
     return cur_obj
   elif isinstance(pred, AssocOp):
     new_assoc_obj = ObjNesting(pred.lh.field_class)
     get_obj_nesting_by_pred(new_assoc_obj, pred.rh)
     cur_obj.add_assoc(pred.lh, new_assoc_obj)
-    return new_assoc_obj
+    return cur_obj.get_assoc(pred.lh)
   elif isinstance(pred, BinOp):
     if is_assoc_field(pred.lh):
-      get_obj_nesting_by_pred(cur_obj, pred.lh)
+      next_obj = get_obj_nesting_by_pred(cur_obj, pred.lh)
     elif is_query_field(pred.lh):
       cur_obj.add_field(pred.lh)
+      next_obj = cur_obj
     if is_assoc_field(pred.rh):
-      get_obj_nesting_by_pred(cur_obj, pred.rh)
+      get_obj_nesting_by_pred(next_obj, pred.rh)
     elif is_query_field(pred.rh):
-      cur_obj.add_field(pred.rh)
+      next_obj.add_field(pred.rh)
     return cur_obj
   elif isinstance(pred, UnaryOp):
     return get_obj_nesting_by_pred(cur_obj, pred.operand)
@@ -118,7 +118,7 @@ def get_obj_nesting_by_pred(cur_obj, pred):
     else:
       new_assoc_obj = ObjNesting(pred.field_class)
       cur_obj.add_assoc(pred, new_assoc_obj)
-      return new_assoc_obj
+      return cur_obj.get_assoc(pred)
   else:
     return cur_obj
 
@@ -155,9 +155,9 @@ def table_already_contained(dsmng, table):
 def enumerate_nesting(nesting):
   table = nesting.table
   ds_managers = []
-  for (obj, dsmng) in enumerate_nesting_helper(nesting, table, 1):
-    if not isinstance(obj.table, DenormalizedTable):
-      dsmng.add_ds(IndexPlaceHolder(table, IndexValue(OBJECT, obj)))
+  for i,(obj, dsmng) in enumerate(enumerate_nesting_helper(nesting, table, 1)):
+    dsmng.add_ds(IndexPlaceHolder(table, IndexValue(OBJECT, obj)))
+    dsmng.merge_self()
     ds_managers.append(dsmng)
   return ds_managers
 

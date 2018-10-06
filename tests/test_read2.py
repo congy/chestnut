@@ -4,6 +4,7 @@ from schema import *
 from query import *
 from pred import *
 from nesting import *
+from plan_search import *
 
 workload_name = "test2"
 set_db_name(workload_name)
@@ -45,11 +46,11 @@ q_mp_2.complete()
 q = q_mp_2
 
 # test enumerate nesting
-dsmanagers = enumerate_nestings_for_query(q)
-for i,ds in enumerate(dsmanagers):
-  print "Nesting {}:\n".format(i)
-  print ds
-  print '--------'
+# dsmanagers = enumerate_nestings_for_query(q)
+# for i,ds in enumerate(dsmanagers):
+#   print "Nesting {}:\n".format(i)
+#   print ds
+#   print '--------'
 
 # test search plan
-# search_plans_for_one_query(q)
+search_plans_for_one_query(q)
