@@ -13,6 +13,7 @@ class PlansForOneNesting(object):
   def __init__(self, nesting, plans):
     self.nesting = nesting
     self.plans = plans
+    self.dsmngers = [] # to be filled later
   def compute_used_structs(self):
     pass
   

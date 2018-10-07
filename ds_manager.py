@@ -45,6 +45,11 @@ class DSManager(object):
       if isinstance(ds, IndexPlaceHolder) and table_contains(ds.table, table):
         return ds
     return None
+  def find_primary_array_exact_match(self, table):
+    for ds in self.data_structures:
+      if isinstance(ds, ObjBasicArray) and ds.table == table and ds.value.is_object():
+        return ds
+    return None
   def merge(self, other):
     for o1 in other.data_structures:
       exist = False
