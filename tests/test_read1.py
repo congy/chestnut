@@ -5,7 +5,7 @@ from query import *
 from pred import *
 from nesting import *
 from plan_search import *
-from ilp.ilp import *
+from ilp.ilp_helper import *
 from ds_manager import *
 
 workload_name = "usergroup"

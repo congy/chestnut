@@ -1,4 +1,6 @@
 from ds import *
+from util import *
+from cost import *
 
 
 def create_primary_array(table, value=OBJECT):
@@ -99,4 +101,33 @@ class DSManager(object):
       s += 'ds[{}]: {}\n'.format(i, ds)
     return s
 
+def print_ds_with_cost(dsmnger):
+  ds_lst, memobj = collect_all_ds_helper1(dsmnger.data_structures)
+  for ds in ds_lst:
+    cost = ds.compute_mem_cost()
+    print 'ds {}, cost = {}, value = {}'.format(ds, to_symbol(cost), to_real_value(cost))
+    print '------'
+  print '\n * * * *\n'
+  for k,v in memobj.items():
+    cnt = k.element_count()
+    field_sz = sum([f.field_class.get_sz() for f in v.fields])
+    cost = cost_mul(cnt, field_sz)
+    print 'object {}, cost = {}, value = {}'.format(v, to_symbol(cost), to_real_value(cost))
+    print '------'
 
+def collect_all_ds_helper1(lst):
+  ds_lst = []
+  memobj = {}
+  for ds in lst:
+    ds_lst.append(ds)
+    if ds.value.is_object():
+      next_lst, next_memobj = collect_all_ds_helper2(ds)
+      memobj = map_union(memobj, next_memobj)
+      ds_lst += next_lst
+  return ds_lst, memobj
+
+def collect_all_ds_helper2(ds, symbol=False):
+  obj = ds.value.get_object()
+  next_lst, next_memobj = collect_all_ds_helper1(obj.nested_objects)
+  next_memobj[ds] = obj
+  return next_lst, next_memobj

@@ -302,3 +302,15 @@ q19.aggr(UnaryExpr(SUM, \
 q19.only_aggr()
 q19.complete()
 
+globalv.pred_selectivity.append((BinOp(f('shipdate', table=lineitem), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2'))), 0.16))
+globalv.pred_selectivity.append((BinOp(f('discount', table=lineitem), BETWEEN, DoubleParam(Parameter('disc1'), Parameter('disc2'))), 0.2))
+globalv.pred_selectivity.append((BinOp(f('quantity', table=lineitem), LE, Parameter('quant')), 0.2))
+globalv.pred_selectivity.append((BinOp(f('receiptdate', table=lineitem), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2'))), 0.16))
+globalv.pred_selectivity.append((BinOp(f('shipdate', table=lineitem), BETWEEN, DoubleParam(Parameter('q14_date1'), Parameter('q14_date2'))), 0.01))
+globalv.pred_selectivity.append((BinOp(f('part', table=lineitem).f('container', table=part), IN, \
+            MultiParam([AtomValue('SM CASE'), AtomValue('SM BOX'), AtomValue('SM PACK'), AtomValue('SM PKG')])), 0.2))
+globalv.pred_selectivity.append((BinOp(f('part', table=lineitem).f('container', table=part), IN, \
+            MultiParam([AtomValue('MED BAG'), AtomValue('MED BOX'), AtomValue('MED PKG'), AtomValue('MED PACK')])), 0.2))
+globalv.pred_selectivity.append((BinOp(f('part', table=lineitem).f('container', table=part), IN, \
+            MultiParam([AtomValue('LG CASE'), AtomValue('LG BOX'), AtomValue('LG PACK'), AtomValue('LG PKG')])), 0.2))
+globalv.pred_selectivity.append((BinOp(f('shipmode'), IN, MultiParam([AtomValue('AIR'), AtomValue('AIR REG')])), 0.33))

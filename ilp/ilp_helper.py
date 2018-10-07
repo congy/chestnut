@@ -73,4 +73,6 @@ def test_merge(query):
       begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
   print dsmeta
 
+  print_ds_with_cost(dsmeta)
+
     

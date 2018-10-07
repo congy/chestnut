@@ -258,9 +258,9 @@ class ObjTreeIndex(IndexBase):
     temp = IdxSizeUnit(self)
     #self.mem_cost = CostOp(temp, COST_ADD, CostLogOp(temp))
     self.mem_cost = temp
-    if isinstance(self.table, NestedTable):
-      self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
-    return self.mem_cost
+    return cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys])+1)
+  def element_count(self):
+    return IdxSizeUnit(self)
   def __str__(self):
     return '[{}] treeindex : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), self.keys, self.condition, self.value)
@@ -280,7 +280,12 @@ class ObjSortedArray(IndexBase):
     self.mem_cost = IdxSizeUnit(self)
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
-    return self.mem_cost
+    return cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys]))
+  def element_count(self):
+    mem_cost = IdxSizeUnit(self)
+    if isinstance(self.table, NestedTable):
+      mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
+    return mem_cost
   def __str__(self):
     return '[{}] sorted-array : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), self.keys, self.condition, value_to_str_short(self.value))
@@ -300,6 +305,11 @@ class ObjArray(IndexBase):
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
     return self.mem_cost
+  def element_count(self):
+    mem_cost = IdxSizeUnit(self)
+    if isinstance(self.table, NestedTable):
+      mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
+    return mem_cost
   def __str__(self):
     return '[{}] array : [table = {}, cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), \
@@ -373,10 +383,10 @@ class ObjBasicArray(IndexMeta):
     return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), value_to_str_short(self.value))
   def compute_mem_cost(self):
     self.cost = self.compute_size()
-    ele_sz = 1 if self.value.is_main_ptr() else sum([f.field_class.get_sz() for f in self.pool_ref.fields])
-    self.cost = cost_mul(self.cost, ele_sz)
     return self.cost
   def compute_size(self):
+    return self.table.cost_all_sz() 
+  def element_count(self):
     return self.table.cost_all_sz() 
   def compute_single_size(self):
     return self.table.sz 

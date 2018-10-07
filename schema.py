@@ -307,6 +307,19 @@ class DenormalizedTable(object):
       return set_include(self.tables, table.tables)
     else:
       return False
+  def cost_str_symbol(self):
+    return 'N{}'.format(self.name)
+  def cost_real_size(self):
+    assert(len(self.join_fields) + 1 == len(self.tables))
+    cost = self.tables[0].sz
+    cur_table = self.tables[0]
+    for f in self.join_fields:
+      if cur_table.has_one_or_many_field(f.field_name) != 1:
+        cost = cost * cur_table.get_nested_table_by_name(f.field_name).sz
+      cur_table = f.field_class
+    return cost
+  def cost_all_sz(self):
+    return self.cost_real_size()
 
 class Association:
   def __init__(self, assoc_name, tp, tablea, tableb, lft_field_name, rgt_field_name):

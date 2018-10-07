@@ -5,6 +5,8 @@ from query import *
 from pred import *
 from nesting import *
 from plan_search import *
+from ilp.ilp_helper import *
+from ds_manager import *
 
 workload_name = "test2"
 set_db_name(workload_name)
@@ -54,3 +56,5 @@ q = q_mp_2
 
 # test search plan
 search_plans_for_one_query(q)
+
+test_merge(q)

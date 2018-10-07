@@ -259,7 +259,8 @@ class ExecGetAssocStep(ExecStepSuper):
     return type(self) == type(other) and self.field == other.field and self.idx == other.idx
   def compute_cost(self):
     # TODO
-    self.cost = 1
+    if self.idx and self.idx.value.is_object() and not isinstance(self.idx.table, NestedTable):
+      return self.idx.table.sz
     return 1
   def template_eq(self, other):
     return self.__eq__(other)
