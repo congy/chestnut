@@ -33,13 +33,13 @@ class BinaryExpr(object):
     self.op = op
     self.rh = rh 
     # assert(is_query_field(self.lh) or \
-    #   is_type_or_subtype(self.lh, AtomValue) or \
-    #   is_type_or_subtype(self.lh, BinaryExpr) or\
-    #   is_type_or_subtype(self.lh, Parameter))
+    #   isinstance(self.lh, AtomValue) or \
+    #   isinstance(self.lh, BinaryExpr) or\
+    #   isinstance(self.lh, Parameter))
     # assert(is_query_field(self.rh) or \
-    #   is_type_or_subtype(self.rh, AtomValue) or \
-    #   is_type_or_subtype(self.rh, BinaryExpr) or\
-    #   is_type_or_subtype(self.rh, Parameter))  
+    #   isinstance(self.rh, AtomValue) or \
+    #   isinstance(self.rh, BinaryExpr) or\
+    #   isinstance(self.rh, Parameter))  
     assert(not isinstance(self.lh, UnaryExpr))
     assert(not isinstance(self.rh, UnaryExpr))
   def __eq__(self, other):
@@ -75,8 +75,8 @@ class BinaryExpr(object):
     return None
   def get_all_fields(self):
     return self.lh.get_all_fields() + self.rh.get_all_fields()
-  def get_curlevel_field(self, include_assoc=False):
-    return self.lh.get_curlevel_field(include_assoc) + self.rh.get_curlevel_field(include_assoc)
+  def get_curlevel_fields(self, include_assoc=False):
+    return self.lh.get_curlevel_fields(include_assoc) + self.rh.get_curlevel_fields(include_assoc)
   def get_all_params(self):
     return self.lh.get_all_params() + self.rh.get_all_params()
   def query_pred_eq(self, other):
@@ -165,20 +165,20 @@ class IfThenElseExpr(object):
     self.expr1 = expr1
     self.expr2 = expr2
     self.op = IFTHENELSE
-    assert(is_type_or_subtype(self.cond, BinaryExpr))
-    # assert(is_query_field(self.expr1) or is_type_or_subtype(self.expr1, AtomValue) or is_type_or_subtype(self.expr1, BinaryExpr))
-    # assert(is_query_field(self.expr2) or is_type_or_subtype(self.expr2, AtomValue) or is_type_or_subtype(self.expr2, BinaryExpr))
+    # assert(isinstance(self.cond, BinaryExpr))
+    # assert(is_query_field(self.expr1) or isinstance(self.expr1, AtomValue) or isinstance(self.expr1, BinaryExpr))
+    # assert(is_query_field(self.expr2) or isinstance(self.expr2, AtomValue) or isinstance(self.expr2, BinaryExpr))
     assert(not isinstance(self.expr1, UnaryExpr))
     assert(not isinstance(self.expr2, UnaryExpr))
   def __eq__(self, other):
     return type(self) == type(other) and self.cond == other.cond and self.expr1 == other.expr1 and self.expr2 == other.expr2
   def to_var_or_value(self, init_var='', replace_var={}):
     cond = self.cond.to_var_or_value(replace_var)
-    if is_type_or_subtype(self.expr1, UnaryExpr):
+    if isinstance(self.expr1, UnaryExpr):
       expr1 = '{}'.format(self.expr1.to_var_or_value(init_var, replace_var))
     else:
       expr1 = '{} = {};\n'.format(init_var, self.expr1.to_var_or_value(replace_var))
-    if is_type_or_subtype(self.expr2, UnaryExpr):
+    if isinstance(self.expr2, UnaryExpr):
       expr2 = '{}'.format(self.expr2.to_var_or_value(init_var, replace_var))
     else:
       expr2 = '{} = {};\n'.format(init_var, self.expr2.to_var_or_value(replace_var))
@@ -227,6 +227,8 @@ def replace_subexpr_with_var(expr, placeholder):
 
 def get_curlevel_fields(expr):
   if isinstance(expr, QueryField):
+    if isinstance(expr, UpperQueryField):
+      return []
     return [expr]
   elif isinstance(expr, BinOp):
     return get_curlevel_fields(expr.lh) + get_curlevel_fields(expr.rh)

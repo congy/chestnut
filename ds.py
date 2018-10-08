@@ -31,11 +31,6 @@ class IndexParam(object):
         self.params.append(other.params[i])
     return self
 
-# used in if condition...
-class UpperQueryField(QueryField): 
-  def __str__(self):
-    return "Upper({}:{})".format(self.table.name, self.field_name)
-
 class AggrResult(object):
   def __init__(self, aggrs=[], delta_exprs=[]):
     self.aggrs = aggrs #(var, aggr) pair
@@ -68,6 +63,8 @@ class MemObject(object):
   def get_all_fields(self):
     return self.fields
   def add_field(self, f):
+    print f
+    print self.table.get_full_type()
     assert(get_main_table(self.table).contain_table(f.table))
     if not any([f==f1 for f1 in self.fields]):
       self.fields.append(f)
@@ -114,6 +111,8 @@ class MemObject(object):
         if o == o1:
           o1.merge(o)
           exist = True
+        #if isinstance(o, IndexPlaceHolder) and isinstance(o1, IndexPlaceHolder) and o.table==o1.table and not o.value==o1.value:
+        #  assert(False)
       if not exist:
         self.nested_objects.append(o)
   def find_nested_obj_by_field(self, field):
@@ -243,7 +242,9 @@ class IndexBase(IndexMeta):
   def get_relates(self):
     return (isinstance(self.table, NestedTable) and self.value.is_main_ptr())
   def __eq__(self, other):
-    return type(self) == type(other) and self.table == other.table and self.keys == other.keys and self.value == other.value
+    return type(self) == type(other) and self.table == other.table and \
+    self.keys == other.keys and self.value == other.value and \
+    self.condition.idx_pred_eq(other.condition)
   def compute_size(self):
     return IdxSizeUnit(self)
   def compute_single_size(self):
@@ -383,6 +384,8 @@ class ObjBasicArray(IndexMeta):
     return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), value_to_str_short(self.value))
   def compute_mem_cost(self):
     self.cost = self.compute_size()
+    if isinstance(self.table, DenormalizedTable):
+      self.cost = cost_mul(self.cost, len(self.table.tables))
     return self.cost
   def compute_size(self):
     return self.table.cost_all_sz() 

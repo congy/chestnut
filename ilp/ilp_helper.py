@@ -17,10 +17,12 @@ def collect_all_structures(dsmeta, dsmng, begin_ds_id=1):
 def data_structures_merge_helper(lst1, lst2, begin_ds_id):
   cur_ds_id = begin_ds_id
   delta_structures = []
+  temp_lst1 = [ds for ds in lst1]
   for ds2 in lst2:
     exist = False
-    for ds1 in lst1:
+    for ds1 in temp_lst1:
       if ds1 == ds2:
+        ds2.id = ds1.id
         cur_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id)
         delta_structures += new_delta
         exist = True
@@ -31,7 +33,8 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id):
       ds2.id = cur_ds_id
       delta_structures.append(tempds)
       lst1.append(tempds)
-      cur_ds_id, new_delta = collect_structures_helper_index(tempds, ds2, cur_ds_id)
+      new_ds_id, new_delta = collect_structures_helper_index(tempds, ds2, cur_ds_id)
+      cur_ds_id = new_ds_id
       delta_structures += new_delta
   return cur_ds_id, delta_structures
 

@@ -54,7 +54,14 @@ class PlanTreeUnion(object):
   #       assert(False)
   #     return union_steps
   def to_steps(self):
-    return self.plan_trees[0].to_steps() + self.after_steps
+    if len(self.plan_trees) == 1:
+      return self.plan_trees[0].to_steps() + self.after_steps
+    else:
+      s = []
+      for pt in self.plan_trees:
+        s += pt.to_steps()
+      s += self.after_steps
+      return s
 
 
 class PlanTree(object):
@@ -84,12 +91,10 @@ class PlanTree(object):
         return s
     assert(False)
   def to_steps(self):
-    idx_step = self.index_step #self.index_step.fork()
+    idx_step = self.index_step.fork()
     ele_ops = []
     for k,v in self.next_level_pred.items():
       if is_assoc_field(k):
-        print k
-        print self.pred_goal
         s = self.find_retrieve_assoc_step(k)
         s.add_steps(v.to_steps())
       else:
@@ -156,6 +161,7 @@ def get_all_idxes_on_cond(idx_placeholder, keys, idx_pred):
 def search_steps_for_assoc(obj, dsmng, pred):
   if isinstance(pred, QueryField):
     if is_atomic_field(pred):
+      assert(get_main_table(obj.table).contain_table(pred.table))
       return [ExecGetAssocStep(pred, None)]
     else:
       f = pred

@@ -144,7 +144,7 @@ class Table(object):
   def __init__(self, name, sz, is_temp=False):
     self.name = name
     self.sz = sz
-    id_field = Field('id', 'oid', vrange=[1, CostTableUnit(self)])
+    id_field = Field('id', 'oid', vrange=[1, sz])
     self.fields = [('id', id_field)]
     self.assocs = []
     self.nested_tables = {} #key: assoc name
@@ -296,6 +296,7 @@ class DenormalizedTable(object):
     self.tables = tables
     self.join_fields = fields
     self.name = '#'.join([t.name for t in self.tables])
+    self.is_temp = False
   def __eq__(self, other):
     return type(self) == type(other) and set_equal(self.tables, other.tables)
   def get_full_type(self):

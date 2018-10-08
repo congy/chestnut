@@ -93,6 +93,8 @@ class Parameter(object):
     return []
   def to_json(self):
     return 'param[{}]'.format(self.symbol)
+  def get_all_fields(self):
+    return []
 
 class MultiParam(Parameter):
   def __init__(self, params=[]):
@@ -110,6 +112,9 @@ class MultiParam(Parameter):
       all([self.params[p]==other.params[p] for p in range(0, len(self.params))])
   def to_json(self):
     return '[{}]'.format(', '.join([x.to_json() for x in self.params]))
+
+def DoubleParam(p1, p2):
+  return MultiParam([p1, p2])
   
 class AtomValue(object):
   def __init__(self, v, tipe='int'):
@@ -188,7 +193,7 @@ class QueryField(object):
   def to_var_or_value(self, replace={}):
     return "{}.{}".format(self.table.name, self.field_name)
   def __str__(self):
-    return "{}:{}".format(self.table.name, self.field_name)
+    return "{}:{}".format(self.table.name if self.table else None, self.field_name)
   def __hash__(self):
     return hash(str(self))
   def has_param(self):
@@ -211,6 +216,11 @@ class QueryField(object):
     return []
   def to_json(self):
     return self.field_name
+
+# used in if condition...
+class UpperQueryField(QueryField): 
+  def __str__(self):
+    return "Upper({}:{})".format(self.table.name, self.field_name)
   
 class Pred(object):
   def has_param(self):
@@ -260,8 +270,8 @@ class UnaryOp(Pred):
     return self.operand.get_all_fields()
   def get_necessary_index_params(self):
     return self.operand.get_necessary_index_params()
-  def complete_field(self, table, upper_table=None, assoc_name=""):
-    self.operand.complete_field(table, upper_table, assoc_name)
+  def complete_field(self, table):
+    self.operand.complete_field(table)
   def __str__(self):
     return '(!{})'.format(self.operand)
   def __eq__(self, other):

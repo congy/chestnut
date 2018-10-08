@@ -185,7 +185,7 @@ def get_idxop_and_params_by_pred(pred, keys, nonexternal={}):
         else:
           params[q.lh] = ([q.rh])
       elif q.op == BETWEEN:
-        params[q.lh] = ([q.rh.p1, q.rh.p2])
+        params[q.lh] = ([q.rh.params[0], q.rh.params[1]])
         op = RANGE
       elif q.op == IN:
         params[q.lh] = ([q.rh.params[0]])

@@ -1,4 +1,12 @@
-
+import sys
+sys.path.append("../../")
+from schema import *
+from query import *
+from pred import *
+from nesting import *
+from plan_search import *
+from ilp.ilp_helper import *
+from ds_manager import *
 
 workload_name = "tpch_all"
 set_db_name(workload_name)
@@ -158,7 +166,7 @@ q1.get_include(f('lineitems')).aggr(UnaryExpr(AVG, f('quantity')), 'avg_qty')
 q1.get_include(f('lineitems')).aggr(UnaryExpr(AVG, f('extendedprice')), 'avg_price')
 q1.get_include(f('lineitems')).aggr(UnaryExpr(AVG, f('discount')), 'avg_disc')
 q1.get_include(f('lineitems')).aggr(UnaryExpr(COUNT), 'count')
-q1.get_include(f('lineitems')).only_aggr()
+q1.project('*')
 q1.complete()
 
 q1_inner.assigned_param_values = {Parameter('shipdate'): '2018-06-28 17:17:17'}
@@ -167,30 +175,30 @@ globalv.pred_selectivity.append((BinOp(f('shipdate',table=lineitem), LE, Paramet
 q3 = get_all_records(order)
 q3.pfilter(BinOp(f('customer').f('mktsegment'), EQ, Parameter('p_mktseg')))
 q3.pfilter(BinOp(f('orderdate'), LE, Parameter('date1')))
-q3.finclude(f('lineitems'), pfilter=BinOp(f('shipdate'), GE, Parameter('date2', dependence=(Parameter('date1'), 0))))
+q3.finclude(f('lineitems'), pfilter=BinOp(f('shipdate'), GE, Parameter('date2', dependence=(Parameter('date1'), 0))), projection=[])
 q3.get_include(f('lineitems')).aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'revenue')
-q3.get_include(f('lineitems')).only_aggr()
+q3.project([f('id'), f('orderdate'), f('orderpriority')])
 q3.orderby([f('revenue'), f('orderdate')])
 q3.complete()
 
 q4_inner = get_all_records(order)
 q4_inner.pfilter(BinOp(f('orderdate'), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2', dependence=(Parameter('date1'), 15)))))
 q4_inner.pfilter(SetOp(f('lineitems'), EXIST, BinOp(f('commitdate'), LE, f('receiptdate'))))
-q4_inner.only_aggr()
 q4 = q4_inner.groupby([f('orderpriority')], 5)
 q4.orderby([f('orderpriority')])
 q4.get_include(f('corders')).aggr(UnaryExpr(COUNT), 'count')
+q4.project('*')
 q4.complete()
 
 q5_inner = get_all_records(lineitem)
 q5_inner.pfilter(BinOp(f('supplier').f('nation').f('region').f('name'), EQ, Parameter('region')))
 q5_inner.pfilter(BinOp(f('order').f('customer').f('nation').f('id'), EQ, f('supplier').f('nation').f('id')))
 q5_inner.pfilter(BinOp(f('order').f('orderdate'), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2', dependence=(Parameter('date1'), 60)))))
-q5 = q5_inner.groupby([f('supplier').f('nation').f('id')], 25)
+q5 = q5_inner.groupby([f('supplier').f('nation').f('name')], 25)
 q5.get_include(f('lineitems')).aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'revenue')
-q5.get_include(f('lineitems')).only_aggr()
+q5.project('*')
 q5.orderby([f('revenue')])
 q5.complete()
 
@@ -200,9 +208,9 @@ q6.pfilter(BinOp(f('discount'), BETWEEN, DoubleParam(Parameter('disc1'), Paramet
 q6.pfilter(BinOp(f('quantity'), LE, Parameter('quant')))
 q6.aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, f('discount'))), 'revenue')
-q6.only_aggr()
 q6.complete()
 
+q7_inner = get_all_records(lineitem)
 q7 = q7_inner.groupby([f('supplier').f('nation').f('name'), f('order').f('customer').f('nation').f('name'), f('shipdate')], 125)
 pred1 = ConnectOp(BinOp(f('shipdate'), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2'))), AND, \
 	ConnectOp(BinOp(f('supplier').f('nation').f('name'), EQ, Parameter('nation1')), AND, \
@@ -212,6 +220,7 @@ pred2 = ConnectOp(BinOp(f('shipdate'), BETWEEN, DoubleParam(Parameter('date1'), 
 	 					BinOp(f('order').f('customer').f('nation').f('name'), EQ, Parameter('nation1'))))
 q7_inner.pfilter(ConnectOp(pred1, OR, pred2))
 q7_inner.aggr(UnaryExpr(SUM, BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'revenue')
+q7.project('*')
 q7.complete()
 
 q8_inner = get_all_records(lineitem)
@@ -224,6 +233,7 @@ q8.get_include(f('lineitems')).aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount'))), AtomValue(0)))), 'sum')
 q8.get_include(f('lineitems')).aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'div')
+q8.project('*')
 q8.complete()
 
 q12 = get_all_records(lineitem)
@@ -237,15 +247,14 @@ q12.aggr(UnaryExpr(SUM, \
 q12.aggr(UnaryExpr(SUM, \
         IfThenElseExpr(BinaryExpr(BinaryExpr(f('order').f('orderpriority'), BNEQ, AtomValue('1-URGENT')), BAND, BinaryExpr(f('order').f('orderpriority'), BNEQ, AtomValue('2-HIGH'))), \
         AtomValue(1), AtomValue(0))), 'low_line_count')
-q12.only_aggr()
 q12.complete()
 
 q13_inner = get_all_records(customer)
-q13_inner.finclude(f('orders'), pfilter=UnaryOp(BinOp(f('comment'), SUBSTR, Parameter('substr'))))
+q13_inner.finclude(f('orders'), pfilter=UnaryOp(BinOp(f('comment'), SUBSTR, Parameter('substr'))), projection=[])
 q13_inner.get_include(f('orders')).aggr(UnaryExpr(COUNT), 'c_count')
-q13_inner.get_include(f('orders')).only_aggr()
 q13 = q13_inner.groupby([f('c_count')], 100)
 q13.orderby([f('c_count')])
+q13.project('*')
 q13.complete()
 
 q14 = get_all_records(lineitem)
@@ -256,16 +265,13 @@ q14.aggr(UnaryExpr(SUM, \
           AtomValue(0))), 'promo_revenue_1')
 q14.aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), "promo_revenue_2")
-q14.only_aggr()
 q14.complete()
 
 q15 = get_all_records(supplier)
-q15.finclude(f('lineitems'))
+q15.finclude(f('lineitems'), projection=[])
 q15.get_include(f('lineitems')).pfilter(BinOp(f('shipdate'), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2'))))
 q15.get_include(f('lineitems')).aggr(UnaryExpr(SUM, BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'total_revenue')
-q15.get_include(f('lineitems')).only_aggr()
 q15.aggr(UnaryExpr(MAX, f('total_revenue')), 'max_revenue')
-q15.only_aggr()
 q15.complete()
 
 q19 = get_all_records(lineitem)
@@ -299,7 +305,6 @@ pred3 = ConnectOp(pred3_1, OR, ConnectOp(pred3_2, OR, pred3_3))
 q19.pfilter(pred3)
 q19.aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'revenue')
-q19.only_aggr()
 q19.complete()
 
 globalv.pred_selectivity.append((BinOp(f('shipdate', table=lineitem), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2'))), 0.16))
@@ -314,3 +319,13 @@ globalv.pred_selectivity.append((BinOp(f('part', table=lineitem).f('container', 
 globalv.pred_selectivity.append((BinOp(f('part', table=lineitem).f('container', table=part), IN, \
             MultiParam([AtomValue('LG CASE'), AtomValue('LG BOX'), AtomValue('LG PACK'), AtomValue('LG PKG')])), 0.2))
 globalv.pred_selectivity.append((BinOp(f('shipmode'), IN, MultiParam([AtomValue('AIR'), AtomValue('AIR REG')])), 0.33))
+
+
+# q8: to be fixed
+test_merge(q15)
+
+# dsmanagers = enumerate_nestings_for_query(q5)
+# for i,ds in enumerate(dsmanagers):
+#   print "Nesting {}:\n".format(i)
+#   print ds
+#   print '--------'

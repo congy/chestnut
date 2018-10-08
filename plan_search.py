@@ -95,7 +95,7 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
           index_steps, added_rest_preds = helper_get_idx_step_by_pred(idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
           rest_preds = rest_preds + added_rest_preds
           rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
-                enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds)
+                enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fields=aggr_assoc_fields)
           if len(rest_preds) > 0:
             cond_expr = rest_pred
           else:
@@ -162,19 +162,19 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
   for qf,next_query in query.includes.items():
     steps = search_steps_for_assoc(obj, dsmng, qf)
     field = qf
+    next_fields.append(qf)
     if len(steps) == 0:
       assert(idx_placeholder.table.contain_table(qf.field_class))
-      next_idxplaceholder = idx_placeholder
+      next_idx_placeholder = idx_placeholder
     else:
       step = ExecStepSeq(steps)
       assoc_steps.append(step)
       #if qf.table.has_one_or_many_field(qf.field_name) != 1:
-      next_fields.append(qf)
       assert(steps[-1].idx is not None)
-      if isinstance(steps[-1].idx, IndexPlaceHolder):
+      if isinstance(steps[-1].idx, ObjBasicArray):
         next_idx_placeholder = steps[-1].idx
       else:
-        next_idx_placeholder = dsmng.find_placeholder(get_query_field(p.lh).field_class)
+        next_idx_placeholder = dsmng.find_placeholder(field.field_class)
     next_level_query.append(\
       enumerate_indexes_for_query(next_query, dsmng, next_idx_placeholder, upper_assoc_qf=field))
 
@@ -251,7 +251,7 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
       rest_assoc_fields.append(f)
   assoc_steps_map = {}
   assoc_steps = []
-  for f in rest_assoc_fields:   
+  for f in rest_assoc_fields:  
     steps = search_steps_for_assoc(obj, dsmng, f) 
     step = ExecStepSeq(steps)
     assoc_steps_map[f] = step 
@@ -330,8 +330,8 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False):
     pass
   else:
     cnt = 0
-    for dsmng in dsmngers:
-      print 'nesting = {}'.format(dsmng)
+    for k,dsmng in enumerate(dsmngers):
+      print 'nesting {} = {}'.format(k, dsmng)
       temp_plans = search_plans_for_one_nesting(query, dsmng)
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       p = PlansForOneNesting(dsmng, res)

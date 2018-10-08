@@ -1,4 +1,5 @@
 from pred import *
+from pred_helper import *
 from expr import *
 from schema import *
 from util import *
@@ -40,9 +41,10 @@ class ReadQuery(object):
     return s
   def project(self, fields):
     if type(fields) is str and fields == '*':
-      for f in get_main_table(self.table).get_all_fields():
+      for f in get_main_table(self.table).get_fields():
         self.projections = clean_lst(\
-          [None if f.is_temp else QueryField(f.name, get_main_table(self.table)) for f in get_main_table(self.table).get_all_fields()])
+          [QueryField(f.name, get_main_table(self.table)) for f in get_main_table(self.table).get_fields()])
+      return
     for f in fields:
       f.complete_field(get_main_table(self.table))
       self.projections.append(f)
@@ -61,11 +63,12 @@ class ReadQuery(object):
       new_field = Field(aggr_name, tipe, is_temp=True)
       get_main_table(self.table.upper_table).add_field(new_field)
     self.aggrs.append((newv, aggr_func))
-  def finclude(self, field, pfilter=None):
+  def finclude(self, field, pfilter=None, projection='*'):
     field.complete_field(get_main_table(self.table))
     nested_table = self.table.get_nested_table_by_name(field.field_name)
     q = ReadQuery(nested_table)
     q.upper_query = self
+    q.project(projection)
     if self.return_var:
       q.return_var.set_upper_var(self.return_var)
     if pfilter:
@@ -79,10 +82,14 @@ class ReadQuery(object):
     return None
   def orderby(self, order, limit=0, ascending=True):
     self.order = order if type(order) is list else [order]
+    for o in self.order:
+      o.complete_field(get_main_table(self.table))
     self.limit = limit
     self.return_var.order = order
     self.return_var.limit = limit
     self.return_var.ascending = ascending
+  def return_limit(self, limit):
+    self.return_var.limit = limit
   def complete(self):
     # if nothing gets projected, then return only aggr
     if len(self.projections) == 0:
@@ -138,7 +145,7 @@ class ReadQuery(object):
     if Ngroups == 0:
       Ngroups = 1
       for f in fields:
-        Ngroups = Ngroups * f.field_class.get_number_of_possible_values()
+        Ngroups = Ngroups * get_query_field(f).field_class.get_number_of_possible_values()
     table = Table('{}_group{}'.format(self.table.name, group_cnt), Ngroups, is_temp=True)
     for f in fields:
       f.complete_field(get_main_table(self.table))

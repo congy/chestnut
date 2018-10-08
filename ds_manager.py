@@ -22,6 +22,8 @@ class DSManager(object):
       if ds_ == ds:
         if replace:
           self.data_structures[i] = ds
+        else:
+         self.data_structures[i].merge(ds)
         return
     self.data_structures.append(ds)
   def remove_ds(self, ds):
@@ -76,6 +78,7 @@ class DSManager(object):
           if o2.table.contain_table(o1.table):
             o2.merge(o1)
             merged = True
+            self.data_structures[j] = o2
             break
       if not merged:
         temp_ds.append(o1)

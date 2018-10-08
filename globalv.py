@@ -37,6 +37,13 @@ def add_pred_scope(scopes):
 
 always_nested = []
 
+def extend_tables(tables, associations, queries):
+  for q in queries:
+    if q.table.is_temp:
+      tables.append(q.table)
+      for a in q.table.get_assocs():
+        associations.append(a)
+
 qr_type = 'proto'
 def set_qr_type(new_type):
   global qr_type

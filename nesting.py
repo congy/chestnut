@@ -66,7 +66,7 @@ def get_obj_nesting_by_query(cur_obj, query):
   #check order
   if query.has_order():
     for o in query.order:
-      if not o.is_temp:
+      if not o.field_class.is_temp:
         if is_assoc_field(o):
           get_obj_nesting_by_pred(cur_obj, o)
         elif o.table == get_main_table(query.table):
@@ -100,14 +100,13 @@ def get_obj_nesting_by_pred(cur_obj, pred):
     return cur_obj.get_assoc(pred.lh)
   elif isinstance(pred, BinOp):
     if is_assoc_field(pred.lh):
-      next_obj = get_obj_nesting_by_pred(cur_obj, pred.lh)
+      get_obj_nesting_by_pred(cur_obj, pred.lh)
     elif is_query_field(pred.lh):
       cur_obj.add_field(pred.lh)
-      next_obj = cur_obj
     if is_assoc_field(pred.rh):
-      get_obj_nesting_by_pred(next_obj, pred.rh)
+      get_obj_nesting_by_pred(cur_obj, pred.rh)
     elif is_query_field(pred.rh):
-      next_obj.add_field(pred.rh)
+      cur_obj.add_field(pred.rh)
     return cur_obj
   elif isinstance(pred, UnaryOp):
     return get_obj_nesting_by_pred(cur_obj, pred.operand)
@@ -163,9 +162,13 @@ def enumerate_nesting(nesting):
 
 def enumerate_nesting_helper(nesting, table, level):
   lst = [[] for i in range(0, len(nesting.assocs))]
-  i = 0
   new_dsmng = DSManager()
+  if len(lst) == 0:
+    return [(MemObject(table), new_dsmng)]
+  i = 0
+  qfs = []
   for qf,assoc in nesting.assocs.items():
+    qfs.append(qf)
     if isinstance(table, DenormalizedTable):
       nested_t = qf.table.get_nested_table_by_name(qf.field_name)
     else:
@@ -202,20 +205,27 @@ def enumerate_nesting_helper(nesting, table, level):
         lst[i].append((MemObject(table), next_dsmng))
 
     
-    if qf not in globalv.always_fk_indexed and qf not in globalv.always_nested and is_main_table(table):
+    if qf not in globalv.always_fk_indexed and qf not in globalv.always_nested \
+      and is_main_table(table) and not table.is_temp:
       # denormalized table
       if isinstance(table, DenormalizedTable):
         denorm_t = DenormalizedTable(table.tables+[main_t], table.join_fields+[qf])
         next_lst = enumerate_nesting_helper(assoc, denorm_t, 1)
         for (next_obj,next_dsmng) in next_lst:
-          if table_already_contained(next_dsmng, denorm_t) is None:
-            next_dsmng.add_ds(IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj)))
+          exist_ds = table_already_contained(next_dsmng, denorm_t)
+          new_ds = IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj))
+          if exist_ds is None:
+            next_obj.table = denorm_t
+          next_dsmng.add_ds(new_ds)
           lst[i].append((MemObject(denorm_t), next_dsmng))
       denorm_t = DenormalizedTable([qf.table, main_t], [qf])
       next_lst = enumerate_nesting_helper(assoc, denorm_t, 1)
       for (next_obj,next_dsmng) in next_lst:
-        if table_already_contained(next_dsmng, denorm_t) is None:
-          next_dsmng.add_ds(IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj)))
+        exist_ds = table_already_contained(next_dsmng, denorm_t) 
+        new_ds = IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj))
+        if exist_ds is None:
+          next_obj.table = denorm_t
+        next_dsmng.add_ds(new_ds)
         lst[i].append((MemObject(denorm_t), next_dsmng))
 
     """
@@ -254,18 +264,15 @@ def enumerate_nesting_helper(nesting, table, level):
 
     i += 1
 
-  if len(lst) == 0:
-    return [(MemObject(table), new_dsmng)]
-
   r = []
   # print "{}: len lst = {} || {}".format(table, len(lst), ','.join([str(len(x)) for x in lst]))
   for x in itertools.product(*lst):
     #x: list of pairs
     _obj = x[0][0].fork()
     _dsmng = x[0][1].fork()
-    for temp_obj, temp_dsmng in x[1:]:
-      _obj.merge(temp_obj)
-      _dsmng.merge(temp_dsmng)
+    for i, (temp_obj, temp_dsmng) in enumerate(x[1:]):
+      _obj.merge(temp_obj.fork())
+      _dsmng.merge(temp_dsmng.fork())
     r.append((_obj, _dsmng))
   #print "len r = {}".format(len(r))
   return r
