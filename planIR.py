@@ -62,6 +62,7 @@ class ExecSetVarStep(ExecStepSuper):
     self.expr = expr
     self.cond = cond
     self.cost = 1
+    self.projections = []
   def __eq__(self, other):
     var_eq = False
     expr_eq = False
@@ -104,6 +105,7 @@ class ExecSetVarStep(ExecStepSuper):
     return cur_obj
   def get_all_variables(self):
     return [self.var]
+
 
 # steps
 class ExecStepSeq(ExecStepSuper):

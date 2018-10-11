@@ -36,8 +36,16 @@ class DSManager(object):
     # or return the table arry if not partitioned
     # this can also be denormalized table
     for ds in self.data_structures:
+      if isinstance(ds, ObjBasicArray) and ds.table == table:
+        return ds
+    for ds in self.data_structures:
       if isinstance(ds, ObjBasicArray) and table_contains(ds.table, table):
         return ds
+    for ds in self.data_structures:
+      if isinstance(ds, IndexPlaceHolder) and ds.table == table:
+        new_ary = create_primary_array(ds.table)
+        self.data_structures.append(new_ary)
+        return new_ary
     for ds in self.data_structures:
       if isinstance(ds, IndexPlaceHolder) and table_contains(ds.table, table):
         new_ary = create_primary_array(ds.table)
@@ -45,6 +53,9 @@ class DSManager(object):
         return new_ary
     return None
   def find_placeholder(self, table):
+    for ds in self.data_structures:
+      if isinstance(ds, IndexPlaceHolder) and ds.table == table:
+        return ds
     for ds in self.data_structures:
       if isinstance(ds, IndexPlaceHolder) and table_contains(ds.table, table):
         return ds
@@ -66,22 +77,43 @@ class DSManager(object):
   def merge_self(self):
     # TODO: should be more than 1 pass?
     temp_ds = []
+    groups = []
+    group_major_table = []
     for i in range(0, len(self.data_structures)):
-      merged = False
       o1 = self.data_structures[i]
-      for j in range(0, len(self.data_structures)):
-        if i == j:
-          continue
-        o2 = self.data_structures[j]
-        # only keep the denormalized table if both table A and denormalized A*B exist (merge them if necessary)
-        if type(o1) == type(o2) and (not o1.table == o2.table):
-          if o2.table.contain_table(o1.table):
-            o2.merge(o1)
-            merged = True
-            self.data_structures[j] = o2
-            break
-      if not merged:
-        temp_ds.append(o1)
+      contained = False
+      for gi,g_ds in enumerate(groups):
+        if group_major_table[gi][0] == o1.table:
+          if isinstance(o1, IndexPlaceHolder):
+            group_major_table[gi] = (o1.table, len(g_ds))
+          g_ds.append(o1)
+          contained = True 
+        elif group_major_table[gi][0].contain_table(o1.table):
+          g_ds.append(o1)
+          contained = True 
+        elif o1.table.contain_table(group_major_table[gi][0]):
+          group_major_table[gi] = (o1.table, len(g_ds))
+          g_ds.append(o1)
+          contained = True 
+      if not contained:
+        groups.append([o1])
+        group_major_table.append((o1.table, 0))
+    temp_ds = []
+    for gi, g_ds in enumerate(groups):
+      if len(g_ds) == 0:
+        temp_ds.append(g_ds[0])
+        continue
+      ind = group_major_table[gi][1]
+      main_ds = g_ds[ind]
+      assert(isinstance(main_ds, IndexPlaceHolder))
+      for i,ds in enumerate(g_ds):
+        if i != ind and isinstance(ds, IndexPlaceHolder):
+          main_ds.merge(ds)
+        elif i != ind:
+          if not ds.table == main_ds.table:
+            ds.table = main_ds.table
+          temp_ds.append(ds)
+      temp_ds.append(main_ds)
     self.data_structures = temp_ds
   def fork(self):
     new_ds = DSManager()

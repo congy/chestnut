@@ -63,8 +63,8 @@ class MemObject(object):
   def get_all_fields(self):
     return self.fields
   def add_field(self, f):
-    print f
-    print self.table.get_full_type()
+    # print f
+    # print self.table.get_full_type()
     assert(get_main_table(self.table).contain_table(f.table))
     if not any([f==f1 for f1 in self.fields]):
       self.fields.append(f)
@@ -255,6 +255,7 @@ class IndexBase(IndexMeta):
 class ObjTreeIndex(IndexBase):
   def __init__(self, table, keys, condition=None, value=MAINPTR):
     super(ObjTreeIndex, self).__init__(table, keys, condition, value)
+    self.basic_ary = None
   def compute_mem_cost(self):
     temp = IdxSizeUnit(self)
     #self.mem_cost = CostOp(temp, COST_ADD, CostLogOp(temp))
@@ -322,7 +323,6 @@ class ObjArray(IndexBase):
       return ObjArray(self.table, self.condition, OBJECT) 
     else:
       return self.fork()
-
 
 class ObjHashIndex(IndexBase):
   def __init__(self, table, keys, condition=None, value=MAINPTR):

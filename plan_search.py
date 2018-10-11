@@ -173,8 +173,12 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
       assert(steps[-1].idx is not None)
       if isinstance(steps[-1].idx, ObjBasicArray):
         next_idx_placeholder = steps[-1].idx
+      elif isinstance(steps[-1].idx, ObjTreeIndex):
+        next_idx_placeholder = dsmng.find_placeholder(steps[-1].idx.table)
       else:
         next_idx_placeholder = dsmng.find_placeholder(field.field_class)
+    #print 'obj = {}'.format(obj)
+    #print 'ASSOC = {}, step = {}, next_idx_placeholder = {}'.format(qf, step, next_idx_placeholder)
     next_level_query.append(\
       enumerate_indexes_for_query(next_query, dsmng, next_idx_placeholder, upper_assoc_qf=field))
 
@@ -233,7 +237,6 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
   if idx_placeholder.value.is_main_ptr():
     idx_placeholder = dsmng.find_placeholder(get_main_table(idx_placeholder.table))
   obj = idx_placeholder.value.get_object()
-  #relates_objstruct = pool.get_obj(objstruct.table) if objstruct.relates else objstruct
   placeholder = {}
 
   _rest_assoc_fields = [a for a in assoc_fields]
@@ -258,6 +261,7 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
     if len(steps) > 0:   
       placeholder[f] = steps[-1].var
       assoc_steps.append(step)
+      #print 'assoc steps = {}'.format(step)
   if len(rest_preds) == 0:
     return (None, placeholder, assoc_steps, [], [])
   
@@ -275,6 +279,8 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
         assert(steps[-1].idx is not None)
         if isinstance(steps[-1].idx, ObjBasicArray):
           next_idx_placeholder = steps[-1].idx
+        elif isinstance(steps[-1].idx, ObjTreeIndex):
+          next_idx_placeholder = dsmng.find_placeholder(steps[-1].idx.table)
         else:
           next_idx_placeholder = dsmng.find_placeholder(get_query_field(p.lh).field_class)
     else:
@@ -330,9 +336,14 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False):
     pass
   else:
     cnt = 0
+    fail_nesting = []
     for k,dsmng in enumerate(dsmngers):
       print 'nesting {} = {}'.format(k, dsmng)
-      temp_plans = search_plans_for_one_nesting(query, dsmng)
+      try:
+        temp_plans = search_plans_for_one_nesting(query, dsmng)
+      except:
+        fail_nesting.append(dsmng)
+        continue
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       p = PlansForOneNesting(dsmng, res)
       for plan in res:
@@ -345,4 +356,9 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False):
         print '=============\n'
         cnt += 1
       plans.append(p)
+  print '#Fail nestings: {}'.format(len(fail_nesting))
+  for i,f in enumerate(fail_nesting):
+    print 'FAIL {}'.format(i)
+    print f
+    print '-----'
   return plans

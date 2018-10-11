@@ -168,16 +168,20 @@ def search_steps_for_assoc(obj, dsmng, pred):
   else:
     f = pred.lh
   steps = []
+  #print 'obj.table = {}, contain_table = {} {}'.format(obj.table.get_full_type(), f.field_class, obj.table.contain_table(f.field_class))
   if obj.table.contain_table(f.field_class):
     next_obj = obj
   else:
     o = obj.find_nested_obj_by_field(f)
+    #print 'find nested: o = {}'.format(o)
     if o is None: # use id to retrieve
       foreignkey_idx = is_foreignkey_indexed(dsmng, f)
-      ary = dsmng.find_placeholder(f.field_class)
+      #print 'foreign key? {}'.format(foreignkey_idx)
       if foreignkey_idx:
+        ary = dsmng.find_placeholder(foreignkey_idx.table)
         steps.append(ExecGetAssocStep(f, foreignkey_idx))
       else:
+        ary = dsmng.find_placeholder(f.field_class)
         steps.append(ExecGetAssocStep(f, ObjBasicArray(ary.table, ary.value)))
       next_obj = ary.value.get_object()
     else:

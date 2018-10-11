@@ -956,6 +956,8 @@ q4g = q4.groupby(orderpriority)
 q4g.orderby(orderpriority)
 q4g.orders.aggr(count(), "count")
 
+call('q4', 'delete from R', 888)
+
 q5 = Lineitem.where(supplier.nation.region.name == param[region])
              .where(order.customer.nation.id == supplier.nation.id)
              .where(order.orderdate between [param[date1], param[date2]])
@@ -1084,8 +1086,8 @@ q14.aggr(sum(extendedprice*(1-discount)), "promo_revenue_2")
 """
 """
 q15 = Supplier.lineitems.where(shipdate between [param[date1], param[date2]])
-q15.lineitems.aggr(sum(extendedprice*(1-discount)), "total_revenue")
-q15.aggr(max(total_revenue), "max_revenue")
+f=q15.lineitems.aggr(sum(extendedprice*(1-discount)), "total_revenue")
+n=f.aggr(max(total_revenue), "max_revenue")
 """
 """
 q18 = Order.all()

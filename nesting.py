@@ -213,18 +213,18 @@ def enumerate_nesting_helper(nesting, table, level):
         next_lst = enumerate_nesting_helper(assoc, denorm_t, 1)
         for (next_obj,next_dsmng) in next_lst:
           exist_ds = table_already_contained(next_dsmng, denorm_t)
-          new_ds = IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj))
           if exist_ds is None:
             next_obj.table = denorm_t
+          new_ds = IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj))
           next_dsmng.add_ds(new_ds)
           lst[i].append((MemObject(denorm_t), next_dsmng))
       denorm_t = DenormalizedTable([qf.table, main_t], [qf])
       next_lst = enumerate_nesting_helper(assoc, denorm_t, 1)
       for (next_obj,next_dsmng) in next_lst:
         exist_ds = table_already_contained(next_dsmng, denorm_t) 
-        new_ds = IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj))
         if exist_ds is None:
           next_obj.table = denorm_t
+        new_ds = IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj))
         next_dsmng.add_ds(new_ds)
         lst[i].append((MemObject(denorm_t), next_dsmng))
 
@@ -273,6 +273,16 @@ def enumerate_nesting_helper(nesting, table, level):
     for i, (temp_obj, temp_dsmng) in enumerate(x[1:]):
       _obj.merge(temp_obj.fork())
       _dsmng.merge(temp_dsmng.fork())
+    if len(r) == 116:
+      print 'to be merged:'
+      for x1 in x:
+        print x1[0]
+        print x1[1]
+        print '----'
+      print 'after merge:'
+      print _obj
+      print _dsmng
+      print '====* * ==='
     r.append((_obj, _dsmng))
   #print "len r = {}".format(len(r))
   return r
