@@ -28,6 +28,7 @@ from lobsters_schema import *
 # q_mc_6
 q_sd_1 = get_all_records(story)
 q_sd_1.pfilter(BinOp(f('short_id'), EQ, Parameter('story_short_id')))
+q_sd_1.project('*')
 q_sd_1.finclude(f('tags'))
 q_sd_1.complete()
 

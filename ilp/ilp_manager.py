@@ -6,8 +6,9 @@ from cost import *
 from ilp_helper import *
 from query_manager import *
 from ilp_helper import *
-from gurobipy import *
-#from ilp_fake import *
+from prune_plans import *
+#from gurobipy import *
+from ilp_fake import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):

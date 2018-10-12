@@ -347,18 +347,17 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
         continue
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       p = PlansForOneNesting(dsmng, res)
-      for plan in res:
-        if print_plan:
+      if print_plan: 
+        for plan in res:
           print 'PLAN {}'.format(cnt)
           print plan
-        new_dsmnger = dsmng.copy_tables()
-        plan.get_used_ds(None, new_dsmnger)
-        new_dsmnger.clear_placeholder()
-        if print_plan:
+          new_dsmnger = dsmng.copy_tables()
+          plan.get_used_ds(None, new_dsmnger)
+          new_dsmnger.clear_placeholder()
           print '** struct:'
           print new_dsmnger
           print '=============\n'
-        cnt += 1
+          cnt += 1
       plans.append(p)
   # print '#Fail nestings: {}'.format(len(fail_nesting))
   # for i,f in enumerate(fail_nesting):

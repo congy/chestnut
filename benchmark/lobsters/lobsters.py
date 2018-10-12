@@ -25,7 +25,7 @@ from user_show import *
 from nesting import *
 from plan_search import *
 from ds_manager import *
-from ilp.ilp_helper import *
+from ilp.ilp_manager import *
 import globalv
 
 #from test_ilp import *
@@ -86,7 +86,10 @@ globalv.set_qr_type('fastv')
 #generate_plans_for_all_queries(tables, associations, [q_ct_2], [])
 #exit(0)
 
-test_merge(q_hr_1)
+#test_merge(q_hr_1)
+#prune_nesting_test(read_queries)
+#test_ilp(read_queries)
+test_prune_read_plan(read_queries)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):

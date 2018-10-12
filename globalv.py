@@ -15,6 +15,7 @@ pred_selectivity = [] # pair: (pred, selectivity)
 frequencies = {}
 always_nested = []
 always_fk_indexed = []
+reversely_visited = []
 pred_scope = []
 use_template = False
 

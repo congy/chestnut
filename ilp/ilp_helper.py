@@ -16,6 +16,7 @@ def compute_mem_bound(factor=2):
   for a in globalv.associations:
     if a.assoc_type == 'many_to_many':
       sz += a.lft.sz * a.lft_ratio * 3
+  globalv.memory_bound = sz * factor
   return sz * factor
 
 # manager that merges all ds

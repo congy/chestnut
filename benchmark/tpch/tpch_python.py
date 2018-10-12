@@ -323,10 +323,14 @@ globalv.pred_selectivity.append((BinOp(f('part', table=lineitem).f('container', 
 globalv.pred_selectivity.append((BinOp(f('shipmode'), IN, MultiParam([AtomValue('AIR'), AtomValue('AIR REG')])), 0.33))
 
 
+read_queries = [q1, q3, q4, q5, q6, q7, q12, q13, q14, q15]
 # q8: to be fixed
 #test_merge(q5)
 
-test_ilp([q1, q3, q4, q5, q6, q7, q12, q13, q14, q15])
+#prune_nesting_test(read_queries)
+test_prune_read_plan(read_queries)
+
+#test_ilp(read_queries)
 
 # dsmanagers = enumerate_nestings_for_query(q5)
 # for i,ds in enumerate(dsmanagers):

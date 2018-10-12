@@ -119,6 +119,13 @@ def list_combine(lsts):
     r = r + l
   return r
 
+def list_remove_duplicate(lst):
+  l = []
+  for ele in lst:
+    if ele not in l:
+      l.append(ele)
+  return l
+
 def insert_indent(s, indent_level=1):
   indent = ''.join(['  ' for i in range(0, indent_level)])
   return ('\n'.join([indent+l if len(l) > 0 else l for l in s.split('\n')])+'\n')

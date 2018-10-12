@@ -12,10 +12,12 @@ from lobsters_schema import *
 
 q_mc_1 = get_all_records(message)
 q_mc_1.pfilter(BinOp(f('short_id'), EQ, Parameter('msg_short_id')))
+q_mc_1.project([f('id')])
 q_mc_1.complete()
 
 q_mc_2 = get_all_records(user)
 q_mc_2.pfilter(BinOp(f('id'), EQ, Parameter('user_id')))
+q_mc_2.project('*')
 q_mc_2.complete()
 
 q_mc_3 = AddObject(message, {QueryField('body', table=message):Parameter('new_body'), \

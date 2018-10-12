@@ -205,7 +205,8 @@ def enumerate_nesting_helper(nesting, table, level):
         lst[i].append((MemObject(table), next_dsmng))
 
     
-    if qf not in globalv.always_fk_indexed and qf not in globalv.always_nested \
+    if qf not in globalv.reversely_visited and qf not in globalv.always_nested \
+      and qf not in globalv.always_fk_indexed \
       and is_main_table(table) and not table.is_temp:
       # denormalized table
       if isinstance(table, DenormalizedTable):

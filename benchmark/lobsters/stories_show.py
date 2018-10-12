@@ -24,6 +24,7 @@ from lobsters_schema import *
 
 q_ss_1 = get_all_records(story)
 q_ss_1.pfilter(BinOp(f('merged_story_id'), EQ, Parameter('story_id')))
+q_ss_1.project([f('id')])
 q_ss_1.finclude(f('comments'))
 q_ss_1.get_include(f('comments')).orderby([f('confidence')], ascending=False)
 q_ss_1.finclude(f('votes'))

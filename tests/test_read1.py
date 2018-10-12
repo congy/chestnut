@@ -49,5 +49,6 @@ q.complete()
 # search_plans_for_one_query(q)
 
 #test_merge(q)
-test_ilp([q])
+#test_ilp([q])
+test_prune_read_plan([q])
 

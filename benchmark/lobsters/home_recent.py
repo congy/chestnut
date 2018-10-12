@@ -58,6 +58,7 @@ q_hr_3 = get_all_records(vote)
 q_hr_3.pfilter(ConnectOp(BinOp(f('user').f('id'), EQ, param_user_id), AND, \
 ConnectOp(BinOp(f('comment').f('id'), EQ, AtomValue(0)), AND, \
 BinOp(f('story').f('id'), EQ, Parameter('user_id')))))
+q_hr_3.project('*')
 q_hr_3.complete()
 
 
