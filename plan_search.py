@@ -107,10 +107,10 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
               new_aggr = replace_subexpr_with_var(aggr, placeholder)
               set_steps.append(ExecSetVarStep(v, new_aggr, cond=cond_expr))
             if variable_to_set:
-              set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr, proj=[query.projections]))
+              set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr, proj=query.projections))
           else:
             if variable_to_set:
-              set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr, proj=[query.projections]))
+              set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr, proj=query.projections))
 
           Nsteps_to_add_sort = len(index_steps)
           if query.order:

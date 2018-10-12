@@ -88,6 +88,7 @@ class ExecSetVarStep(ExecStepSuper):
     return s
   def fork(self):
     s = ExecSetVarStep(self.var, self.expr, self.cond)
+    s.projections = [p for p in self.projections]
     return s
   def get_read_queries(self):
     return []
@@ -101,6 +102,7 @@ class ExecSetVarStep(ExecStepSuper):
       used_fields += get_curlevel_fields(self.cond)
     if self.expr:
       used_fields += get_curlevel_fields(self.expr)
+    #print 'self projection = {}'.format(len(self.projections))
     used_fields += self.projections
     for f in used_fields:
       cur_obj.add_field(f)

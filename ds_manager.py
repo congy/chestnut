@@ -120,6 +120,11 @@ class DSManager(object):
     for ds in self.data_structures:
       new_ds.data_structures.append(ds.fork())
     return new_ds
+  def compute_mem_cost(self):
+    cost = 0
+    for ds in self.data_structures:
+      cost = cost_add(ds.compute_mem_cost(), cost)
+    return cost
   def copy_tables(self):
     dsmng = DSManager()
     new_ds = []
