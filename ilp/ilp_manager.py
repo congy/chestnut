@@ -225,6 +225,7 @@ def test_ilp(read_queries, write_queries=[], membound_factor=2):
 
   ilp = ILPVariableManager()
   ilp.mem_bound = compute_mem_bound(membound_factor)
+  print 'MEMORY BOUND = {}'.format(ilp.mem_bound)
   ilp.add_data_structures(dsmeta)
   ilp.add_read_queries(rqmanagers)
 

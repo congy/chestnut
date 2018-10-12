@@ -5,8 +5,9 @@ from query import *
 from pred import *
 from nesting import *
 from plan_search import *
-from ilp.ilp_helper import *
+from ilp.ilp_manager import *
 from ds_manager import *
+import globalv
 
 workload_name = "tpch_all"
 set_db_name(workload_name)
@@ -144,8 +145,8 @@ assoc8 = get_new_assoc("supplier_part_part", "one_to_many", part, partsupp, 'par
 assoc9 = get_new_assoc("supplier_part_supp", "one_to_many", supplier, partsupp, 'partsupps', 'supplier')
 
 
-tables = [lineitem, customer, order, supplier, nation, region, part, partsupp]
-associations = [assoc1, assoc2, assoc3, assoc4, assoc5, assoc6, assoc7, assoc8, assoc9]
+globalv.tables = [lineitem, customer, order, supplier, nation, region, part, partsupp]
+globalv.associations = [assoc1, assoc2, assoc3, assoc4, assoc5, assoc6, assoc7, assoc8, assoc9]
 
 #generate_db_data_files(datafile_dir, tables, associations)
 #exit(0)
@@ -307,6 +308,7 @@ q19.aggr(UnaryExpr(SUM, \
     BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'revenue')
 q19.complete()
 
+globalv.pred_selectivity.append((BinOp(f('shipdate', table=lineitem), LE, Parameter('shipdate')), 0.95))
 globalv.pred_selectivity.append((BinOp(f('shipdate', table=lineitem), BETWEEN, DoubleParam(Parameter('date1'), Parameter('date2'))), 0.16))
 globalv.pred_selectivity.append((BinOp(f('discount', table=lineitem), BETWEEN, DoubleParam(Parameter('disc1'), Parameter('disc2'))), 0.2))
 globalv.pred_selectivity.append((BinOp(f('quantity', table=lineitem), LE, Parameter('quant')), 0.2))
@@ -322,7 +324,9 @@ globalv.pred_selectivity.append((BinOp(f('shipmode'), IN, MultiParam([AtomValue(
 
 
 # q8: to be fixed
-test_merge(q15)
+#test_merge(q5)
+
+test_ilp([q1, q3, q4, q5, q6, q7, q12, q13, q14, q15])
 
 # dsmanagers = enumerate_nestings_for_query(q5)
 # for i,ds in enumerate(dsmanagers):

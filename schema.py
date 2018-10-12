@@ -297,6 +297,7 @@ class DenormalizedTable(object):
     self.join_fields = fields
     self.name = '#'.join([t.name for t in self.tables])
     self.is_temp = False
+    self.sz = to_real_value(self.cost_real_size())
   def __eq__(self, other):
     return type(self) == type(other) and set_equal(self.tables, other.tables)
   def get_full_type(self):

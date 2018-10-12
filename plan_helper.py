@@ -112,6 +112,11 @@ class PlanTree(object):
     else:
       return self.pre_steps + [idx_step]
 
+class NestingFailException(Exception):
+  def __init__(self, message):
+    super(NestingFailException, self).__init__(message)
+
+
 def get_initvar_steps(aggrs, preds):
   steps = []
   for a in aggrs:
@@ -183,8 +188,11 @@ def search_steps_for_assoc(obj, dsmng, pred):
         ary = dsmng.find_placeholder(foreignkey_idx.table)
         steps.append(ExecGetAssocStep(f, foreignkey_idx))
       else:
-        ary = dsmng.find_placeholder(f.field_class)
-        steps.append(ExecGetAssocStep(f, ObjBasicArray(ary.table, ary.value)))
+        try:
+          ary = dsmng.find_placeholder(f.field_class)
+          steps.append(ExecGetAssocStep(f, ObjBasicArray(ary.table, ary.value)))
+        except:
+          raise NestingFailException('place1')
       next_obj = ary.value.get_object()
     else:
       steps.append(ExecGetAssocStep(f, ObjBasicArray(o.table, o.value)))

@@ -5,7 +5,7 @@ from query import *
 from pred import *
 from nesting import *
 from plan_search import *
-from ilp.ilp_helper import *
+from ilp.ilp_manager import *
 from ds_manager import *
 import globalv
 
@@ -58,6 +58,7 @@ q = q_mp_2
 #   print '--------'
 
 # test search plan
-search_plans_for_one_query(q)
+# search_plans_for_one_query(q)
 
-test_merge(q)
+# test_merge(q)
+test_ilp([q])

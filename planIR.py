@@ -289,7 +289,7 @@ class ExecGetAssocStep(ExecStepSuper):
     if idx.value.is_object():
       next_obj = idx.value.get_object()
     elif idx.value.is_main_ptr():
-      primary_ary = ds_manager.find_primary_array(self.field.field_class)
+      primary_ary = ds_manager.find_primary_array(get_main_table(idx.table))
       next_obj = primary_ary.value.get_object()
     return next_obj
   def retrieves_field(self, f): 
@@ -413,7 +413,7 @@ class ExecIndexStep(ExecScanStep):
     else:
       filter_ratio = 1
     ele_cost = self.ele_ops.compute_cost(non_zero=True)
-    lookup_cost = CostLogOp(total_ele_cnt)
+    lookup_cost = cost_mul(CostLogOp(total_ele_cnt), 2)
     if isinstance(self.idx, ObjHashIndex):
       self.cost = CostOp(CostOp(total_ele_cnt, COST_DIV, filter_ratio), COST_MUL, ele_cost)
     else:
