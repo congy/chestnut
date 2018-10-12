@@ -4,7 +4,19 @@ from ds import *
 from ds_manager import *
 from plan_search import *
 from plan_helper import *
+import globalv
 
+
+def compute_mem_bound(factor=2):
+  sz = 0
+  ele_cnt = 0
+  for t in globalv.tables:
+    field_sz = sum([f.get_sz() for f in t.get_fields()])
+    sz += t.sz*field_sz
+  for a in globalv.associations:
+    if a.assoc_type == 'many_to_many':
+      sz += a.lft.sz * a.lft_ratio * 3
+  return sz * factor
 
 # manager that merges all ds
 

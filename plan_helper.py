@@ -13,7 +13,7 @@ class PlansForOneNesting(object):
   def __init__(self, nesting, plans):
     self.nesting = nesting
     self.plans = plans
-    self.dsmngers = [] # to be filled later
+    self.dsmanagers = []
   def compute_used_structs(self):
     pass
   
@@ -149,12 +149,14 @@ def get_all_idxes_on_cond(idx_placeholder, keys, idx_pred):
       if isinstance(table, NestedTable):
         idxes.append(ObjSortedArray(table, keys, idx_pred, value))
       else:
+        idxes.append(ObjSortedArray(table, keys, idx_pred, value))
         idxes.append(ObjTreeIndex(table, keys, idx_pred, MAINPTR))
   else:
     if is_valid_idx_cond(idx_pred):
       if isinstance(table, NestedTable):
         idxes.append(ObjArray(table, idx_pred, value))
       else:
+        idxes.append(ObjArray(table, idx_pred, value))
         idxes.append(ObjArray(table, idx_pred, MAINPTR))
   return idxes
 

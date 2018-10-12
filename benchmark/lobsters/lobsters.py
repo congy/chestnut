@@ -37,8 +37,8 @@ set_data_file_dir(datafile_dir)
 
 set_cpp_files_path('../../')
 
-tables = [story, comment, message, tag, vote, user]
-associations = [storys_user, storys_tags, storys_hidden, comments_user, comments_story, message_author, message_recipient, \
+globalv.tables = [story, comment, message, tag, vote, user]
+globalv.associations = [storys_user, storys_tags, storys_hidden, comments_user, comments_story, message_author, message_recipient, \
 votes_comment, votes_story, votes_user]
 
 #generate_db_data_files(datafile_dir, tables, associations)
@@ -66,11 +66,6 @@ q_sd_2, \
 q_su_2, \
 q_sv_2, q_sv_3, q_sv_4, q_sv_5, q_sv_6]
 
-globalv.extend_tables(tables, associations, read_queries)
-
-
-globalv.tables = tables
-globalv.associations = associations
 
 # globalv.set_use_template()
 # globalv.set_always_nested([QueryField('hidden_users', table=story), QueryField('user', table=vote)])

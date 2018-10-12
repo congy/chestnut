@@ -2,10 +2,12 @@ import sys
 sys.path.append('../')
 from query_manager import *
 from util import *
-from gurobipy import *
 from cost import *
 from ilp_helper import *
 from query_manager import *
+from ilp_helper import *
+#from gurobipy import *
+from ilp_fake import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -79,8 +81,8 @@ class ILPVariableManager(object):
     # CONSTR 8: each plan use structures/memobjs
 
     # CONSTR 9: within memory bound
-    cost = sum([to_real_value(ds.compute_mem_cost())*self.dsv[ds.id] for ds_id,ds in self.ds_instance.items()])
-    cost = cost + sum([sum([f.field_class.get_sz()*ilpv for f,ilpv in pair]) \
+    cost = sum([self.dsv[ds.id]*to_real_value(ds.compute_mem_cost()) for ds_id,ds in self.ds_instance.items()])
+    cost = cost + sum([sum([ilpv*f.field_class.get_sz() for f,ilpv in pair]) \
           * to_real_value(self.ds_instance[dsid].element_count()) \
             for dsid, pair in self.memobjv.items()])
     self.model.addConstr(cost <= self.mem_bound)
@@ -89,10 +91,10 @@ class ILPVariableManager(object):
     runtime = sum([sum([self.readq_planv[i][j] * self.readq_plancost[i][j]\
        for j in range(0, len(self.readq_planv[i]))]) for i in range(0, len(self.readqv))])
     # TODO: write run time
-    self.model.setObjective(runtime, , GRB.MINIMIZE)
+    self.model.setObjective(runtime, GRB.MINIMIZE)
 
   def add_data_structures(self, dsmng):
-    ds_lst, memobj_map = self.add_ds_list_helper(dsmng.data_structures, True)
+    ds_lst, memobj_map = self.add_ds_list_helper(dsmng.data_structures)
     temp_vars = self.model.addVars(len(ds_lst), vtype=GRB.BINARY)
     self.dsv = {ds_lst[i].id:temp_vars[i] for i in range(0, len(ds_lst))}
     self.ds_instance = {ds.id:ds for ds in ds_lst}
@@ -109,18 +111,17 @@ class ILPVariableManager(object):
     r_lst = []
     memobj_map = {}
     for ds in lst:
-      if ds.value.is_main_ptr() or ds.value.is_aggr():
-        r_lst.append(ds)
-      else:
-        temp_lst, next_memobj_map = self.add_memobj_helper(ds, compute_cost)
+      r_lst.append(ds)
+      if not (ds.value.is_main_ptr() or ds.value.is_aggr()):
+        temp_lst, next_memobj_map = self.add_memobj_helper(ds)
         r_lst += temp_lst
         memobj_map = map_union(memobj_map, next_memobj_map)
     return r_lst, memobj_map
   # return [(ds_id,ds_mem_cost)], {ds_id:[field]}
-  def add_memobj_helper(self, ds, compute_cost=False):
+  def add_memobj_helper(self, ds):
     obj = ds.value.get_object()
     memobj_map = {ds.id:clean_lst([None if f.field_name == 'id' else f for f in obj.fields])}
-    r_lst, next_memobj_map = self.add_ds_list_helper(obj.nested_objects, compute_cost)
+    r_lst, next_memobj_map = self.add_ds_list_helper(obj.nested_objects)
     memobj_map = map_union(memobj_map, next_memobj_map)
     return r_lst, next_memobj_map
   def add_read_queries(self, rqmanagers):
@@ -131,12 +132,12 @@ class ILPVariableManager(object):
       plan_cost = []
       plan_constraint = []
       planv = self.model.addVars(Nplans, vtype=GRB.BINARY)
-      for plan_for_one_nesting in rqmng.plans:
-        for i in range(0, len(plan_for_one_nesting.plans)):
-          plan = plan_for_one_nesting.plans[i]
-          dsmng = plan_for_one_nesting.dsmngers[i]
+      for i,plan_for_one_nesting in enumerate(rqmng.plans):
+        for j in range(0, len(plan_for_one_nesting.plans)):
+          plan = plan_for_one_nesting.plans[j]
+          dsmng = plan_for_one_nesting.dsmanagers[j]
           ds_lst, memobj_map = self.add_ds_list_helper(dsmng.data_structures)
-          plan_constraint.append(PlanUseDSConstraints(ds_lst, memobj_map))
+          plan_constraint.append(PlanUseDSConstraints([ds_.id for ds_ in ds_lst], memobj_map))
           plan_cost.append(to_real_value(plan.compute_cost())) # TODO
       self.readq_planv.append(planv)
       self.readq_plancost.append(plan_cost)
@@ -198,38 +199,41 @@ class ILPVariableManager(object):
     ret_obj.nested_objects = self.construct_result_dsmng_helper1(obj.nested_objects)
 
 
-def test_ilp(read_queries, write_queries=[]):
+def test_ilp(read_queries, write_queries=[], membound_factor=2):
   rqmanagers = []
   dsmeta = DSManager()
   begin_ds_id = 1
   for query in read_queries:
-    nesting_plans = search_plans_for_one_query(query)
+    nesting_plans = search_plans_for_one_query(query, print_plan=False)
     rqmanagers.append(RQManager(query, nesting_plans))
-    for plan_for_one_nesting in nesting_plans:
+    for i,plan_for_one_nesting in enumerate(nesting_plans):
       #print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
       dsmng = plan_for_one_nesting.nesting
-      for plan in plan_for_one_nesting.plans:
+      for j,plan in enumerate(plan_for_one_nesting.plans):
         new_dsmnger = dsmng.copy_tables()
         plan.get_used_ds(None, new_dsmnger)
+        rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
         begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
 
   print dsmeta
 
   ilp = ILPVariableManager()
+  ilp.mem_bound = compute_mem_bound(membound_factor)
   ilp.add_data_structures(dsmeta)
   ilp.add_read_queries(rqmanagers)
 
   ilp.add_constraints()
-  ilp.solve()
+  ilp.model.print_stat()
 
-  ilp.interpret_result()
+  # ilp.solve()
+  # ilp.interpret_result()
 
-  print 'result data structures = {}'.format(ilp.ret_dsmng)
-  print 'result query plan:'
-  for i in range(0, len(read_queries)):
-    print 'QUERY {}:'.format(i)
-    print ilp.result_read_plans[i]
-    print '---------\n'
+  # print 'result data structures = {}'.format(ilp.ret_dsmng)
+  # print 'result query plan:'
+  # for i in range(0, len(read_queries)):
+  #   print 'QUERY {}:'.format(i)
+  #   print ilp.result_read_plans[i]
+  #   print '---------\n'
 
 
 

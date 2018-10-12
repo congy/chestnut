@@ -276,7 +276,7 @@ class ObjTreeIndex(IndexBase):
 
 class ObjSortedArray(IndexBase):
   def __init__(self, table, keys, condition=None, value=OBJECT):
-    assert(isinstance(table, NestedTable))
+    #assert(isinstance(table, NestedTable))
     super(ObjSortedArray, self).__init__(table, keys, condition, value)
   def compute_mem_cost(self):
     self.mem_cost = IdxSizeUnit(self)

@@ -107,10 +107,10 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
               new_aggr = replace_subexpr_with_var(aggr, placeholder)
               set_steps.append(ExecSetVarStep(v, new_aggr, cond=cond_expr))
             if variable_to_set:
-              set_steps.append(ExecSetVarStep(variable_to_set, None, cond_expr))
+              set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr, proj=[query.projections]))
           else:
             if variable_to_set:
-              set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr))
+              set_steps.append(ExecSetVarStep(variable_to_set, None, cond=cond_expr, proj=[query.projections]))
 
           Nsteps_to_add_sort = len(index_steps)
           if query.order:
@@ -327,7 +327,7 @@ def thread_search_plans_for_one_nesting(query_id, tasks, results, idx):
   # else:
   results[idx] = plans
 
-def search_plans_for_one_query(query, query_id=0, multiprocess=False):
+def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan=True):
   dsmngers = enumerate_nestings_for_query(query)
   print 'all nestings = {} ({})'.format(len(dsmngers), query_id)
   plans = []
@@ -338,27 +338,30 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False):
     cnt = 0
     fail_nesting = []
     for k,dsmng in enumerate(dsmngers):
-      print 'nesting {} = {}'.format(k, dsmng)
-      try:
-        temp_plans = search_plans_for_one_nesting(query, dsmng)
-      except:
-        fail_nesting.append(dsmng)
-        continue
+      if print_plan:
+        print 'nesting {} = {}'.format(k, dsmng)
+      #try:
+      temp_plans = search_plans_for_one_nesting(query, dsmng)
+      # except:
+      #   fail_nesting.append(dsmng)
+      #   continue
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       p = PlansForOneNesting(dsmng, res)
       for plan in res:
-        print 'PLAN {}'.format(cnt)
-        print plan
         new_dsmnger = dsmng.copy_tables()
         plan.get_used_ds(None, new_dsmnger)
-        print '** struct:'
-        print new_dsmnger
-        print '=============\n'
+        new_dsmnger.clear_placeholder()
+        if print_plan:
+          print 'PLAN {}'.format(cnt)
+          print plan
+          print '** struct:'
+          print new_dsmnger
+          print '=============\n'
         cnt += 1
       plans.append(p)
-  print '#Fail nestings: {}'.format(len(fail_nesting))
-  for i,f in enumerate(fail_nesting):
-    print 'FAIL {}'.format(i)
-    print f
-    print '-----'
+  # print '#Fail nestings: {}'.format(len(fail_nesting))
+  # for i,f in enumerate(fail_nesting):
+  #   print 'FAIL {}'.format(i)
+  #   print f
+  #   print '-----'
   return plans

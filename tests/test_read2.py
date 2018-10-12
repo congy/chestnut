@@ -7,6 +7,7 @@ from nesting import *
 from plan_search import *
 from ilp.ilp_helper import *
 from ds_manager import *
+import globalv
 
 workload_name = "test2"
 set_db_name(workload_name)
@@ -36,6 +37,8 @@ issue_status_issue = get_new_assoc('issue_to_status', 'one_to_many', issue_statu
 project_issue = get_new_assoc("project_to_issue", "one_to_many", project, issue, "issues", "project")
 project_enabled_module = get_new_assoc("project_to_enabled_module", "one_to_many", project, enabled_module, "enabled_modules", "project")
 
+globalv.tables = [issue, project, enabled_module, issue_status]
+globalv.associations = [issue_status_issue, project_issue, project_enabled_module]
 
 q_mp_2 = get_all_records(issue)
 q_mp_2.pfilter(BinOp(f('project').f('status'), NEQ, AtomValue(9)))

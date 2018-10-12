@@ -54,15 +54,16 @@ class ExecQueryStep(ExecStepSuper):
     return self.step.get_most_inner_step(check_setvar)
   def get_used_ds(self, cur_obj, dsmanager):
     self.step.get_used_ds(cur_obj, dsmanager)
+    dsmanager.clear_placeholder()
     return cur_obj
 
 class ExecSetVarStep(ExecStepSuper):
-  def __init__(self, var, expr, cond=None):
+  def __init__(self, var, expr, cond=None, proj=[]):
     self.var = var
     self.expr = expr
     self.cond = cond
     self.cost = 1
-    self.projections = []
+    self.projections = proj
   def __eq__(self, other):
     var_eq = False
     expr_eq = False
@@ -100,6 +101,7 @@ class ExecSetVarStep(ExecStepSuper):
       used_fields += get_curlevel_fields(self.cond)
     if self.expr:
       used_fields += get_curlevel_fields(self.expr)
+    used_fields += self.projections
     for f in used_fields:
       cur_obj.add_field(f)
     return cur_obj
@@ -410,7 +412,7 @@ class ExecIndexStep(ExecScanStep):
       filter_ratio = 1
     ele_cost = self.ele_ops.compute_cost(non_zero=True)
     lookup_cost = CostLogOp(total_ele_cnt)
-    if is_type_or_subtype(self.idx, ObjHashIndex):
+    if isinstance(self.idx, ObjHashIndex):
       self.cost = CostOp(CostOp(total_ele_cnt, COST_DIV, filter_ratio), COST_MUL, ele_cost)
     else:
       self.cost = CostOp(lookup_cost, COST_ADD, CostOp(CostOp(total_ele_cnt, COST_DIV, filter_ratio), COST_MUL, ele_cost))

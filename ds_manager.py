@@ -31,7 +31,7 @@ class DSManager(object):
       if ds == ds_:
         self.data_structures.pop(i)
         return
-  def find_primary_array(self, table, return_exist=False):
+  def find_primary_array(self, table, create_new=False):
     # return the vertically partitioned primary array
     # or return the table arry if not partitioned
     # this can also be denormalized table
@@ -125,11 +125,18 @@ class DSManager(object):
     new_ds = []
     for ds in self.data_structures:
       if isinstance(ds, ObjBasicArray) or isinstance(ds, IndexPlaceHolder):
-        if not any([ds.table==ds_.table for ds_ in new_ds]):
-          nd = create_primary_array(ds.table)
-          new_ds.append(nd)
+        # if not any([ds.table==ds_.table for ds_ in new_ds]):
+        #   nd = create_primary_array(ds.table)
+        #   new_ds.append(nd)
+        new_ds.append(IndexPlaceHolder(ds.table, OBJECT))
     dsmng.data_structures = new_ds
     return dsmng
+  def clear_placeholder(self):
+    temp_ds = []
+    for ds in self.data_structures:
+      if not isinstance(ds, IndexPlaceHolder):
+        temp_ds.append(ds)
+    self.data_structures = temp_ds
   def __str__(self):
     s = ""
     for i,ds in enumerate(self.data_structures):

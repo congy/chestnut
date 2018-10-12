@@ -321,6 +321,8 @@ class DenormalizedTable(object):
     return cost
   def cost_all_sz(self):
     return self.cost_real_size()
+  def get_sz_for_cost(self):
+    return CostTableUnit(self)
 
 class Association:
   def __init__(self, assoc_name, tp, tablea, tableb, lft_field_name, rgt_field_name):

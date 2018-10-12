@@ -7,6 +7,7 @@ from constants import *
 from cost import *
 from pred_cost import *
 import datetime
+import globalv
 
 query_cnt = 0
 group_cnt = 0
@@ -156,7 +157,9 @@ class ReadQuery(object):
       newf.dependent_qf = f
       table.add_field(newf)
     field_name = '{}s'.format(self.table.name.lower())
-    get_new_assoc("{}_group_assoc".format(self.table.name), "one_to_many", table, self.table, field_name, table.name, 0, 0)
+    new_assoc = get_new_assoc("{}_group_assoc".format(self.table.name), "one_to_many", table, self.table, field_name, table.name, 0, 0)
+    globalv.tables.append(table)
+    globalv.associations.append(new_assoc)
     f = QueryField(field_name, table)
     new_nested_table = table.get_nested_table_by_name(field_name)
     self.table = new_nested_table

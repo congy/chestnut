@@ -3,6 +3,8 @@ associations = []
 
 assertions = []
 
+memory_bound = 4294967295
+
 TABLE_SYMBOLIC_TUPLE_CNT = 3
 ASSOC_SYMBOLIC_TUPLE_CNT = 3
 
