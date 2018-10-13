@@ -23,7 +23,7 @@ q_ht_1.pfilter(BinOp(f('upvotes'), GE, AtomValue(-1))) #TODO
 q_ht_1.pfilter(SetOp(f('tags'), EXIST, BinOp(f('id'), EQ, param_tag)))
 q_ht_1.orderby([f('created_at')], ascending=False)
 q_ht_1.project('*')
-q_ht_1.finclude(f('user'))
+#q_ht_1.finclude(f('user'))
 q_ht_1.finclude(f('tags'), pfilter=BinOp(f('id'), EQ, param_tag))
 q_ht_1.finclude(f('votes'), pfilter=ConnectOp(BinOp(f('user').f('id'), EQ, param_user_id), AND, BinOp(f('comment_id'), EQ, AtomValue(0))))
 #q_ht_1.finclude(f('hidden_users'), pfilter=BinOp(f('id'), EQ, param_user_id))
