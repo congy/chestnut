@@ -66,7 +66,7 @@ class MemObject(object):
     # print f
     # print self.table.get_full_type()
     assert(get_main_table(self.table).contain_table(f.table))
-    if not any([f==f1 for f1 in self.fields]):
+    if not any([f==f1 for f1 in self.fields]) and f.field_name != 'id':
       self.fields.append(f)
   def add_fields(self, fs):
     for f in fs:
@@ -282,7 +282,8 @@ class ObjSortedArray(IndexBase):
     self.mem_cost = IdxSizeUnit(self)
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
-    return cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys]))
+    self.mem_cost = cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys]))
+    return self.mem_cost
   def element_count(self):
     mem_cost = IdxSizeUnit(self)
     if isinstance(self.table, NestedTable):

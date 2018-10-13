@@ -36,10 +36,10 @@ class DSManager(object):
     # or return the table arry if not partitioned
     # this can also be denormalized table
     for ds in self.data_structures:
-      if isinstance(ds, ObjBasicArray) and ds.table == table:
+      if (isinstance(ds, ObjBasicArray) or isinstance(ds, ObjSortedArray) or isinstance(ds, ObjArray)) and ds.value.is_object() and ds.table == table:
         return ds
     for ds in self.data_structures:
-      if isinstance(ds, ObjBasicArray) and table_contains(ds.table, table):
+      if (isinstance(ds, ObjBasicArray) or isinstance(ds, ObjSortedArray) or isinstance(ds, ObjArray)) and ds.value.is_object() and table_contains(ds.table, table):
         return ds
     for ds in self.data_structures:
       if isinstance(ds, IndexPlaceHolder) and ds.table == table:
@@ -122,8 +122,13 @@ class DSManager(object):
     return new_ds
   def compute_mem_cost(self):
     cost = 0
-    for ds in self.data_structures:
-      cost = cost_add(ds.compute_mem_cost(), cost)
+    ds_lst, memobj = collect_all_ds_helper1(self.data_structures)
+    for ds in ds_lst:
+      cost = cost_add(cost, ds.compute_mem_cost())
+    for k,v in memobj.items():
+      cnt = k.element_count()
+      field_sz = sum([f.field_class.get_sz() for f in v.fields])
+      cost = cost_add(cost, cost_mul(cnt, field_sz))
     return cost
   def copy_tables(self):
     dsmng = DSManager()

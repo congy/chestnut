@@ -325,7 +325,7 @@ globalv.pred_selectivity.append((BinOp(f('shipmode'), IN, MultiParam([AtomValue(
 
 read_queries = [q1, q3, q4, q5, q6, q7, q12, q13, q14, q15]
 # q8: to be fixed
-#test_merge(q5)
+#test_merge(q12)
 
 #prune_nesting_test(read_queries)
 test_prune_read_plan(read_queries)
