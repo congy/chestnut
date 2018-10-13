@@ -346,6 +346,10 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
         fail_nesting.append(dsmng)
         continue
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
+      old_count = len(res)
+      res = clean_lst([None if to_real_value(step.compute_cost()) > globalv.memory_bound else step for step in res])
+      new_count = len(res)
+      print 'pruned by memory bound: {} {}'.format(old_count, new_count)
       p = PlansForOneNesting(dsmng, res)
       if print_plan: 
         for plan in res:

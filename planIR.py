@@ -17,7 +17,7 @@ class ExecQueryStep(ExecStepSuper):
   def __init__(self, query, steps=[], new_params={}, compute_variables=True):
     self.query = query
     self.step = ExecStepSeq(steps)
-    self.cost = 1
+    self.cost = 0
     self.new_params = {k:v for k,v in new_params.items()}
     self.variables = []
     if compute_variables:
@@ -36,6 +36,8 @@ class ExecQueryStep(ExecStepSuper):
   def __eq__(self, other):
     return type(self) == type(other) and self.query == other.query
   def compute_cost(self):
+    if cost_computed(self.cost):
+      return self.cost
     self.cost = self.step.compute_cost()
     return self.cost
   def fork(self):
@@ -115,10 +117,12 @@ class ExecSetVarStep(ExecStepSuper):
 class ExecStepSeq(ExecStepSuper):
   def __init__(self, steps=[]):
     self.steps = [s for s in steps]
-    self.cost = None
+    self.cost = 0
   def to_json(self):
     return ("ExecStepSeq", [s.to_json() for s in self.steps])
   def compute_cost(self, non_zero=False):
+    if cost_computed(self.cost):
+      return self.cost
     c = 0 
     for i in range(0, len(self.steps)):
       c = CostOp(c, COST_ADD, self.steps[i].compute_cost())
@@ -191,12 +195,14 @@ class ExecSortStep(ExecStepSuper):
   def __init__(self, var, order):
     self.order = order
     self.var = var
-    self.cost = None
+    self.cost = 0
   def fork(self):
     return ExecSortStep(self.var, self.order)
   def to_json(self):
     return ('ExecSortStep',{"var":"{}".format(self.var.to_json()), "order":[f.to_json() for f in self.order]})
   def compute_cost(self):
+    if cost_computed(self.cost):
+      return self.cost
     self.cost = CostOp(self.var.get_sz(), COST_MUL, CostLogOp(self.var.get_sz()))
     return self.cost
   def __str__(self):
@@ -232,6 +238,8 @@ class ExecUnionStep(ExecStepSuper):
     return ('ExecUnionStep',{"returnv":self.return_var.to_json(), "union_vars":[], "aggrs":[(v.to_json(), f.to_json()) for v,f in self.aggrs],\
           "order":[f.to_json() for f in self.order]})
   def compute_cost(self):
+    if cost_computed(self.cost):
+      return self.cost
     if len(self.union_vars) == 1:
       return 1
     else:
@@ -251,7 +259,7 @@ class ExecGetAssocStep(ExecStepSuper):
   def __init__(self, field, idx):
     self.field = field
     self.idx = idx # can be nested object (BasicArray), FK index, or main_obj (scan to find a match)
-    self.cost = None
+    self.cost = 0
     name = get_envvar_name(f)
     self.var = EnvAtomicVariable(name, field.get_type())
   def fork(self):
@@ -310,7 +318,7 @@ class ExecScanStep(ExecStepSuper):
   def __init__(self, idx):
     self.idx = idx
     self.ele_ops = ExecStepSeq() 
-    self.cost = None
+    self.cost = 0
   def fork(self):
     es = ExecScanStep(self.idx)
     es.ele_ops = self.ele_ops.fork()
@@ -320,6 +328,8 @@ class ExecScanStep(ExecStepSuper):
   def __eq__(self, other):
     return type(self) == type(other) and self.idx == other.idx and self.ele_ops == other.ele_ops
   def compute_cost(self):
+    if cost_computed(self.cost):
+      return self.cost
     if isinstance(self.idx, ObjBasicArray):
       element_cost = self.ele_ops.compute_cost()
       # FIXME: a constant for sequential memory access
@@ -386,6 +396,7 @@ class ExecIndexStep(ExecScanStep):
     self.params = params
     self.ele_ops = ExecStepSeq()
     self.idx_pred = idx_pred
+    self.cost = 0
   def to_json(self):
     return ('ExecIndexStep', {"idx":self.idx.id, "steps":self.ele_ops.to_json(), "params":[p.to_json() for p in self.params], \
           "op-type":'range' if self.idx_op_type == RANGE else 'point', "idx-pred":self.idx_pred.to_json() if self.idx_pred else None})
@@ -407,6 +418,8 @@ class ExecIndexStep(ExecScanStep):
     s = "Index {} on [{}] (params = [{}]): \n{}\n".format(index_type_to_str[self.idx_op_type], self.idx, param_s, ele_s)
     return s
   def compute_cost(self):
+    if cost_computed(self.cost):
+      return self.cost
     total_ele_cnt = self.idx.compute_size()
     if self.idx_pred:
       filter_ratio = get_div_ratio_by_pred(self.idx_pred) 
