@@ -195,3 +195,6 @@ def find_assigned_pred_selectivity(pred):
     if p.query_pred_eq(pred):
       return s
   return None
+
+def cost_computed(cost):
+  return type(cost) is not int or cost > 0
