@@ -84,6 +84,7 @@ def test_merge(query):
     print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
     dsmng = plan_for_one_nesting.nesting
     for plan in plan_for_one_nesting.plans:
+      print 'plan cost = {}'.format(to_real_value(plan.compute_cost()))
       new_dsmnger = dsmng.copy_tables()
       plan.get_used_ds(None, new_dsmnger)
       begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)

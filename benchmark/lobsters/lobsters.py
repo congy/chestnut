@@ -86,7 +86,7 @@ globalv.set_qr_type('fastv')
 #generate_plans_for_all_queries(tables, associations, [q_ct_2], [])
 #exit(0)
 
-#test_merge(q_hr_1)
+#test_merge(q_us_2)
 #prune_nesting_test(read_queries)
 #test_ilp(read_queries)
 test_prune_read_plan(read_queries)
