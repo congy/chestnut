@@ -58,6 +58,7 @@ def prune_read_plans(rqmanagers, dsmeta):
 
   temp_plan_cost = []
   plan_ds = []
+  ds_map = {}
   for qi,rqmng in enumerate(rqmanagers):
     plan_to_be_removed = [[] for i in range(0, len(rqmng.plans))]
     temp_plan_cost1 = [[] for i in range(0, len(rqmng.plans))] 
@@ -73,6 +74,8 @@ def prune_read_plans(rqmanagers, dsmeta):
           print 'query {} nesting {} plan {} is removed, mem_cost = {}'.format(qi, i, j, mem_cost)
           plan_to_be_removed[i].append(j)
         ds_lst, memobj = collect_all_ds_helper1(dsmnger.data_structures)
+        for ds in ds_lst:
+          ds_map[ds.id] = ds
         temp_plan_cost1[i].append(([ds.id for ds in ds_lst], mem_cost, plan_cost))
         plan_ds1 += [ds.id for ds in ds_lst]
     plan_ds1 = list_remove_duplicate(plan_ds1)
@@ -82,27 +85,61 @@ def prune_read_plans(rqmanagers, dsmeta):
 
   print '\n------\n'
   # opt 2: if plan's every ds is not shared with other query, collect all such plans and only keep the best ones
-  plan_may_be_removed = []
+  # opt 2.1: if planA's shared ds set (with any other query) is the same as planB's shared ds set, and planA is better than planB, just keep planA
+  #plan_may_be_removed = []
+  plan_ds_shared = [0 for i in range(0, len(rqmanagers))]
   for qi,rqmng in enumerate(rqmanagers):
     temp_plan_cost1 = temp_plan_cost[qi]
     plan_may_be_removed1 = [[] for i in range(0, len(rqmng.plans))]
+    plan_ds_shared[qi] = [0 for i in range(0, len(rqmng.plans))]
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
+      plan_ds_shared[qi][i] = [[] for j in range(0, len(plan_for_one_nesting.plans))]
       for j in range(0, len(plan_for_one_nesting.plans)):
-        ds_used_by_others = False
+        #ds_used_by_others = False
         for dsid in temp_plan_cost1[i][j][0]:
           for qj in range(0, len(rqmanagers)):
             if qi != qj and any([dsid_==dsid for dsid_ in plan_ds[qj]]):
-              ds_used_by_others = True
-        if not ds_used_by_others:
-          print 'query {} nesting {} plan {} ds not used by others'.format(qi, i, j)
-          plan_may_be_removed1[i].append((j, temp_plan_cost1[i][j][1], temp_plan_cost1[i][j][2]))
+              #ds_used_by_others = True
+              plan_ds_shared[qi][i][j].append(dsid)
+              break
+        #if not ds_used_by_others:
+        #  print 'query {} nesting {} plan {} ds not used by others'.format(qi, i, j)
+        #  plan_may_be_removed1[i].append((j, temp_plan_cost1[i][j][1], temp_plan_cost1[i][j][2]))
     plan_may_be_removed.append(plan_may_be_removed1)
 
   print '\n------\n'
   for qi,rqmng in enumerate(rqmanagers):
     plan_may_be_removed1 = plan_may_be_removed[qi]
     equal_plans = []
-    for i,plan_for_one_nesting in enumerate(rqmng.plans):
+      
+    for i1,plan_for_one_nesting in enumerate(rqmng.plans):
+      for j1 in range(0, len(plan_for_one_nesting.plans)):
+        #if (plan_ds_shared[qi][i1][j1] == 0):  # used for opt 1
+        #  continue
+        exist_better_plan = False
+        exist_equal_plan = False
+        for i2,plan_for_one_nesting2 in enumerate(rqmng.plans):
+          for j2 in range(0, len(plan_for_one_nesting2.plans)):
+            if i1 == i2 and j1 == j2:
+              continue
+            if set_equal(plan_ds_shared[qi][i1][j1], plan_ds_shared[qi][i2][j2]):
+              if temp_plan_cost[qi][i1][j1][1] == temp_plan_cost[qi][i2][j2][1] and temp_plan_cost[qi][i1][j1][2] == temp_plan_cost[qi][i2][j2][2]:
+                exist_equal_plan = True
+              elif temp_plan_cost[qi][i1][j1][1] >= temp_plan_cost[qi][i2][j2][1] and temp_plan_cost[qi][i1][j1][2] >= temp_plan_cost[qi][i2][j2][2]:
+                #if not exist_better_plan:
+                #  print 'len = {}, j1={}, j2={}'.format(len(plan_for_one_nesting.plans), j1, j2)
+                #  print 'plan {} ({}, {}, ds = {} {}) is better than {} ({}, {}, ds = {} {})'.format(plan_for_one_nesting2.plans[j2], \
+                #    temp_plan_cost[qi][i2][j2][1], temp_plan_cost[qi][i2][j2][2], ','.join([str(x) for x in plan_ds_shared[qi][i2][j2]]), plan_for_one_nesting2.dsmanagers[j2], \
+                #    plan_for_one_nesting.plans[j1], \
+                #    temp_plan_cost[qi][i1][j1][1], temp_plan_cost[qi][i1][j1][2], ','.join([str(x) for x in plan_ds_shared[qi][i2][j2]]), plan_for_one_nesting.dsmanagers[j1])
+                #  print '--------'
+                exist_better_plan = True
+        if exist_better_plan:
+          pruned_plans[qi][i1].append(j1)
+          #print 'query {} nesting {} plan {} is minor in index'.format(qi, i1, j1)
+        elif exist_equal_plan:
+          temp_plan_cost[qi][i1][j1] = (temp_plan_cost[qi][i1][j1][0], temp_plan_cost[qi][i1][j1][1]-1, temp_plan_cost[qi][i1][j1][2])
+      """ 
       for triple in plan_may_be_removed1[i]:
         exist_better_plan = False
         exist_equal_plan = False
@@ -113,7 +150,6 @@ def prune_read_plans(rqmanagers, dsmeta):
             if (triple[1] == triple_[1] and triple[2] == triple_[2]):
               exist_equal_plan = True
             elif (triple[1] >= triple_[1] and triple[2] >= triple_[2]):
-              #print 'nesting {} plan {} ({} {}) is worse than nesting {} plan {} ({} {})'.format(i, triple[0], triple[1], triple[2], i1, triple_[0], triple_[1], triple_[2])
               exist_better_plan = True
         
         if (not exist_better_plan) and exist_equal_plan:
@@ -122,11 +158,13 @@ def prune_read_plans(rqmanagers, dsmeta):
               exist_better_plan = True
           if not exist_better_plan:
             equal_plans.append((triple[1], triple[2]))
+
         if exist_better_plan:
           pruned_plans[qi][i].append(triple[0])
         else:
           print 'query {} nesting {} plan {} not shared and is the best plan, mem_cost = {}, time = {}'.format(qi, i, triple[0], triple[1], triple[2])
-          
+      """         
+ 
   for qi,rqmng in enumerate(rqmanagers):
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
       new_dsmngers = []
