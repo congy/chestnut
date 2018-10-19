@@ -7,8 +7,8 @@ from ilp_helper import *
 from query_manager import *
 from ilp_helper import *
 from prune_plans import *
-#from gurobipy import *
-from ilp_fake import *
+from gurobipy import *
+#from ilp_fake import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -207,6 +207,10 @@ class ILPVariableManager(object):
 
 
 def test_ilp(read_queries, write_queries=[], membound_factor=2):
+  
+  prune_nestings(read_queries)
+  mem_bound = compute_mem_bound(membound_factor)
+
   rqmanagers = []
   dsmeta = DSManager()
   begin_ds_id = 1
@@ -224,8 +228,10 @@ def test_ilp(read_queries, write_queries=[], membound_factor=2):
 
   print dsmeta
 
+  prune_read_plans(rqmanagers, dsmeta)
+
   ilp = ILPVariableManager()
-  ilp.mem_bound = compute_mem_bound(membound_factor)
+  ilp.mem_bound = mem_bound 
   print 'MEMORY BOUND = {}'.format(ilp.mem_bound)
   ilp.add_data_structures(dsmeta)
   ilp.add_read_queries(rqmanagers)

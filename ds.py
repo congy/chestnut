@@ -99,7 +99,7 @@ class MemObject(object):
   def to_json(self):
     return [f.field_name for f in self.fields]
   def compute_mem_cost(self, single_ele=True):
-    field_sz = sum([f.get_sz() for f in self.fields])
+    field_sz = sum([f.get_sz() for f in self.fields]) 
     nested_sz = sum([o.compute_mem_cost(single_ele=True) for o in self.nested_objects])
     return cost_add(field_sz, nested_sz)
   def merge(self, other):
@@ -288,7 +288,7 @@ class ObjSortedArray(IndexBase):
     self.mem_cost = IdxSizeUnit(self)
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
-    self.mem_cost = cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys]))
+    self.mem_cost = cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys])+1)
     return self.mem_cost
   def element_count(self):
     mem_cost = IdxSizeUnit(self)
@@ -398,8 +398,7 @@ class ObjBasicArray(IndexMeta):
     if cost_computed(self.mem_cost):
       return self.mem_cost
     self.mem_cost = self.compute_size()
-    if isinstance(self.table, DenormalizedTable):
-      self.mem_cost = cost_mul(self.mem_cost, len(self.table.tables))
+    self.mem_cost = cost_mul(self.mem_cost, (len(self.table.tables) if isinstance(self.table, DenormalizedTable) else 1))
     return self.mem_cost
   def compute_size(self):
     return self.table.cost_all_sz() 

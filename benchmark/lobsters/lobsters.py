@@ -6,22 +6,6 @@ from constants import *
 from populate_database import *
 from lobsters_schema import *
 
-from comments_create import *
-from comments_index import *
-from comments_thread import *
-from home_index import *
-from home_recent import *
-from home_tagged import *
-from messages_create import *
-from messages_delete import *
-from messages_index import *
-from stories_destroy import *
-from stories_show import *
-from stories_update import *
-from stories_upvote import *
-from user_show import *
-
-
 from nesting import *
 from plan_search import *
 from ds_manager import *
@@ -41,6 +25,20 @@ globalv.tables = [story, comment, message, tag, vote, user]
 globalv.associations = [storys_user, storys_tags, storys_hidden, comments_user, comments_story, message_author, message_recipient, \
 votes_comment, votes_story, votes_user]
 
+from comments_create import *
+from comments_index import *
+from comments_thread import *
+from home_index import *
+from home_recent import *
+from home_tagged import *
+from messages_create import *
+from messages_delete import *
+from messages_index import *
+from stories_destroy import *
+from stories_show import *
+from stories_update import *
+from stories_upvote import *
+from user_show import *
 #generate_db_data_files(datafile_dir, tables, associations)
 
 read_queries = [q_cc_1, q_cc_2, q_cc_10, \
@@ -88,8 +86,8 @@ globalv.set_qr_type('fastv')
 
 #test_merge(q_us_2)
 #prune_nesting_test(read_queries)
-#test_ilp(read_queries)
-test_prune_read_plan(read_queries)
+test_ilp(read_queries)
+#test_prune_read_plan(read_queries)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):

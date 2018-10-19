@@ -147,9 +147,10 @@ def get_all_idxes_on_cond(thread_ctx, idx_placeholder, keys, idx_pred):
   table = idx_placeholder.table
   value = idx_placeholder.value
   if globalv.symbolic_verify:
-    test_idx = ObjTreeIndex(table, keys, idx_pred, MAINPTR)
-    #is_idx_useful(thread_ctx, test_idx, table, idx_pred, expected=is_valid_idx_cond(idx_pred))
-    is_idx_useful(thread_ctx, test_idx, table, idx_pred)
+    if is_valid_idx_cond(idx_pred):
+      test_idx = ObjTreeIndex(table, keys, idx_pred, MAINPTR)
+      #is_idx_useful(thread_ctx, test_idx, table, idx_pred, expected=is_valid_idx_cond(idx_pred))
+      is_idx_useful(thread_ctx, test_idx, table, idx_pred)
 
   # FIXME: For efficiency reasons, do not include basic array...
   #if is_valid_idx_cond(idx_pred):

@@ -343,11 +343,11 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
     for k,dsmng in enumerate(dsmngers):
       if print_plan:
         print 'nesting {} = {}'.format(k, dsmng)
-      #try:
-      temp_plans = search_plans_for_one_nesting(query, dsmng)
-      # except NestingFailException as e:
-      #   fail_nesting.append(dsmng)
-      #   continue
+      try:
+        temp_plans = search_plans_for_one_nesting(query, dsmng)
+      except NestingFailException as e:
+        fail_nesting.append(dsmng)
+        continue
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       old_count = len(res)
       res = clean_lst([None if to_real_value(step.compute_cost()) > globalv.memory_bound else step for step in res])
