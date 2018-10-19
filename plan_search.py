@@ -7,10 +7,9 @@ from ds_manager import *
 from planIR import *
 from expr import *
 import globalv
-#import symbolic_context as symbctx
+import symbolic_context as symbctx
 from pred_enum import *
 from plan_helper import *
-#from plan_refine import *
 import itertools
 import z3
 import multiprocessing
@@ -19,7 +18,7 @@ import sys
 
 # enumerate all possible indexes to set upper_pred or answer query
 # return (index_step, next_var_state) pair
-def enumerate_indexes_for_pred(upper_pred, upper_pred_var, dsmng, idx_placeholder, upper_assoc_qf=None):
+def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, idx_placeholder, upper_assoc_qf=None):
   upper_pred_plans = []
   for union_set in enumerate_pred_combinations(upper_pred):
     plantree_combs = [[] for j in range(0, len(union_set))]
@@ -34,10 +33,10 @@ def enumerate_indexes_for_pred(upper_pred, upper_pred_var, dsmng, idx_placeholde
       for length in range(0, len(clauses)+1):
         for idx_combination in itertools.combinations(clauses, length):
           rest_preds = set_minus(clauses, idx_combination, eq_func=(lambda x,y: x.query_pred_eq(y)))
-          index_steps, added_rest_preds = helper_get_idx_step_by_pred(idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
+          index_steps, added_rest_preds = helper_get_idx_step_by_pred(thread_ctx, idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
           rest_preds = rest_preds + added_rest_preds
           rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs  = \
-                enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds)
+                enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds)
 
           if len(rest_preds) > 0:
             cond_expr = rest_pred
@@ -69,7 +68,7 @@ def enumerate_indexes_for_pred(upper_pred, upper_pred_var, dsmng, idx_placeholde
 
     return upper_pred_plans
 
-def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=None):
+def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper_assoc_qf=None):
   query_plans = []
   aggr_assoc_fields = []
   for v,aggr in query.aggrs:
@@ -92,10 +91,10 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
       for length in range(0, len(clauses)+1):
         for idx_combination in itertools.combinations(clauses, length):
           rest_preds = set_minus(clauses, idx_combination, eq_func=(lambda x,y: x.query_pred_eq(y)))
-          index_steps, added_rest_preds = helper_get_idx_step_by_pred(idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
+          index_steps, added_rest_preds = helper_get_idx_step_by_pred(thread_ctx, idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
           rest_preds = rest_preds + added_rest_preds
           rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
-                enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fields=aggr_assoc_fields)
+                enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds, assoc_fields=aggr_assoc_fields)
           if len(rest_preds) > 0:
             cond_expr = rest_pred
           else:
@@ -180,7 +179,7 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
     #print 'obj = {}'.format(obj)
     #print 'ASSOC = {}, step = {}, next_idx_placeholder = {}'.format(qf, step, next_idx_placeholder)
     next_level_query.append(\
-      enumerate_indexes_for_query(next_query, dsmng, next_idx_placeholder, upper_assoc_qf=field))
+      enumerate_indexes_for_query(thread_ctx, next_query, dsmng, next_idx_placeholder, upper_assoc_qf=field))
 
   for ptu in query_plans:
     plan_tree_combs = [[] for i in range(0, len(ptu.plan_trees))]
@@ -198,7 +197,7 @@ def enumerate_indexes_for_query(query, dsmng, idx_placeholder, upper_assoc_qf=No
   return full_plans
 
 
-def helper_get_idx_step_by_pred(idx_combination, idx_placeholder, dsmng, upper_assoc_qf=None):
+def helper_get_idx_step_by_pred(thread_ctx, idx_combination, idx_placeholder, dsmng, upper_assoc_qf=None):
   # FK indexed, merge the foreign key into index
   foreignkey_idx = is_foreignkey_indexed(dsmng, upper_assoc_qf)
   # retrieve A.B, but store A as nested object in B, so need to add B.A as ``added_rest_pred''
@@ -220,20 +219,20 @@ def helper_get_idx_step_by_pred(idx_combination, idx_placeholder, dsmng, upper_a
   if foreignkey_idx:
     temp_idx_pred = merge_into_cnf([foreignkey_idx.condition, idx_pred])
     idx_pred = temp_idx_pred
-    new_idxes = get_all_idxes_on_cond(idx_placeholder, foreignkey_idx.key_fields()+keys, temp_idx_pred)
+    new_idxes = get_all_idxes_on_cond(thread_ctx, idx_placeholder, foreignkey_idx.key_fields()+keys, temp_idx_pred)
     reverse_key = QueryField('id', upper_table)
     assert(len(foreignkey_idx.key_fields())==1)
     if len(new_idxes) > 0:
       op, params = get_idxop_and_params_by_pred(temp_idx_pred, new_idxes[0].key_fields(), nonexternal={foreignkey_idx.key_fields()[0]:reverse_key})
   else:
-    new_idxes = get_all_idxes_on_cond(idx_placeholder, keys, idx_pred)
+    new_idxes = get_all_idxes_on_cond(thread_ctx, idx_placeholder, keys, idx_pred)
     if len(new_idxes) > 0:
       op, params = get_idxop_and_params_by_pred(idx_pred, new_idxes[0].key_fields())  
   for idx in new_idxes:
     index_steps.append(ExecIndexStep(idx, idx_pred, op, params))
   return index_steps, added_rest_pred
 
-def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fields=[]):
+def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds, assoc_fields=[]):
   if idx_placeholder.value.is_main_ptr():
     idx_placeholder = dsmng.find_placeholder(get_main_table(idx_placeholder.table))
   obj = idx_placeholder.value.get_object()
@@ -289,7 +288,7 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
     assert(next_idx_placeholder)
     newvar = EnvAtomicVariable(get_envvar_name(p), 'bool', init_value=(p.op == FORALL))
     placeholder[p] = newvar
-    nextlevel_step_combs.append(enumerate_indexes_for_pred(p.rh, newvar, dsmng, next_idx_placeholder, \
+    nextlevel_step_combs.append(enumerate_indexes_for_pred(thread_ctx, p.rh, newvar, dsmng, next_idx_placeholder, \
             upper_assoc_qf=field))
   
   rest_pred = replace_subpred_with_var(new_pred, placeholder)
@@ -297,8 +296,12 @@ def enumerate_steps_for_rest_pred(dsmng, idx_placeholder, rest_preds, assoc_fiel
 
 
 def search_plans_for_one_nesting(query, dsmng):
+  thread_ctx = symbctx.create_thread_ctx()
+  if globalv.symbolic_verify:
+    create_symbolic_obj_graph(thread_ctx, globalv.tables, globalv.associations)
+    create_param_map_for_query(thread_ctx, query)
   idx_placeholder = dsmng.find_placeholder(query.table)
-  ptunions = enumerate_indexes_for_query(query, dsmng, idx_placeholder)
+  ptunions = enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder)
   steps = []
   for ptu in ptunions:
     steps.append(ptu.to_steps())
@@ -340,11 +343,11 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
     for k,dsmng in enumerate(dsmngers):
       if print_plan:
         print 'nesting {} = {}'.format(k, dsmng)
-      try:
-        temp_plans = search_plans_for_one_nesting(query, dsmng)
-      except NestingFailException as e:
-        fail_nesting.append(dsmng)
-        continue
+      #try:
+      temp_plans = search_plans_for_one_nesting(query, dsmng)
+      # except NestingFailException as e:
+      #   fail_nesting.append(dsmng)
+      #   continue
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       old_count = len(res)
       res = clean_lst([None if to_real_value(step.compute_cost()) > globalv.memory_bound else step for step in res])

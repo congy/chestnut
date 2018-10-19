@@ -7,7 +7,9 @@ from expr import *
 from ds_manager import *
 from ds_helper import *
 from planIR import *
+from symbolic_ds import *
 import itertools
+import globalv
 
 class PlansForOneNesting(object):
   def __init__(self, nesting, plans):
@@ -140,10 +142,15 @@ def is_reverse_associated(table, assoc_qf):
     return None
   return helper_get_assoc_exist_idx(assoc_qf, for_scan_pred=True)[1]
 
-def get_all_idxes_on_cond(idx_placeholder, keys, idx_pred):
+def get_all_idxes_on_cond(thread_ctx, idx_placeholder, keys, idx_pred):
   idxes = []
   table = idx_placeholder.table
   value = idx_placeholder.value
+  if globalv.symbolic_verify:
+    test_idx = ObjTreeIndex(table, keys, idx_pred, MAINPTR)
+    #is_idx_useful(thread_ctx, test_idx, table, idx_pred, expected=is_valid_idx_cond(idx_pred))
+    is_idx_useful(thread_ctx, test_idx, table, idx_pred)
+
   # FIXME: For efficiency reasons, do not include basic array...
   #if is_valid_idx_cond(idx_pred):
   #  idxes.append(ObjSortedArray(table, keys, idx_pred, value=value_type))

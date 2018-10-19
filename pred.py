@@ -123,7 +123,7 @@ class AtomValue(object):
   def to_var_or_value(self, replace={}):
     return self.v
   def to_z3_value(self):
-    if is_string_type(self.tipe):
+    if is_string_type(self.tipe) or type(self.v) is str:
       return hash(self.v) % MAXINT
     else:
       return self.v

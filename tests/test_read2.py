@@ -58,7 +58,7 @@ q = q_mp_2
 #   print '--------'
 
 # test search plan
-# search_plans_for_one_query(q)
+search_plans_for_one_query(q)
 
 # test_merge(q)
-test_ilp([q])
+# test_ilp([q])

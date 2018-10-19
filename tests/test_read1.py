@@ -38,6 +38,10 @@ q.pfilter(ConnectOp(BinOp(f('id'), EQ, Parameter('userA')), AND, \
 q.project([f('id'), f('name')])
 q.complete()
 
+q1 = get_all_records(users1)
+q1.pfilter(ConnectOp(BinOp(f('id'), EQ, Parameter('i1')), AND, BinOp(f('name'), GE, Parameter('i2'))))
+q1.complete()
+
 # test enumerate nesting
 # dsmanagers = enumerate_nestings_for_query(q)
 # for i,ds in enumerate(dsmanagers):
@@ -46,9 +50,9 @@ q.complete()
 #   print '--------'
 
 # test search plan
-# search_plans_for_one_query(q)
+search_plans_for_one_query(q)
 
 #test_merge(q)
 #test_ilp([q])
-test_prune_read_plan([q])
+#test_prune_read_plan([q])
 
