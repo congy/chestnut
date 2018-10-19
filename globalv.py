@@ -63,4 +63,4 @@ def set_ds_short_print(v):
   global ds_short_print
   ds_short_print = v
 
-symbolic_verify = True
+symbolic_verify = False
