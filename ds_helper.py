@@ -208,6 +208,7 @@ def get_idxop_and_params_by_pred(pred, keys, nonexternal={}):
     else:
       r_params[0].add_param(k, v[0])
       r_params[1].add_param(k, v[1])
+  
   return op, r_params
 
 def get_order_param(order):

@@ -20,6 +20,7 @@ import sys
 # return (index_step, next_var_state) pair
 def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, idx_placeholder, upper_assoc_qf=None):
   upper_pred_plans = []
+  queried_table = get_table_from_pred(upper_pred)
   for union_set in enumerate_pred_combinations(upper_pred):
     plantree_combs = [[] for j in range(0, len(union_set))]
     newvars = []
@@ -33,7 +34,7 @@ def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, id
       for length in range(0, len(clauses)+1):
         for idx_combination in itertools.combinations(clauses, length):
           rest_preds = set_minus(clauses, idx_combination, eq_func=(lambda x,y: x.query_pred_eq(y)))
-          index_steps, added_rest_preds = helper_get_idx_step_by_pred(thread_ctx, idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
+          index_steps, added_rest_preds = helper_get_idx_step_by_pred(thread_ctx, queried_table, idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
           rest_preds = rest_preds + added_rest_preds
           rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs  = \
                 enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds)
@@ -71,6 +72,7 @@ def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, id
 def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper_assoc_qf=None):
   query_plans = []
   aggr_assoc_fields = []
+  queried_table = get_main_table(query.table)
   for v,aggr in query.aggrs:
     for f in aggr.get_curlevel_fields(include_assoc=True):
       if is_assoc_field(f):
@@ -91,7 +93,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       for length in range(0, len(clauses)+1):
         for idx_combination in itertools.combinations(clauses, length):
           rest_preds = set_minus(clauses, idx_combination, eq_func=(lambda x,y: x.query_pred_eq(y)))
-          index_steps, added_rest_preds = helper_get_idx_step_by_pred(thread_ctx, idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
+          index_steps, added_rest_preds = helper_get_idx_step_by_pred(thread_ctx, queried_table, idx_combination, idx_placeholder, dsmng, upper_assoc_qf)
           rest_preds = rest_preds + added_rest_preds
           rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
                 enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds, assoc_fields=aggr_assoc_fields)
@@ -197,7 +199,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
   return full_plans
 
 
-def helper_get_idx_step_by_pred(thread_ctx, idx_combination, idx_placeholder, dsmng, upper_assoc_qf=None):
+def helper_get_idx_step_by_pred(thread_ctx, queried_table, idx_combination, idx_placeholder, dsmng, upper_assoc_qf=None):
   # FK indexed, merge the foreign key into index
   foreignkey_idx = is_foreignkey_indexed(dsmng, upper_assoc_qf)
   # retrieve A.B, but store A as nested object in B, so need to add B.A as ``added_rest_pred''
@@ -206,30 +208,18 @@ def helper_get_idx_step_by_pred(thread_ctx, idx_combination, idx_placeholder, ds
   upper_table = upper_assoc_qf.table if upper_assoc_qf else None
   index_steps = []
   if len(idx_combination) == 0:
-    if foreignkey_idx:
-      reverse_key = QueryField('id', upper_table)
-      op, params = get_idxop_and_params_by_pred(foreignkey_idx.condition, foreignkey_idx.key_fields(), nonexternal={foreignkey_idx.key_fields()[0]:reverse_key})
-      return [ExecIndexStep(foreignkey_idx.fork(), foreignkey_idx.condition, op, params)], added_rest_pred
-    else:
-      basic_ary = ObjBasicArray(idx_placeholder.table, idx_placeholder.value)
-      return [ExecScanStep(basic_ary)], added_rest_pred
-
-  idx_pred = merge_into_cnf(idx_combination)
-  keys = idx_pred.get_necessary_index_keys() 
-  if foreignkey_idx:
-    temp_idx_pred = merge_into_cnf([foreignkey_idx.condition, idx_pred])
-    idx_pred = temp_idx_pred
-    new_idxes = get_all_idxes_on_cond(thread_ctx, idx_placeholder, foreignkey_idx.key_fields()+keys, temp_idx_pred)
-    reverse_key = QueryField('id', upper_table)
-    assert(len(foreignkey_idx.key_fields())==1)
-    if len(new_idxes) > 0:
-      op, params = get_idxop_and_params_by_pred(temp_idx_pred, new_idxes[0].key_fields(), nonexternal={foreignkey_idx.key_fields()[0]:reverse_key})
+    idx_pred = foreignkey_idx.condition if foreignkey_idx else None
   else:
-    new_idxes = get_all_idxes_on_cond(thread_ctx, idx_placeholder, keys, idx_pred)
-    if len(new_idxes) > 0:
-      op, params = get_idxop_and_params_by_pred(idx_pred, new_idxes[0].key_fields())  
-  for idx in new_idxes:
-    index_steps.append(ExecIndexStep(idx, idx_pred, op, params))
+    idx_pred = merge_into_cnf(idx_combination)
+    if foreignkey_idx:
+      idx_pred = merge_into_cnf([foreignkey_idx.condition, idx_pred])
+  if foreignkey_idx:
+    reverse_key = QueryField('id', upper_table)
+    nonexternal={foreignkey_idx.key_fields()[0]:reverse_key}
+  else:
+    nonexternal={}
+  
+  index_steps = get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, nonexternal)
   return index_steps, added_rest_pred
 
 def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds, assoc_fields=[]):
@@ -350,9 +340,6 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
         continue
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       old_count = len(res)
-      res = clean_lst([None if to_real_value(step.compute_cost()) > globalv.memory_bound else step for step in res])
-      new_count = len(res)
-      print 'pruned by memory bound: {} {}'.format(old_count, new_count)
       p = PlansForOneNesting(dsmng, res)
       if print_plan: 
         for plan in res:
@@ -365,6 +352,9 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
           print new_dsmnger
           print '=============\n'
           cnt += 1
+      res = clean_lst([None if to_real_value(step.compute_cost()) > globalv.memory_bound else step for step in res])
+      new_count = len(res)
+      print 'pruned by memory bound: {} {}'.format(old_count, new_count)
       plans.append(p)
   # print '#Fail nestings: {}'.format(len(fail_nesting))
   # for i,f in enumerate(fail_nesting):

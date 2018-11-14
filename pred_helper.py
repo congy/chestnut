@@ -192,6 +192,16 @@ def get_full_assoc_field_name(f):
 def get_fieldname_cap(f):
   return ''.join([c.capitalize() for c in get_query_field(f).field_name.split('_')])
 
+def get_table_from_pred(pred):
+  if isinstance(pred, SetOp):
+    return get_query_table(pred.lh)
+  elif isinstance(pred, ConnectOp):
+    return get_table_from_pred(pred.lh)
+  elif isinstance(pred, BinOp):
+    return get_query_table(pred.lh)
+  else:
+    assert(False)
+
 def get_reversed_assoc_qf(qf):
   assoc = qf.table.get_assoc_by_name(qf.field_name)
   new_qf_table = qf.field_class

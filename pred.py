@@ -121,7 +121,7 @@ class AtomValue(object):
     self.v = v
     self.tipe = tipe
   def to_var_or_value(self, replace={}):
-    return self.v
+    return '"{}"'.format(self.v) if is_string_type(self.tipe) or type(self.v) is str else self.v
   def to_z3_value(self):
     if is_string_type(self.tipe) or type(self.v) is str:
       return hash(self.v) % MAXINT
@@ -646,3 +646,8 @@ def get_query_field(f):
     return f
   elif isinstance(f, AssocOp):
     return get_query_field(f.rh)
+def get_query_table(f):
+  if isinstance(f, QueryField):
+    return f.table
+  elif isinstance(f, AssocOp):
+    return get_query_table(f.lh)

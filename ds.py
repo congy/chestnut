@@ -7,9 +7,9 @@ import itertools
 import globalv
 
 class IndexParam(object):
-  def __init__(self):
-    self.fields = []
-    self.params = []
+  def __init__(self, fields=[], params=[]):
+    self.fields = [f for f in fields]
+    self.params = [p for p in params]
   def to_json(self):
     return [(self.fields[i].to_json(), self.params[i].to_json() if not value_is_basic_type(self.params[i]) else self.params[i]) for i in range(0, len(self.fields))]
   def add_param(self, f, p):
@@ -188,6 +188,13 @@ class IndexKeys(object):
     return len(self.range_keys) > 0
   def fork(self):
     return IndexKeys([k for k in self.keys], [k for k in self.range_keys])
+  def add_denormalized_id_key(self, idf):
+    if any([k==idf for k in self.keys]):
+      if not any([k==idf for k in self.range_keys]):
+        self.range_keys.append(idf)
+    else:
+      self.keys.append(idf)
+      self.range_keys.append(idf)
   def __str__(self):
     return ','.join([str(k) for k in self.keys])
 
@@ -202,7 +209,7 @@ class IndexBase(IndexMeta):
       keys_, range_keys_ = get_keys_by_pred(condition)
       assert(set_equal(keys_, keys))
       self.keys = IndexKeys(keys, range_keys_)
-    self.condition = get_idx_condition(condition)
+    self.condition = get_idx_condition(condition) #used to compute cost
     self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
     if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
@@ -220,11 +227,11 @@ class IndexBase(IndexMeta):
 
   def is_range_key(self, key):
     return self.keys.contain_range_key()
-  def get_idx_name(self):
-    return 'dt_{}'.format(self.id)
+  def get_ds_name(self):
+    return 'ds_{}'.format(self.id)
   def get_key_type_name(self):
     if len(self.keys) > 0:
-      return "{}_key_type".format(self.get_idx_name())
+      return "{}_key_type".format(self.get_ds_name())
     else:
       return 'size_t'
   def get_value_type_name(self):
@@ -372,7 +379,11 @@ class ObjBasicArray(IndexMeta):
       tables.insert(0, cur_table.name)
     value = self.value.to_json()
     return ("BasicArray", {"id":self.id, "table":'.'.join([t for t in tables]), "value":value})
-  def get_idx_name(self):
+  def get_key_type_name(self):
+    return 'size_t'
+  def key_fields(self):
+    return []
+  def get_ds_name(self):
     if self.is_single_element():
       return self.table.name
     if isinstance(self.table, NestedTable):
@@ -386,7 +397,7 @@ class ObjBasicArray(IndexMeta):
                         get_capitalized_name(get_main_table(self.table.upper_table).name), self.id)
       else:
         return get_capitalized_name(self.table.name)
-    elif self.value.is_main_ptr() or self.value.is_nested_ptr():
+    elif self.value.is_main_ptr():
       return 'ItemPointer'
   def get_relates(self):
     return (isinstance(self.table, NestedTable) and self.value.is_main_ptr())

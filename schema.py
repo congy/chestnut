@@ -295,7 +295,7 @@ class DenormalizedTable(object):
   def __init__(self, tables, fields=[]):
     self.tables = tables
     self.join_fields = fields
-    self.name = '#'.join([t.name for t in self.tables])
+    self.name = 'XX'.join([t.name for t in self.tables])
     self.is_temp = False
     self.sz = to_real_value(self.cost_real_size())
   def __eq__(self, other):
@@ -311,6 +311,12 @@ class DenormalizedTable(object):
       return False
   def cost_str_symbol(self):
     return 'N{}'.format(self.name)
+  def get_qf_by_tables(self, maint, assoct):
+    # TODO: may return AssocOp
+    for f in self.join_fields:
+      if f.table == maint and f.field_class == assoct:
+        return f
+    assert(False)
   def cost_real_size(self):
     assert(len(self.join_fields) + 1 == len(self.tables))
     cost = self.tables[0].sz
@@ -401,3 +407,9 @@ def get_main_table(table):
 
 def is_main_table(table):
   return not isinstance(table, NestedTable)
+
+def get_upper_table_list(table):
+  if isinstance(table, NestedTable):
+    return get_upper_table_list(table.upper_table)+[table.related_table.name]
+  else:
+    return [table.name]
