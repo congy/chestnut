@@ -135,7 +135,7 @@ def get_param_proto_type(tipe):
   else:
     return get_proto_type(tipe)
 
-#mysql_types = {"int":"int(11)", "smallint":"int(8)", "oid":"int(11)", "uint":"int(11)", "float":"float","bool":"tinyint(1)", "date":"datetime"}
+mysql_types = {"int":"int(11)", "smallint":"int(8)", "oid":"int(11)", "uint":"int(11)", "float":"float","bool":"tinyint(1)", "date":"datetime"}
 
 type_size = {"int":1, "oid":1, "uint":1, "smallint":1, "float":2, "bool":1, "date":1}
 type_to_print_symbol = {'int':'%d', 'oid':'%u', 'smallint':'%u', 'date':'%u', 'uint':'%u', 'float':'%f', 'bool':'%d',
@@ -327,12 +327,23 @@ cpp_files_to_copy = [
   'bwtree.h',
   'sorted_small_set.h'
 ]
-cpp_files_path = '../'
+cpp_files_to_copy_path = '../../'
 
-def set_cpp_files_path(new_path):
-  global cpp_files_path
-  cpp_files_path = new_path
+def set_files_to_copy_path(new_path):
+  global cpp_files_to_copy_path
+  cpp_files_to_copy_path = new_path
 
-def get_cpp_files_path():
-  global cpp_files_path
-  return cpp_files_path
+def get_cpp_files_to_copy_path():
+  global cpp_files_to_copy_path
+  return cpp_files_to_copy_path
+
+cpp_file_path = ''
+def set_cpp_file_path(new_path):
+  global cpp_file_path
+  cpp_file_path = new_path
+  if not os.path.exists(cpp_file_path):
+    os.system('mkdir {}'.format(cpp_file_path))
+
+def get_cpp_file_path():
+  global cpp_file_path
+  return cpp_file_path

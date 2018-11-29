@@ -37,8 +37,6 @@ class AggrResult(object):
     self.delta_exprs = delta_exprs
   def to_json(self):
     return [(v.to_json(), f.to_json()) for a,f in self.aggrs]
-  def __str__(self):
-    return [(v.name, aggr.to_json()) for v, aggr in self.aggrs]
   def merge(self, other):
     self.aggrs += other.aggrs
     self.delta_exprs += other.delta_exprs
@@ -52,7 +50,7 @@ class AggrResult(object):
   def __eq__(self, other):
     #return set_equal(self.aggrs, other.aggrs, eq_func=lambda x,y: x[0]==y[0] and x[1]==y[1])
     return True
-  def __str__(self):
+  def __str__(self, short=False):
     return 'aggr({})'.format(','.join([aggr for v,aggr in self.aggrs]))
 
 class MemObject(object):
@@ -87,8 +85,8 @@ class MemObject(object):
   def __eq__(self, other):
     # TODO
     return self.table == other.table
-  def __str__(self):
-    if len(self.nested_objects) == 0:
+  def __str__(self, short=False):
+    if len(self.nested_objects) == 0 or short:
       return 'memobj({}-{})'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
     s = 'memobj({}-{}), nested = {{\n'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
     for o in self.nested_objects:
@@ -146,11 +144,11 @@ class IndexValue(object):
     return self.value_type == OBJECT
   def is_aggr(self):
     return self.value_type == AGGR
-  def __str__(self):
+  def __str__(self, short=False):
     if self.value_type == MAINPTR:
       return 'ptr'
     else:
-      return str(self.value)
+      return self.value.__str__(short)
   def __eq__(self, other):
     return self.value_type == other.value_type
   def to_json(self):
@@ -274,9 +272,9 @@ class ObjTreeIndex(IndexBase):
     return self.mem_cost
   def element_count(self):
     return IdxSizeUnit(self)
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] treeindex : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
-    self.id, self.table.get_full_type(), self.keys, self.condition, self.value)
+    self.id, self.table.get_full_type(), self.keys, self.condition, self.value.__str__(short))
   def fork(self):
     return ObjTreeIndex(self.table, self.keys, self.condition, self.value) 
   def fork_without_memobj(self):
@@ -302,9 +300,9 @@ class ObjSortedArray(IndexBase):
     if isinstance(self.table, NestedTable):
       mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
     return mem_cost
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] sorted-array : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
-    self.id, self.table.get_full_type(), self.keys, self.condition, value_to_str_short(self.value))
+    self.id, self.table.get_full_type(), self.keys, self.condition, self.value.__str__(short))
   def fork(self):
     return ObjSortedArray(self.table, self.keys, self.condition, self.value) 
   def fork_without_memobj(self):
@@ -328,10 +326,10 @@ class ObjArray(IndexBase):
     if isinstance(self.table, NestedTable):
       mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
     return mem_cost
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] array : [table = {}, cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), \
-    self.condition, value_to_str_short(self.value))
+    self.condition, self.value.__str__(short))
   def fork(self):
     return ObjArray(self.table, self.condition, self.value) 
   def fork_without_memobj(self):
@@ -351,10 +349,10 @@ class ObjHashIndex(IndexBase):
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
     return self.mem_cost
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] hashindex : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), ','.join([str(k) for k in self.keys]), \
-    self.condition, value_to_str_short(self.value))
+    self.condition, self.value.__str__(short))
   def fork(self):
     return ObjHashIndex(self.table, self.keys, self.condition, self.value)
   def fork_without_memobj(self):
@@ -403,8 +401,8 @@ class ObjBasicArray(IndexMeta):
     return (isinstance(self.table, NestedTable) and self.value.is_main_ptr())
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and self.value == other.value
-  def __str__(self):
-    return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), value_to_str_short(self.value))
+  def __str__(self, short=False):
+    return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), self.value.__str__(short))
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
@@ -440,22 +438,12 @@ class IndexPlaceHolder(IndexMeta):
     assert(False)
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and self.value == other.value
-  def __str__(self):
-    s = 'Placeholder [table = {}, value = {}]'.format(self.table.get_full_type(), self.value)
+  def __str__(self, short=False):
+    s = 'Placeholder [table = {}, value = {}]'.format(self.table.get_full_type(), self.value.__str__(short))
     return s
   def is_single_element(self):
     return isinstance(self.table, NestedTable) and get_main_table(self.table.upper_table).has_one_or_many_field(self.table.name) == 1
 
-def value_to_str_short(value):
-  if globalv.ds_short_print:
-    if value.is_object():
-      return 'memobj'
-    elif value.is_main_ptr():
-      return 'ptr'
-    else:
-      return 'aggr'
-  else:
-    return str(value)
 
 def get_idx_condition(pred):
   if isinstance(pred, ConnectOp):

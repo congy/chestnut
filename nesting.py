@@ -33,6 +33,15 @@ class ObjNesting(object):
     for k,v in self.assocs.items():
       o.assocs[k] = v.fork()
     return o
+  def fill_id_field(self):
+    self.add_field(QueryField('id', self.table))
+    for k,v in self.assocs.items():
+      v.fill_id_field()
+  def get_all_fields(self):
+    r = [f for f in self.fields]
+    for k,v in self.assocs.items():
+      r = r + v.get_all_fields()
+    return r
   def add_assoc(self, qf, assoc):
     assoc.level = self.level + 1
     assert(not isinstance(assoc.table, NestedTable))

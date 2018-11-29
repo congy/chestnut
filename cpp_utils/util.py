@@ -1,4 +1,3 @@
-
 import random
 import string
 
@@ -57,7 +56,11 @@ def set_no_duplicate(a, eq_func=(lambda x,y: x==y)):
       
 def set_union(a, b, eq_func=(lambda x,y: x==y)):
   for ele in b:
-    if not any([eq_func(x,ele) for x in a]): 
+    exist = False
+    for ele1 in a:
+      if eq_func(ele, ele1):
+        exist = True
+    if not exist:
       a.append(ele)
   return a
 
@@ -116,9 +119,12 @@ def list_combine(lsts):
     r = r + l
   return r
 
-def insert_no_duplicate(lst, ele, eq_func=(lambda x,y:x==y)):
-  if not any([eq_func(x,ele) for x in lst]):
-    lst.append(ele)
+def list_remove_duplicate(lst):
+  l = []
+  for ele in lst:
+    if ele not in l:
+      l.append(ele)
+  return l
 
 def insert_indent(s, indent_level=1):
   indent = ''.join(['  ' for i in range(0, indent_level)])

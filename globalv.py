@@ -58,9 +58,4 @@ def is_qr_type_proto():
   global qr_type
   return qr_type == 'proto'
 
-ds_short_print = False
-def set_ds_short_print(v):
-  global ds_short_print
-  ds_short_print = v
-
 symbolic_verify = False

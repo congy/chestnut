@@ -23,11 +23,9 @@ class ExecQueryStep(ExecStepSuper):
     if compute_variables:
       self.variables = self.step.get_all_variables()
     #print 'Query step var length = {}'.format(len(self.variables))
-  def __str__(self):
+  def __str__(self, short=False):
     s = 'prepare query {} (len param = {})\n'.format(self.query.id, len(self.new_params))
-    globalv.set_ds_short_print(True)
-    s += '{}'.format(self.step)
-    globalv.set_ds_short_print(False)
+    s += '{}'.format(self.step.__str__(short=True))
     return s
   def to_json(self):
     variables = [x.to_json(full_dump=True) for x in self.variables]
@@ -85,7 +83,7 @@ class ExecSetVarStep(ExecStepSuper):
                 "cond":self.cond.to_json() if self.cond else None})
   def compute_cost(self):
     return self.cost
-  def __str__(self):
+  def __str__(self, short=False):
     s = 'if ({}) {} = {}\n'.format(self.cond, self.var, self.expr)
     return s
   def fork(self):
@@ -147,8 +145,8 @@ class ExecStepSeq(ExecStepSuper):
   def add_steps(self, s):
     self.steps = self.steps + s
     assert(all([type(s) is not list for s in self.steps]))
-  def __str__(self):
-    return ''.join([str(s) for s in self.steps])
+  def __str__(self, short=False):
+    return ''.join([s.__str__(short) for s in self.steps])
   def merge_step(self, other):
     step_to_remove = []
     for i in range(0, len(self.steps)):
@@ -205,7 +203,7 @@ class ExecSortStep(ExecStepSuper):
       return self.cost
     self.cost = CostOp(self.var.get_sz(), COST_MUL, CostLogOp(self.var.get_sz()))
     return self.cost
-  def __str__(self):
+  def __str__(self, short=False):
     return 'Sort on {}: ({})\n'.format(self.var, ','.join([str(o) for o in self.order]))
   def __eq__(self, other):
     return type(self) == type(other) and set_equal(self.order, other.order) and self.table == other.table
@@ -232,7 +230,7 @@ class ExecUnionStep(ExecStepSuper):
     # if query.order: merge sort
     # recompute aggrs
     self.cost = 0
-  def __str__(self):
+  def __str__(self, short=False):
     return 'Union [{}]'.format(','.join([str(v) for v in self.union_vars]))
   def to_json(self):
     return ('ExecUnionStep',{"returnv":self.return_var.to_json(), "union_vars":[], "aggrs":[(v.to_json(), f.to_json()) for v,f in self.aggrs],\
@@ -278,8 +276,8 @@ class ExecGetAssocStep(ExecStepSuper):
     return 1
   def template_eq(self, other):
     return self.__eq__(other)
-  def __str__(self):
-    return 'GetAssoc {} via {}\n'.format(self.field, self.idx.value if self.idx else None)
+  def __str__(self, short=False):
+    return 'GetAssoc {} via {}\n'.format(self.field, self.idx.value.__str__(short) if self.idx else None)
   def compatible(self, other):
     return self.__eq__(other)
   def get_read_queries(self):
@@ -342,10 +340,10 @@ class ExecScanStep(ExecStepSuper):
     return self.cost
   def template_eq(self, other):
     return type(self) == type(other) and self.idx == other.idx
-  def __str__(self):
-    ele_s = '\n'.join(['  '+line for line in str(self.ele_ops).split('\n')])
+  def __str__(self, short=False):
+    ele_s = '\n'.join(['  '+line for line in self.ele_ops.__str__(short).split('\n')])
     if isinstance(self.idx, ObjBasicArray):
-      s = "Scan {} : \n{}\n".format(self.idx, ele_s)
+      s = "Scan {} : \n{}\n".format(self.idx.__str__(short), ele_s)
     elif isinstance(self.idx, ReadQuery):
       s = "Scan on result {} : \n{}\n".format(self.idx.return_var.name, ele_s)
     else:
@@ -412,8 +410,8 @@ class ExecIndexStep(ExecScanStep):
             self.ele_ops == other.ele_ops
   def template_eq(self, other):
     return type(self) == type(other) and self.idx_pred.template_eq(other.idx_pred) and self.idx.value == other.idx.value
-  def __str__(self):
-    ele_s = '\n'.join(['  '+line for line in str(self.ele_ops).split('\n')])
+  def __str__(self, short=False):
+    ele_s = '\n'.join(['  '+line for line in self.ele_ops.__str__(short).split('\n')])
     param_s = ','.join([str(p) for p in self.params])
     s = "Index {} on [{}] (params = [{}]): \n{}\n".format(index_type_to_str[self.idx_op_type], self.idx, param_s, ele_s)
     return s

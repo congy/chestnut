@@ -3,7 +3,7 @@ sys.path.append('../')
 from codegen_helper import *
 from schema import *
 
-def cgen_ds_def(ds, upper_table, prefix, is_top_level=False):
+def cgen_ds_def(ds, upper_table, prefix):
   header = ''
   cpp = ''
   #value type def
@@ -69,7 +69,7 @@ def cgen_ds_def(ds, upper_table, prefix, is_top_level=False):
                                               ds_name)   
 
     header += structs
-  if is_top_level:
+  if not isinstance(ds.table, NestedTable):
     cpp += ds_def
     header += 'extern {}'.format(ds_def)
   else:

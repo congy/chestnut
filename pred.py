@@ -646,6 +646,11 @@ def get_query_field(f):
     return f
   elif isinstance(f, AssocOp):
     return get_query_field(f.rh)
+def get_leftmost_qf(f):
+  if isinstance(f, QueryField):
+    return f
+  elif isinstance(f, AssocOp):
+    return f.lh
 def get_query_table(f):
   if isinstance(f, QueryField):
     return f.table

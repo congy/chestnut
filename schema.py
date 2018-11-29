@@ -302,6 +302,12 @@ class DenormalizedTable(object):
     return type(self) == type(other) and set_equal(self.tables, other.tables)
   def get_full_type(self):
     return self.name
+  def get_main_table(self):
+    cur_tables = [self.tables[0]]
+    for qf in self.join_fields:
+      assert(qf.table in cur_tables)
+      cur_tables.append(qf.field_class)
+    return self.tables[0]
   def contain_table(self, table):
     if isinstance(table, Table):
       return any([t==table for t in self.tables])
