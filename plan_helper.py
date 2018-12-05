@@ -282,6 +282,11 @@ def rewrite_pred_for_denormalized_table(pred, table):
           has_change = True
         if has_change:
           break
+      if isinstance(c, BinOp) and is_assoc_field(c.lh) and table.contain_table(c.lh.lh.field_class):
+        clauses.pop(i)
+        clauses.append(BinOp(c.lh.rh, c.op, c.rh))
+        has_change = True
+        break
   new_pred = merge_into_cnf(clauses)
   #print 'REWRITE: table = {}, old = {}, new = {}'.format(table.get_full_type(), pred, new_pred)
   return new_pred

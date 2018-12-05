@@ -223,6 +223,15 @@ def get_cpp_type(tipe):
   else:
     return cpp_types[tipe]
 
+def get_sql_type(tipe):
+  if is_varchar_type(tipe):
+    return tipe
+  elif is_long_string_type(tipe):
+    return 'text'
+  else:
+    assert(tipe in mysql_types)
+    return mysql_types[tipe]
+
 def get_varchar_length(tipe):
   if is_long_string_type(tipe):
     return 1024

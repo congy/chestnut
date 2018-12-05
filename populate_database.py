@@ -68,8 +68,8 @@ def create_tables(tables, associations):
     field_list=[]
     for f in t.get_fields():
       ft = f.name+" "
-      assert(f.tipe in mysql_types)
-      ft += "{} DEFAULT NULL".format(mysql_types[f.tipe])
+      sql_type = get_sql_type(f.tipe)
+      ft += "{} DEFAULT NULL".format(sql_type)
       field_list.append(ft)
     sys_cmd("mysql -u root {} -e \"CREATE TABLE {} ({});\"".format(db_name, t.name, ", ".join(field_list)))
   

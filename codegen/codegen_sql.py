@@ -13,6 +13,9 @@ from query_manager import *
 # if key is (f1, f2), then (v1, NULL) will not be considered as a valid key 
 #     i.e., any object with such key (v1, NULL), (NULL, v2), etc., will not be inserted into the data structure
 
+def clean_sql_query(s):
+  return s.replace('"', "'")
+
 def sql_for_ds_query(ds):
   table = ds.table
   join_strs = []
@@ -63,7 +66,7 @@ def sql_for_ds_query(ds):
     field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
     s = 'select {} from {} {} {}'.format(field_str, entry_table, \
                     ' '.join(join_strs), 'where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
-  return s, nesting, fields
+  return clean_sql_query(s), nesting, fields
 
 def find_nesting_until_match(nesting, table):
   if nesting.table == table:
@@ -75,7 +78,7 @@ def find_nesting_until_match(nesting, table):
   return None
 def find_nesting_by_qf(nesting, qf):
   if isinstance(qf, AssocOp):
-    next_nesting = find_nesting_by_qf(qf.lh)
+    next_nesting = find_nesting_by_qf(nesting, qf.lh)
     return find_nesting_by_qf(next_nesting, qf.rh)
   else:
     if qf.table == nesting.table:
@@ -93,7 +96,7 @@ def sql_get_element_str(pred, fields, nesting, join_strs):
   elif isinstance(pred, AssocOp):
     join_strs.append(get_join_condition(pred, 'INNER JOIN'))
     f = get_query_field(pred)
-    next_nesting = find_nesting_by_qf(pred.lh)
+    next_nesting = find_nesting_by_qf(nesting, pred.lh)
     return sql_get_element_str(f, fields, next_nesting, join_strs)
   elif isinstance(pred, MultiParam):
     return '({})'.format(','.join([sql_get_element_str(p, join_strs) for p in pred.params]))
@@ -109,8 +112,9 @@ def sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs):
     sql_for_ds_pred(pred.rh, fields, nesting, join_strs, pred_strs)
   elif isinstance(pred, BinOp):
     if len(pred.get_all_params()) == 0:
-      lft_str = sql_get_element_str(pred.lh, fields, nesting, join_strs)
-      rgt_str = sql_get_element_str(pred.rh, fields, nesting, join_strs)
+      fork_nesting = nesting.fork()
+      lft_str = sql_get_element_str(pred.lh, [], fork_nesting, join_strs)
+      rgt_str = sql_get_element_str(pred.rh, [], fork_nesting, join_strs)
       if pred.op == SUBSTR:
         rgt_str = '%{}'.format(rgt_str[1:-1])
       else:
@@ -119,32 +123,34 @@ def sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs):
       assert(isinstance(pred.rh, Parameter))
       sql_get_element_str(pred.lh, fields, nesting, join_strs)
   elif isinstance(pred, SetOp):
-    next_nesting = find_nesting_by_qf(nesting, pred.lh)
     if len(pred.get_all_params()) == 0:
       new_pred_strs = []
       new_join_strs = []
-      lqf = get_get_leftmost_qf(pred.lh)
+      lqf = get_leftmost_qf(pred.lh)
       if pred.op == EXIST:
-        if isinstance(lqf, QueryField):
+        if isinstance(pred.lh, QueryField):
           new_pred = pred.rh
         else:
-          new_pred = SetOp(lqf.lh, pred.op, pred.rh)
+          new_pred = SetOp(pred.lh.rh, pred.op, pred.rh)
         joinp = 'INNER JOIN'
       else:
-        if isinstance(lqf, QueryField):
+        if isinstance(pred.lh, QueryField):
           new_pred = UnaryOp(pred.rh)
         else: # FIXME
-          new_pred = SetOp(lqf.lh, pred.op, UnaryOp(pred.rh))
+          new_pred = SetOp(pred.lh.rh, pred.op, UnaryOp(pred.rh))
         joinp = 'LEFT OUTER JOIN'
       table_name, outer_pred = get_join_condition_helper2(lqf, joinp)
       subq_prefix = 'select 1 from {} '.format(table_name)
       new_pred_strs.append(outer_pred)
+      fork_nesting = nesting.fork()
+      next_nesting = find_nesting_by_qf(fork_nesting, lqf)
       sql_for_ds_pred(new_pred, [], next_nesting, new_join_strs, new_pred_strs)
       if pred.op == EXIST:
         pred_strs.append('exists ({} {} where {})'.format(subq_prefix, ' '.join(new_join_strs), ' and '.join(new_pred_strs)))
       else:
         pred_strs.append('not exists ({} {} where {})'.format(subq_prefix, ' '.join(new_join_strs), ' and '.join(new_pred_strs)))
     else:
+      next_nesting = find_nesting_by_qf(nesting, pred.lh)
       join_strs.append(get_join_condition(pred.lh, 'INNER JOIN'))
       sql_for_ds_pred(pred.rh, fields, next_nesting, join_strs, pred_strs)
   elif isinstance(pred, UnaryOp):
@@ -172,10 +178,10 @@ def get_join_condition_helper(qf, joinq):
 #   -> left outer join table_name on outer_pred
 def get_join_condition_helper2(qf, joinq):
   if qf.table.has_one_or_many_field(qf.field_name) == 1:
-    return qf.field_class.table.name, '{}.{}_id = {}.id' .format(\
+    return qf.field_class.name, '{}.{}_id = {}.id' .format(\
                       qf.table.name, qf.field_name, qf.field_class.name)
   elif qf.field_class.has_one_or_many_field(get_reversed_assoc_qf(qf).field_name) == 1:
-    return qf.field_class.table.name, '{}.id = {}.{}_id '.format(\
+    return qf.field_class.name, '{}.id = {}.{}_id '.format(\
                       qf.table.name, qf.field_class.name, get_reversed_assoc_qf(qf).field_name)
   else:
     connect_table_name = qf.table.get_assoc_by_name(qf.field_name).name
@@ -249,9 +255,15 @@ def codegen_deserialize_helper(table, nesting, fields, upper_var, level=1):
     maint = table.get_main_table()
     s += '  {}_obj_ptr_{} = {}->add_{}();\n'.format(maint.name, level, upper_var, maint.name)
     for qf in table.join_fields:
-      s += '  {}_obj_ptr_{} = {}_obj_ptr_{}->add_{}();\n'.format(qf.field_class.name, level, qf.table.name, level, qf.field_name)
+      if qf.table.has_one_or_many_field(qf.field_name) == 1:
+        s += '  {}_obj_ptr_{} = {}_obj_ptr_{}->mutable_{}();\n'.format(qf.field_class.name, level, qf.table.name, level, qf.field_name)
+      else: 
+        s += '  {}_obj_ptr_{} = {}_obj_ptr_{}->add_{}();\n'.format(qf.field_class.name, level, qf.table.name, level, qf.field_name)
   elif isinstance(table, NestedTable):
-    s += '  {}_obj_ptr_{} = {}->add_{}();\n'.format(get_main_table(table).name, level, upper_var, table.name)
+    if get_main_table(table.upper_table).has_one_or_many_field(table.name) == 1:
+      s += '  {}_obj_ptr_{} = {}->mutable_{}();\n'.format(get_main_table(table).name, level, upper_var, table.name)
+    else:
+      s += '  {}_obj_ptr_{} = {}->add_{}();\n'.format(get_main_table(table).name, level, upper_var, table.name)
   else:
     s += '  {}_obj_ptr_{} = {}->add_{}();\n'.format(table.name, level, upper_var, table.name)
   for k,v in table_map.items():
@@ -307,9 +319,14 @@ def test_print_nesting(nesting, upper_obj, qf=None, level=1):
   else:
     tname = qf.field_name
   s = ''
-  s += 'for(int i{}=0; i{}<{}.{}_size(); i{}++){{\n'.format(level, level, upper_obj, tname, level)
-  s += '  auto& i{}_{} = {}.{}(i{});\n'.format(level, tname, upper_obj, tname, level)
-  s += '  printf("{}{} %u\\n", i{}_{}.id());\n'.format('  '.join(['' for x in range(0, level)]), tname, level, tname)
+  if qf and qf.table.has_one_or_many_field(qf.field_name) == 1:
+    s += '{\n'
+    s += '  auto& i{}_{} = {}.{}();\n'.format(level, tname, upper_obj, tname)
+    s += '  printf("{}{} %u\\n", i{}_{}.id());\n'.format('  '.join(['' for x in range(0, level)]), tname, level, tname)
+  else:
+    s += 'for(int i{}=0; i{}<{}.{}_size(); i{}++){{\n'.format(level, level, upper_obj, tname, level)
+    s += '  auto& i{}_{} = {}.{}(i{});\n'.format(level, tname, upper_obj, tname, level)
+    s += '  printf("{}{} %u\\n", i{}_{}.id());\n'.format('  '.join(['' for x in range(0, level)]), tname, level, tname)
   for k,v in nesting.assocs.items():
     s += insert_indent(test_print_nesting(v, 'i{}_{}'.format(level, tname), k, level+1), level)
   s += '}\n'
