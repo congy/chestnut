@@ -51,6 +51,10 @@ class ObjNesting(object):
       self.assocs[qf] = assoc
   def get_assoc(self, qf):
     return self.assocs[qf]
+  def get_or_add_assoc(self, qf):
+    if qf not in self.assocs:
+      self.add_assoc(qf, ObjNesting(qf.field_class))
+    return self.assocs[qf]
   def __str__(self):
     s = "ObjShape [{}] ({} : ({}))\n".format(self.level, self.table.name, \
             ','.join(f.field_name for f in self.fields))

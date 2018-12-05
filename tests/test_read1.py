@@ -68,5 +68,6 @@ data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
 #populate_database(data_dir, tables, associations)
-test_generate_sql([q])
+#test_generate_sql([q])
+test_deserialize([q])
 

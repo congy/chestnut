@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../')
-
+from constants import *
+from schema import *
 
 def cgen_fname(f):
   if isinstance(f, QueryField):
@@ -22,6 +23,17 @@ def cgen_init_from_proto(typename, proto, fields):
   return "  {}(const {}& p): {} {{}}\n".format(typenmae, proto, \
                                 ','.join(['{}(p.{}())'.format(cgen_fname(f), f.name) for f in fields]))
 
+def cgen_proto_type(t):
+  if isinstance(t, NestedTable):
+    r = ''
+    while isinstance(t, NestedTable):
+      r = '::P{}In{}'.format(get_capitalized_name(t.name),get_capitalized_name(get_main_table(t.upper_table).name)) + r
+      t = t.upper_table
+    r = '{}::P{}{}'.format(get_db_name(), get_capitalized_name(t.name), r)
+    return r
+  else:
+    assert(not isinstance(t, DenormalizedTable))
+    return '{}::P{}'.format(get_db_name(), get_capitalized_name(t.name))
 def cgen_get_fproto(f):
   if isinstance(f, QueryField):
     return '{}()'.format(f.field_name)

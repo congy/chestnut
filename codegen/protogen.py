@@ -22,6 +22,14 @@ def generate_proto_files(path, tables, associations, read_queries=[], write_quer
   for q in read_queries:
     fp.write(generate_one_proto_for_query(q))
     fp.write('\n\n')
+  
+  s = ''
+  for t in tables:
+    s += 'message P{}List {{\n'.format(get_capitalized_name(t.name))
+    s += '  repeated P{} {} = 1;\n'.format(get_capitalized_name(t.name), t.name)
+    s += '}\n'
+  fp.write(s)
+  fp.write('\n\n')
 
   s = 'message QueryParam {\n'
   cnt = 2
