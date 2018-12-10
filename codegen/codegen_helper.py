@@ -13,15 +13,17 @@ def cgen_fname(f):
   elif isinstance(f, Field):
     return '{}_{}'.format(f.table.name, f.name)
 
-def cgen_ftype(f):
+def cgen_scalar_ftype(f):
   if isinstance(f, QueryField):
     return get_cpp_type(f.field_class.tipe)
   elif isinstance(f, Field):
     return get_cpp_type(f.tipe)
-
-def cgen_init_from_proto(typename, proto, fields):
-  return "  {}(const {}& p): {} {{}}\n".format(typenmae, proto, \
-                                ','.join(['{}(p.{}())'.format(cgen_fname(f), f.name) for f in fields]))
+def cgen_obj_type(table):
+  if isinstance(table, NestedTable):
+    return cgen_obj_ftype(table.upper_table) + \
+      '::{}In{}'.format(get_capitalized_name(table.name), get_capitalized_name(get_main_table(table.upper_table).name))
+  else:
+    return '{}'.format(get_capitalized_name(table.name))
 
 def cgen_proto_type(t):
   if isinstance(t, NestedTable):
@@ -95,3 +97,100 @@ def merge_assoc_qf(assoc, qf):
 
 def merge_qf_assoc(qf, assoc):
   pass
+
+var_suffix_cnt = 0
+def get_random_suffix():
+  global var_suffix_cnt
+  var_suffix_cnt += 1
+  return '{}'.format(var_suffix_cnt)
+
+cxxvar_cnt = 0
+def cgen_cxxvar(v):
+  global cxxvar_cnt
+  cxxvar_cnt += 1
+  if isinstance(v, EnvAtomicVariable):
+    return 'e_{}_{}'.format(v.name, cxxvar_cnt)
+  elif isinstance(v, EnvCollectionVariable):
+    return 'lst_{}_{}'.format(v.name, cxxvar_cnt)
+  elif isinstance(v, table):
+    return 'obj_{}_{}'.format(v.name, cxxvar_cnt)
+  elif is_query_field(v):
+    return 'qf_{}_{}'.format(get_query_field(v).field_name, cxxvar_cnt)
+  else:
+    if type(v) is str:
+      return 'v_{}_{}'.format(v, cxxvar_cnt)
+    else:
+      return 'v_{}'.format(cxxvar_cnt)
+
+def cgen_init_from_proto(typename, table, proto, fields):
+  if isinstance(table, DenormalizedTable):
+    s = []
+    maint = table.get_main_table()
+    vs = {maint:'p'}
+    for t in table.tables:
+      var = vs[t]
+      fs = filter(lambda x: x.table == t, fields)
+      s.append(','.join['{}({}.{}())'.format(cgen_fname(f), var, f.name) for f in fields])
+      for k,v in t.nested_tables.items():
+        if t.has_one_or_many_field(k) == 1:
+          vs[get_main_table(v)] = '{}.{}()'.format(var, k)
+        else:
+          vs[get_main_table(v)] = '{}.{}(0)'.format(var, k)
+    return "  {}(const {}& p): {} {{}}\n".format(typename, proto, ','.join(s))
+  else:
+    return "  {}(const {}& p): {} {{}}\n".format(typename, proto, \
+                                ','.join(['{}(p.{}())'.format(cgen_fname(f), f.name) for f in fields]))
+
+
+def cgen_expr_from_protov(expr, init_var, proto_var):
+  if isinstance(expr, BinaryExpr):
+    s1, lh = cgen_expr_from_protov(expr.lh, init_var, proto_var)
+    s2, rh = cgen_expr_from_protov(expr.rh, init_var, proto_var)
+    if type_larger(expr.lh.get_type(), expr.rh.get_type()):
+      rh = '({}){}'.format(get_cpp_type(expr.lh.get_type()), rh)
+    if type_larger(expr.rh.get_type(), expr.lh.get_type()):
+      lh = '({}){}'.format(get_cpp_type(expr.rh.get_type()), lh)
+    return s1+s2, '({} {} {})'.format(lh, expr_op_to_cpp_map[expr.op], rh)
+  elif isinstance(expr, UnaryExpr):
+    if expr.op == COUNT:
+      opd = ''
+      s = ''
+    else:
+      s, opd = cgen_expr_from_protov(expr.operand, init_var, proto_var)
+    if expr.op == MAX:
+      return s, 'if ({}<{}) {} = {};\n'.format(init_var, opd, init_var, opd)
+    elif expr.op == MIN:
+      return s, 'if ({}>{}) {} = {};\n'.format(init_var, opd, init_var, opd)
+    elif expr.op == COUNT:
+      return s, '{}++;\n'.format(init_var)
+    elif expr.op == SUM:
+      return s, '{} = {} + {};\n'.format(init_var, init_var, opd)
+    elif expr.op == AVG:
+      return s, ''
+    else:
+      assert(False)
+  elif isinstance(expr, IfThenElseExpr):
+    s1, cond = cgen_expr_from_protov(expr.cond, init_var, proto_var)
+    s2, expr1 = cgen_expr_from_protov(expr.expr1, init_var, proto_var)
+    s3, expr2 = cgen_expr_from_protov(expr.expr2, init_var, proto_var)
+    newv = 'tempv_{}'.format(hash(expr)%10)
+    s = '{} {} = 0;\n'.format(get_cpp_type(expr.expr1.get_type()), newv)
+    s += 'if ({}) {} = {};\nelse {} = {};\n'.format(cond, newv, expr1, newv, expr2)
+    return s1+s2+s3+s, newv
+  elif isinstance(expr, QueryField):
+    return '', '{}.{}()'.format(proto_var, expr.field_name)
+  elif isinstance(expr, Parameter) or isinstance(expr, EnvAtomicVariable):
+    assert(False)
+    return '', ''
+  elif isinstance(expr, EnvAtomicVariable):
+    return '', state.find_cxx_var(expr)
+  elif isinstance(expr, AssocOp):
+    s, rh = cgen_expr_from_protov(expr.rh, init_var, '{}.{}()'.format(proto_var, expr.lh.field_name))
+    return s, rh
+  elif isinstance(expr, AtomValue):
+    return '', str(int(expr.to_var_or_value()))
+  elif isinstance(expr, InitialValuePlaceholder):
+    return '', init_var
+  else:
+    assert(False)
+

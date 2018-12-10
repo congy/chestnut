@@ -319,7 +319,7 @@ def get_init_value_by_type(tipe):
     elif is_float_type(tipe):
       return 0.0
     elif is_varchar_type(tipe):
-      return ''
+      return '""'
       #return ''.join(['0' for i in range(0, get_varchar_length(tipe))])
   else:
     return 0

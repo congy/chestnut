@@ -56,7 +56,7 @@ class AggrResult(object):
 class MemObject(object):
   def __init__(self, table):
     self.table = table # Table or NestedTable or DenormalizedTable
-    self.fields = []
+    self.fields = [QueryField('id', t) for t in table.tables] if isinstance(table, DenormalizedTable) else [QueryField('id', get_main_table(table))]
     self.nested_objects = [] # array of nested BasicArray / ObjSortedArray / ObjArray
   def get_all_fields(self):
     return self.fields
@@ -64,7 +64,7 @@ class MemObject(object):
     # print f
     # print self.table.get_full_type()
     assert(get_main_table(self.table).contain_table(f.table))
-    if not any([f==f1 for f1 in self.fields]) and f.field_name != 'id':
+    if not any([f==f1 for f1 in self.fields]):
       self.fields.append(f)
   def add_fields(self, fs):
     for f in fs:
@@ -132,7 +132,7 @@ class IndexValue(object):
     elif value_type == OBJECT:
       self.value = value.fork() if isinstance(value, MemObject) else MemObject(value)
     else:
-      self.value = None
+      self.value = value
   def to_json(self):
     if self.value_type == MAINPTR:
       return "mainptr"
@@ -150,7 +150,10 @@ class IndexValue(object):
     else:
       return self.value.__str__(short)
   def __eq__(self, other):
-    return self.value_type == other.value_type
+    if self.value_type == MAINPTR:
+      return self.value_type == other.value_type and self.value == other.value
+    else:
+      return self.value_type == other.value_type
   def to_json(self):
     # TODO
     pass

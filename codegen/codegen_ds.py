@@ -3,7 +3,7 @@ sys.path.append('../')
 from codegen_helper import *
 from schema import *
 
-def cgen_ds_def(ds, upper_table, prefix):
+def cgen_ds_def(ds, upper_table=None, prefix=[]):
   header = ''
   cpp = ''
   #value type def
@@ -37,10 +37,10 @@ def cgen_ds_def(ds, upper_table, prefix):
     key_type_name = ds.get_key_type_name()
     key_fields = [key for key in ds.key_fields()]
     structs = "struct  {} {{\n".format(key_type_name)
-    structs += ''.join(["  {} {};\n".format(cgen_ftype(key), cgen_fname(key)) for i,key in enumerate(key_fields)])
+    structs += ''.join(["  {} {};\n".format(cgen_scalar_ftype(key), cgen_fname(key)) for i,key in enumerate(key_fields)])
     #init function
     structs += "  {}({}): {} {{}}\n".format(key_type_name, \
-                            ','.join(['{} {}_'.format(cgen_ftype(key), cgen_fname(key)) for i,key in enumerate(key_fields)]), \
+                            ','.join(['{} {}_'.format(cgen_scalar_ftype(key), cgen_fname(key)) for i,key in enumerate(key_fields)]), \
                             ','.join(['{}({}_)'.format(cgen_fname(key), cgen_fname(key)) for i,key in enumerate(key_fields)]))
     structs += "  {}(): {} {{}}\n".format(key_type_name, \
                             ','.join(['{}(0)'.format(cgen_fname(key)) for i,key in enumerate(key_fields)]))
@@ -59,7 +59,7 @@ def cgen_ds_def(ds, upper_table, prefix):
                           "{}_{}.get_hash() << {}".format(cgen_fname(key), i, i*shift_bits) \
                           if is_string_type(key.field_class.tipe) else \
                           "(std::hash<{}>()({}) << {})".format(\
-                          cgen_ftype(key), cgen_fname(key), i*shift_bits)) for i,key in enumerate(key_fields)]))                                        
+                          cgen_scalar_ftype(key), cgen_fname(key), i*shift_bits)) for i,key in enumerate(key_fields)]))                                        
     structs += "};\n"
 
     ds_def = "{}<{}, {}, {}> {};\n".format(cgen_ds_type(ds), \
@@ -77,20 +77,38 @@ def cgen_ds_def(ds, upper_table, prefix):
 
   if isinstance(ds.table, DenormalizedTable):
     tables = ds.table.tables
+    entryt = ds.table.get_main_table()
     proto_toptype_prefixes = ['{}::P{}'.format(db_name, get_capitalized_name(get_main_table(t1).name)) for t1 in tables] 
   else:
     tables = [ds.table]
+    entryt = get_main_table(ds.table)
     proto_toptype_prefixes = ['{}::P{}'.format(db_name, get_capitalized_name(get_main_table(t).name))]
   
   for ix in range(0, len(tables)):
     t = tables[ix]
     proto_toptype_prefix = proto_toptype_prefixes[ix]
 
+    # insert by key
+    if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
+      insert_func = 'inline void insert_{}_by_key({}& v) {{\n'.format(ds_name, ds.get_value_type_name())
+      if ds.value.is_aggr():
+        assert(False)
+      else:
+        insert_func += '  {}.insert(v);\n}\n'.format(ds_name)
+    else:
+      insert_func = 'inline void insert_{}_by_key({}& key, {}& v) {{\n'.format(ds_name, ds.get_key_type_name(), ds.get_value_type_name())
+      if ds.value.is_aggr():
+        assert(False)
+      else:
+        insert_func += '  {}.insert(key, v);\n}\n'.format(ds_name)
+    header += insert_func
+
+    """
     # get keys func
     getkey_func = "inline void get_keys_for_{} (const {}& p, TempArray<{}>& keys) {{\n".format(ds_name, \
                                                             proto_toptype_prefix, ds.get_key_type_name())
     for i,key in enumerate(ds.key_fields()):
-      getkey_func += "  TempArray<{}> key_{};\n".format(cgen_ftype(key), cgen_fname(key))
+      getkey_func += "  TempArray<{}> key_{};\n".format(cgen_scalar_ftype(key), cgen_fname(key))
     getkey_func += insert_indent(codegen_getkeys_recursive(ds.condition, 'p', key_to_id_map, 1, ds.table, t))
     level = 1
     key_to_var_map = {}
@@ -101,7 +119,7 @@ def cgen_ds_def(ds, upper_table, prefix):
       key_to_var_map[key] = '(*i{})'.format(level)
       level += 1
     indent = ''.join(['  ' for i in range(0, level)])
-    #check condition
+    # check condition
     if isinstance(ds, ObjBasicArray):
       getkey_func += "{}keys.append(1);\n".format(indent)
     else:
@@ -124,7 +142,6 @@ def cgen_ds_def(ds, upper_table, prefix):
       getkey_func += "{}}}\n".format(indent)
     getkey_func += "  return ;\n"
     getkey_func += "}\n"
-
     header += (getkey_func + '\n')
 
     # insert and delete
@@ -140,19 +157,19 @@ def cgen_ds_def(ds, upper_table, prefix):
         v,aggr = x
         if len(idx.key_fields()) > 0:
           func_body += "  for (auto i = keys.begin(); i != keys.end(); i++) {\n"
-          func_body += "    auto x = {}.find_by_key(*i);\n".format(idx.get_idx_name())
+          func_body += "    auto x = {}.find_by_key(*i);\n".format(ds_name)
           func_body += "    if (x!=nullptr) {{\n      PLACEHOLDER;\n    }}\n"
           init_v = '(*x).{}_{}'.format(v.name, i)
           func_body += "  }\n"
-          helper_s, expr_s = codegen_expr_from_protov(aggr, init_v, 'p')
+          helper_s, expr_s = cgen_expr_from_protov(aggr, init_v, 'p')
           insert_func += func_body.replace('PLACEHOLDER', helper_s+expr_s)
-          helper_s, expr_s = codegen_expr_from_protov(idx.value.value.delta_exprs[i], init_v, 'p')
+          helper_s, expr_s = cgen_expr_from_protov(idx.value.value.delta_exprs[i], init_v, 'p')
           delete_func += func_body.replace('PLACEHOLDER', (helper_s + '{} = {};\n'.format(init_v, expr_s)))
         else:
           init_v = '{}.{}_{}'.format(idx.get_idx_name(), v.name, i)
-          helper_s, expr_s = codegen_expr_from_protov(aggr, init_v, 'p')
+          helper_s, expr_s = cgen_expr_from_protov(aggr, init_v, 'p')
           insert_func += (helper_s + expr_s)
-          helper_s, expr_s = codegen_expr_from_protov(idx.value.value.delta_exprs[i], init_v, 'p')
+          helper_s, expr_s = cgen_expr_from_protov(idx.value.value.delta_exprs[i], init_v, 'p')
           delete_func += (helper_s + '{} = {};\n'.format(init_v, expr_s))
     else:
       if len(ds.key_fields()) > 0:
@@ -170,12 +187,13 @@ def cgen_ds_def(ds, upper_table, prefix):
 
     header += (insert_func + '\n')
     header += (delete_func + '\n')
+    """
 
   if isinstance(ds.table, NestedTable):
     header = insert_indent(header)  
   return header,cpp
 
-def cgen_class_def(obj, upper_table, prefix): 
+def cgen_class_def(obj, upper_table=None, prefix=[]): 
   header = ""
   cpp = ""
   t = obj.table
@@ -191,7 +209,7 @@ def cgen_class_def(obj, upper_table, prefix):
   fields = []
   fields = [f for f in obj.fields]
   for f in fields:
-    element += "  {} {};\n".format(cgen_ftype(f), cgen_fname(f))
+    element += "  {} {};\n".format(cgen_scalar_ftype(f), cgen_fname(f))
 
   for ds in obj.nested_objects:
     new_prefix = [p for p in prefix] + [ele_name]
@@ -205,15 +223,15 @@ def cgen_class_def(obj, upper_table, prefix):
 
   element += "  {}(): {} {{}}\n".format(ele_name, ','.join(['{}(0)'.format(cgen_fname(f)) for f in fields]))
   if isinstance(obj.table, DenormalizedTable):
-    for t in obj.table.tables:
-      proto_type_prefix = '{}::P{}'.format(db_name, get_capitalized_name(t.name))
-      element += cgen_init_from_proto(ele_name, proto_type_prefix, fields)
+    t1 = obj.table.get_main_table()
+    proto_type_prefix = '{}::P{}'.format(db_name, get_capitalized_name(t1.name))
+    element += cgen_init_from_proto(ele_name, t1, proto_type_prefix, fields)
   else:
     proto_type_prefix = db_name + ''.join(['::P{}'.format(p) for p in prefix])
     proto_toptype_prefix = '{}::P{}'.format(db_name, get_capitalized_name(main_t.name))
-    element += cgen_init_from_proto(ele_name, proto_type_prefix, fields)
+    element += cgen_init_from_proto(ele_name, main_t, proto_type_prefix, fields)
     if upper_table:
-      element += cgen_init_from_proto(ele_name, proto_toptype_prefix, fields)
+      element += cgen_init_from_proto(ele_name, main_t, proto_toptype_prefix, fields)
   
   id_fields = filter(lambda x: x.name=='id', fields)
   element += "  inline void clear() {{ {} }}\n".format(' '.join(['{} = 0;'.format(cgen_fname(idf)) for idf in id_fields]))

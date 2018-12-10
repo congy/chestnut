@@ -105,8 +105,9 @@ class ILPVariableManager(object):
       self.memobjv[dsid] = [(fields[i], newv[i]) for i in range(0, len(fields))]
     for ds in dsmng.data_structures:
       if ds.value.is_main_ptr():
-        dependent = dsmng.find_primary_array_exact_match(ds.table)
-        assert(dependent)
+        #dependent = dsmng.find_primary_array_exact_match(ds.table)
+        dependent = ds.value.value
+        assert(dependent and dependent.id > 0)
         self.dsv_dependency.append((ds.id, dependent.id))
   # return [ds_id], {ds_id:[field]}
   def add_ds_list_helper(self, lst):

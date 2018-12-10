@@ -48,6 +48,12 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id):
       new_ds_id, new_delta = collect_structures_helper_index(tempds, ds2, cur_ds_id)
       cur_ds_id = new_ds_id
       delta_structures += new_delta
+  for ds2 in lst2:
+    if ds2.value.is_main_ptr():
+      dependent_ds = ds2.value.value
+      for ds1 in lst1:
+        if ds1 == dependent_ds:
+          ds2.value.value = ds1
   return cur_ds_id, delta_structures
 
 def collect_structures_helper_memobj(obj, newobj, begin_ds_id):

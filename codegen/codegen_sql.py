@@ -16,13 +16,13 @@ from query_manager import *
 def clean_sql_query(s):
   return s.replace('"', "'")
 
-def sql_for_ds_query(ds):
+def sql_for_ds_query(ds, select_by_id=False):
   table = ds.table
   join_strs = []
   if isinstance(table, NestedTable):
     upper_qf = get_qf_from_nested_t(table)
     join_strs.append(get_join_condition(upper_qf, 'INNER JOIN'))
-    #pred_strs = ['{}.id = ?'.format(upper_qf.table.name)]
+    #pred_strs = ['{}.id = %u'.format(upper_qf.table.name)]
     pred_strs = ['{}.id = {}'.format(upper_qf.table.name, random.randint(1, upper_qf.table.sz-2))]
     entry_table = upper_qf.table.name
   else:
@@ -44,10 +44,14 @@ def sql_for_ds_query(ds):
         nesting_map[qf.field_class] = qfn
     for t in table.tables:
       insert_no_duplicate(fields, QueryField('id', t))
+    if select_by_id:
+      pred_strs += ['{}.id = %u'.format(t.name) for t in table.tables]
   else:
     maint = get_main_table(table)
     nesting = ObjNesting(maint)
     insert_no_duplicate(fields, QueryField('id', maint))
+    if select_by_id:
+      pred_strs.append('{}.id = %u'.format(maint.name))
   if isinstance(ds, ObjBasicArray):
     pred = None
   else:
@@ -104,6 +108,7 @@ def sql_get_element_str(pred, fields, nesting, join_strs):
     return pred.to_var_or_value()
   else:
     assert(False)
+
 # if has parameter --- select that field
 # if no parameter --- just predicate
 def sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs):
@@ -159,7 +164,8 @@ def sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs):
     else:
       return sql_for_ds_pred(pred.operand, fields, nesting, join_strs, pred_strs)
 
-# def sql_for_query_pred(pred, fields):
+# TODO:
+#def sql_for_ds_expr(pred, fields, nesting, join_strs, pred_strs):
 
 def get_join_condition(qf, joinq):
   if isinstance(qf, AssocOp):
@@ -190,6 +196,72 @@ def get_join_condition_helper2(qf, joinq):
                                                     joinq, qf.field_class.name,
                                                     qf.field_class.name, connect_table_name, qf.field_class.name)  
 
+def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_obj=None):
+  param1 = ', {}* upper_obj'.format(upper_obj) if upper_obj else ''
+  param2 = ', oid_t obj_id, ItemPointer obj_pos' if ds.value.is_main_ptr() else ''
+  s = 'inline void init_ds_{}_from_sql(MYSQL* conn{}{}) {{\n'.format(ds.id, param1, param2)
+  ds_name = ds.get_idx_name()
+  maint = ds.table.get_main_table() if isinstance(ds.table, DenormalizedTable) else get_main_table(ds.table)
+  if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
+    pass
+  else:
+    for i,key in enumerate(ds.key_fields()):
+      s += '  {} key_{} = 0;\n'.format(get_cpp_type(key.field_class.tipe), i)
+  # TODO: replace %d with id using sprintf
+  if upper_obj:
+    s += '  char qs[2000];\n'
+    s += '  sprintf(qs, \"{}\", upper_obj->id);\n'.format(query_str)
+    s += '  std::string query_str(qs);\n'
+  elif ds.value.is_main_ptr():
+    s += '  char qs[2000];\n'
+    s += '  sprintf(qs, \"{}\", obj_id);\n'.format(query_str)
+    s += '  std::string query_str(qs);\n'
+  else:
+    s += '  std::string query_str("{}");\n'.format(query_str)
+  if not ds.value.is_main_ptr():
+    s += '  {} value;\n'.format(ds.get_value_type_name())
+
+  s += """
+  if (mysql_query(conn, query_str.c_str())) {
+    fprintf(stderr, "mysql query failed\\n");
+    exit(1);
+  }
+  MYSQL_RES *result = mysql_store_result(conn);
+  if (result == NULL) exit(0);
+  MYSQL_ROW row;
+  row = mysql_fetch_row(result);
+  while (row != NULL) {
+"""
+  if ds.value.is_object():
+    obj_fields = ['{}(row[{}])'.format(helper_get_row_type_transform(f), helper_field_pos_in_row(fields, f)) for f in ds.value.get_object().fields]
+    s += '    {} value({});\n'.format(ds.get_value_type_name(), ','.join(obj_fields))
+  elif ds.value.is_main_ptr():
+    pass
+  else:
+    assert(False)
+
+  upper_obj_prefix = 'upper_obj->' if upper_obj else ''
+  ds_name = ds.get_idx_name()
+  if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
+    if ds.value.is_main_ptr():
+      s += '    if (!invalid_pos(pos)) {}insert_{}_by_key(obj_pos);\n'.format(upper_obj_prefix, ds_name)
+    else:
+      s += '    {}insert_{}_by_key(value);\n'.format(upper_obj_prefix, ds_name)
+  else:
+    for i,key in enumerate(ds.key_fields()):
+      rpos = helper_field_pos_in_row(fields, key)
+      s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(f), pos)
+    s +='    {} key({});\n'.format(ds.get_key_type_name(), ','.join(['key_{}'.format(j) for j in range(0, len(ds.key_fields))]))
+    if ds.value.is_main_ptr():
+      s += '    if (!invalid_pos(pos)) {}insert_{}_by_key(key, obj_pos);\n'.format(upper_obj_prefix, ds_name)
+    else:
+      s += "    {}insert_{}_by_key(key, value);\n".format(upper_obj_prefix, ds_name)
+  
+  s += '    row = mysql_fetch_row(result);\n'
+  s += '  }\n'
+  s += '}\n'
+  return s
+
 def codegen_deserialize(ds, nesting, fields, query_str):
   table = ds.table
   dsid = ds.id
@@ -197,7 +269,7 @@ def codegen_deserialize(ds, nesting, fields, query_str):
     maint = table.get_main_table()
   else:
     maint = get_main_table(table)
-  s = 'void query_data_for_ds{}(MYSQL* conn, {}::P{}List* ret_objs) {{\n'.format(dsid, get_db_name(), get_capitalized_name(maint.name))
+  s = 'inline void query_data_for_ds{}(MYSQL* conn, {}::P{}List* ret_objs) {{\n'.format(dsid, get_db_name(), get_capitalized_name(maint.name))
   s += '  std::string query_str("{}");\n'.format(query_str)
   s += """
   if (mysql_query(conn, query_str.c_str())) {
@@ -347,7 +419,6 @@ def test_deserialize_helper(ds_lst):
   ds_nestings = []
   for ds in ds_lst:
     query_str, nesting, fields = sql_for_ds_query(ds)
-    table = nesting.table
     s += '//ds {}: {}\n'.format(ds.id, ds.__str__(True))
     s += codegen_deserialize(ds, nesting, fields, query_str)
     ds_nestings.append((ds, nesting))
