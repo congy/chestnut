@@ -3,8 +3,8 @@ from util import *
 from cost import *
 
 
-def create_primary_array(table, value=OBJECT):
-  t = ObjBasicArray(table, value)
+def create_primary_array(table):
+  t = ObjBasicArray(table, IndexValue(OBJECT, table))
   return t
 
 def table_contains(tbl1, tbl2): #return True if tbl1 contains tbl2
@@ -57,19 +57,6 @@ class DSManager(object):
     for ds in self.data_structures:
       if ds.is_primary and table_contains(ds.table, table):
         return ds
-    return None
-  def find_id_index(self, table, create_new=False):
-    id_index_pred = BinOp(QueryField('id', table), EQ, Parameter('some'))
-    for ds in self.data_structures:
-      if ds.table == table and isinstance(ds, ObjTreeIndex) and ds.condition.idx_pred_eq(id_index_pred):
-        return ds
-    for ds in self.data_structures:
-      if table_contains(ds.table, table) and isinstance(ds, ObjTreeIndex) and ds.condition.idx_pred_eq(id_index_pred):
-        return ds
-    if create_new:
-      basic = self.find_primary_array(table)
-      new_ds = ObjTreeIndex(basic.table, [QueryField('id', table)], id_index_pred, MAINPTR)
-      return new_ds
     return None
   def find_placeholder(self, table):
     for ds in self.data_structures:
@@ -157,7 +144,7 @@ class DSManager(object):
         # if not any([ds.table==ds_.table for ds_ in new_ds]):
         #   nd = create_primary_array(ds.table)
         #   new_ds.append(nd)
-        new_ds.append(IndexPlaceHolder(ds.table, OBJECT))
+        new_ds.append(IndexPlaceHolder(ds.table, IndexValue(OBJECT, ds.table)))
     dsmng.data_structures = new_ds
     return dsmng
   def clear_placeholder(self):

@@ -2,6 +2,7 @@ import sys
 sys.path.append('../')
 from codegen_helper import *
 from schema import *
+from ds import *
 
 def cgen_ds_def(ds, upper_table=None, prefix=[]):
   header = ''
@@ -21,10 +22,12 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
   elif ds.value.is_main_ptr():
     pass
   else:
-    header += cgen_class_def(ds.value.get_object(), upper_table, prefix)
+    nheader, ncpp = cgen_class_def(ds.value.get_object(), upper_table, prefix)
+    header += nheader
+    cpp += ncpp
 
   #key type def and ds declaration
-  ds_name = ds.get_idx_name()
+  ds_name = ds.get_ds_name()
   if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
     if ds.value.is_aggr() or (isinstance(ds, ObjBasicArray) and ds.is_single_element()):
       ds_def = "{} {};\n".format(ds.get_value_type_name(), ds_name)
@@ -78,11 +81,11 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
   if isinstance(ds.table, DenormalizedTable):
     tables = ds.table.tables
     entryt = ds.table.get_main_table()
-    proto_toptype_prefixes = ['{}::P{}'.format(db_name, get_capitalized_name(get_main_table(t1).name)) for t1 in tables] 
+    proto_toptype_prefixes = ['{}::P{}'.format(get_db_name(), get_capitalized_name(get_main_table(t1).name)) for t1 in tables] 
   else:
     tables = [ds.table]
     entryt = get_main_table(ds.table)
-    proto_toptype_prefixes = ['{}::P{}'.format(db_name, get_capitalized_name(get_main_table(t).name))]
+    proto_toptype_prefixes = ['{}::P{}'.format(get_db_name(), get_capitalized_name(get_main_table(entryt).name))]
   
   for ix in range(0, len(tables)):
     t = tables[ix]
@@ -90,17 +93,21 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
 
     # insert by key
     if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
-      insert_func = 'inline void insert_{}_by_key({}& v) {{\n'.format(ds_name, ds.get_value_type_name())
+      insert_func = 'inline size_t insert_{}_by_key({}& v) {{\n'.format(ds_name, ds.get_value_type_name())
       if ds.value.is_aggr():
         assert(False)
       else:
-        insert_func += '  {}.insert(v);\n}\n'.format(ds_name)
+        insert_func += '  size_t insertpos = {}.insert(v);\n'.format(ds_name)
     else:
-      insert_func = 'inline void insert_{}_by_key({}& key, {}& v) {{\n'.format(ds_name, ds.get_key_type_name(), ds.get_value_type_name())
+      insert_func = 'inline size_t insert_{}_by_key({}& key, {}& v) {{\n'.format(ds_name, ds.get_key_type_name(), ds.get_value_type_name())
       if ds.value.is_aggr():
         assert(False)
       else:
-        insert_func += '  {}.insert(key, v);\n}\n'.format(ds_name)
+        insert_func += '  size_t insertpos = {}.insert_by_key(key, v);\n'.format(ds_name)
+    if ds.is_refered:
+      assert(ds.value.is_object())
+      insert_func += '  if (!invalid_pos(insertpos)) {}.insert_by_key(v.{}, insertpos);\n'.format(cgen_getpointer_helperds(ds), cgen_fname(QueryField('id',entryt)))
+    insert_func += '}\n'
     header += insert_func
 
     """
@@ -166,7 +173,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
           helper_s, expr_s = cgen_expr_from_protov(idx.value.value.delta_exprs[i], init_v, 'p')
           delete_func += func_body.replace('PLACEHOLDER', (helper_s + '{} = {};\n'.format(init_v, expr_s)))
         else:
-          init_v = '{}.{}_{}'.format(idx.get_idx_name(), v.name, i)
+          init_v = '{}.{}_{}'.format(ds_name, v.name, i)
           helper_s, expr_s = cgen_expr_from_protov(aggr, init_v, 'p')
           insert_func += (helper_s + expr_s)
           helper_s, expr_s = cgen_expr_from_protov(idx.value.value.delta_exprs[i], init_v, 'p')
@@ -199,14 +206,9 @@ def cgen_class_def(obj, upper_table=None, prefix=[]):
   t = obj.table
   main_t = get_main_table(t)
   element = ''
-
-  if upper_table == None:
-    ele_name = get_capitalized_name(t.name)
-  else:
-    ele_name = "{}In{}".format(get_capitalized_name(t.name), get_capitalized_name(upper_table.name))
+  ele_name = obj.get_value_type_name()
   element += "struct {} {{\n".format(ele_name)
   element += "public:\n"
-  fields = []
   fields = [f for f in obj.fields]
   for f in fields:
     element += "  {} {};\n".format(cgen_scalar_ftype(f), cgen_fname(f))
@@ -222,6 +224,9 @@ def cgen_class_def(obj, upper_table=None, prefix=[]):
   idx_type_prefix = '::'.join([p for p in prefix]) # ??
 
   element += "  {}(): {} {{}}\n".format(ele_name, ','.join(['{}(0)'.format(cgen_fname(f)) for f in fields]))
+  element += "  {}({}): {} {{}}\n".format(ele_name, \
+      ','.join(['{} v{}'.format(get_cpp_type(f.field_class.tipe), i) for i,f in enumerate(fields)]), \
+      ','.join(['{}(v{})'.format(cgen_fname(f), i) for i,f in enumerate(fields)]))
   if isinstance(obj.table, DenormalizedTable):
     t1 = obj.table.get_main_table()
     proto_type_prefix = '{}::P{}'.format(db_name, get_capitalized_name(t1.name))
@@ -233,7 +238,7 @@ def cgen_class_def(obj, upper_table=None, prefix=[]):
     if upper_table:
       element += cgen_init_from_proto(ele_name, main_t, proto_toptype_prefix, fields)
   
-  id_fields = filter(lambda x: x.name=='id', fields)
+  id_fields = filter(lambda x: x.field_name=='id', fields)
   element += "  inline void clear() {{ {} }}\n".format(' '.join(['{} = 0;'.format(cgen_fname(idf)) for idf in id_fields]))
   element += "  inline bool operator==(const {}& other) const {{ return {}; }}\n".format(ele_name, '&&'.join(['{}==other.{}'.format(cgen_fname(idf),cgen_fname(idf)) for idf in id_fields]))
     #element += "  inline bool operator<(const {}& other) const {{ return id < other.id; }}\n".format(ele_name)

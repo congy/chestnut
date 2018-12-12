@@ -10,7 +10,7 @@ from ds_manager import *
 from populate_database import *
 from codegen.protogen import *
 import globalv
-from codegen.codegen_sql import *
+from codegen.codegen_test import *
 
 workload_name = "usergroup"
 set_db_name(workload_name)
@@ -70,5 +70,5 @@ data_dir=datafile_dir
 #populate_database(data_dir, tables, associations)
 #test_generate_sql([q])
 #test_deserialize([q])
-test_initialize(tables, associations, [q])
+test_initialize(tables, associations, [q], 50) #0, 130, 270
 

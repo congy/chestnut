@@ -296,6 +296,7 @@ class ExecGetAssocStep(ExecStepSuper):
       next_obj = idx.value.get_object()
     elif idx.value.is_main_ptr():
       primary_ary = ds_manager.find_primary_array(get_main_table(idx.table))
+      idx.value.value = primary_ary
       next_obj = primary_ary.value.get_object()
     return next_obj
   def retrieves_field(self, f): 
@@ -375,6 +376,7 @@ class ExecScanStep(ExecStepSuper):
     elif idx.value.is_main_ptr():
       main_t = get_main_table(idx.table)
       primary_ary = ds_manager.find_primary_array(main_t)
+      idx.value.value = primary_ary
       assert(primary_ary)
       # if primary_ary is None:
       #   primary_ary = create_primary_array(main_t)

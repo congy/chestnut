@@ -196,11 +196,10 @@ def get_join_condition_helper2(qf, joinq):
                                                     joinq, qf.field_class.name,
                                                     qf.field_class.name, connect_table_name, qf.field_class.name)  
 
-def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_obj=None):
-  param1 = ', {}* upper_obj'.format(upper_obj) if upper_obj else ''
-  param2 = ', oid_t obj_id, ItemPointer obj_pos' if ds.value.is_main_ptr() else ''
-  s = 'inline void init_ds_{}_from_sql(MYSQL* conn{}{}) {{\n'.format(ds.id, param1, param2)
-  ds_name = ds.get_idx_name()
+def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
+  param1 = ', {}* upper_obj'.format(cgen_obj_fulltype(upper_type)) if upper_type else ''
+  s = 'inline void init_ds_{}_from_sql(MYSQL* conn{}) {{\n'.format(ds.id, param1)
+  ds_name = ds.get_ds_name()
   maint = ds.table.get_main_table() if isinstance(ds.table, DenormalizedTable) else get_main_table(ds.table)
   if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
     pass
@@ -208,18 +207,12 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_obj=None):
     for i,key in enumerate(ds.key_fields()):
       s += '  {} key_{} = 0;\n'.format(get_cpp_type(key.field_class.tipe), i)
   # TODO: replace %d with id using sprintf
-  if upper_obj:
+  if upper_type:
     s += '  char qs[2000];\n'
-    s += '  sprintf(qs, \"{}\", upper_obj->id);\n'.format(query_str)
-    s += '  std::string query_str(qs);\n'
-  elif ds.value.is_main_ptr():
-    s += '  char qs[2000];\n'
-    s += '  sprintf(qs, \"{}\", obj_id);\n'.format(query_str)
+    s += '  sprintf(qs, \"{}\", upper_obj->{});\n'.format(query_str, cgen_fname(QueryField('id', get_main_table(upper_type))))
     s += '  std::string query_str(qs);\n'
   else:
     s += '  std::string query_str("{}");\n'.format(query_str)
-  if not ds.value.is_main_ptr():
-    s += '  {} value;\n'.format(ds.get_value_type_name())
 
   s += """
   if (mysql_query(conn, query_str.c_str())) {
@@ -230,33 +223,37 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_obj=None):
   if (result == NULL) exit(0);
   MYSQL_ROW row;
   row = mysql_fetch_row(result);
+  size_t insertpos = 0;
   while (row != NULL) {
 """
-  if ds.value.is_object():
+  
+  ds_name = ds.get_ds_name()
+  if ds.value.is_main_ptr():
+    dependent_ds = ds.value.value
+    id_pos = helper_field_pos_in_row(fields, QueryField('id', ds.table))
+    s += '    size_t* pos = {}.find_by_key(str_to_uint(row[{}]));\n'.format(cgen_getpointer_helperds(dependent_ds), id_pos)
+    s += '    ItemPointer ipos(INVALID_POS);\n'
+    s += '    if (pos != nullptr) ipos.pos = *pos;\n'
+    value_str = 'ipos'
+  elif ds.value.is_object():
     obj_fields = ['{}(row[{}])'.format(helper_get_row_type_transform(f), helper_field_pos_in_row(fields, f)) for f in ds.value.get_object().fields]
-    s += '    {} value({});\n'.format(ds.get_value_type_name(), ','.join(obj_fields))
-  elif ds.value.is_main_ptr():
-    pass
+    s += '    {} value({});\n'.format(cgen_obj_fulltype(ds.table), ','.join(obj_fields))
+    value_str = 'value'
   else:
     assert(False)
-
-  upper_obj_prefix = 'upper_obj->' if upper_obj else ''
-  ds_name = ds.get_idx_name()
+  
   if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
-    if ds.value.is_main_ptr():
-      s += '    if (!invalid_pos(pos)) {}insert_{}_by_key(obj_pos);\n'.format(upper_obj_prefix, ds_name)
-    else:
-      s += '    {}insert_{}_by_key(value);\n'.format(upper_obj_prefix, ds_name)
+    key_str = ''
   else:
     for i,key in enumerate(ds.key_fields()):
       rpos = helper_field_pos_in_row(fields, key)
-      s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(f), pos)
-    s +='    {} key({});\n'.format(ds.get_key_type_name(), ','.join(['key_{}'.format(j) for j in range(0, len(ds.key_fields))]))
-    if ds.value.is_main_ptr():
-      s += '    if (!invalid_pos(pos)) {}insert_{}_by_key(key, obj_pos);\n'.format(upper_obj_prefix, ds_name)
-    else:
-      s += "    {}insert_{}_by_key(key, value);\n".format(upper_obj_prefix, ds_name)
-  
+      s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(key), rpos)
+    s +='    {}{} key({});\n'.format(cgen_obj_fulltype(upper_type)+'::' if upper_type else '', ds.get_key_type_name(), \
+        ','.join(['key_{}'.format(j) for j in range(0, len(ds.key_fields()))]))
+    key_str = 'key,'
+  insert_code = '     {}{}insert_{}_by_key({}{});\n'.format('if (pos != nullptr) ' if ds.value.is_main_ptr() else '',\
+                  'upper_obj->' if upper_type else '', ds_name, key_str, value_str)
+  s += insert_code
   s += '    row = mysql_fetch_row(result);\n'
   s += '  }\n'
   s += '}\n'
@@ -384,86 +381,4 @@ def helper_get_row_type_transform(f):
     return 'str_to_int'
   else:
     return 'str_to_uint'
-
-def test_print_nesting(nesting, upper_obj, qf=None, level=1):
-  if level == 1:
-    tname = nesting.table.name
-  else:
-    tname = qf.field_name
-  s = ''
-  if qf and qf.table.has_one_or_many_field(qf.field_name) == 1:
-    s += '{\n'
-    s += '  auto& i{}_{} = {}.{}();\n'.format(level, tname, upper_obj, tname)
-    s += '  printf("{}{} %u\\n", i{}_{}.id());\n'.format('  '.join(['' for x in range(0, level)]), tname, level, tname)
-  else:
-    s += 'for(int i{}=0; i{}<{}.{}_size(); i{}++){{\n'.format(level, level, upper_obj, tname, level)
-    s += '  auto& i{}_{} = {}.{}(i{});\n'.format(level, tname, upper_obj, tname, level)
-    s += '  printf("{}{} %u\\n", i{}_{}.id());\n'.format('  '.join(['' for x in range(0, level)]), tname, level, tname)
-  for k,v in nesting.assocs.items():
-    s += insert_indent(test_print_nesting(v, 'i{}_{}'.format(level, tname), k, level+1), level)
-  s += '}\n'
-  return s
-  
-def test_deserialize(read_queries):
-  rqmanagers, dsmeta = get_dsmeta(read_queries)
-  ds_lst = collect_all_ds_helper1(dsmeta.data_structures)[0]
-  s = test_deserialize_helper(ds_lst)
-  fp = open('{}/test_{}.cc'.format(get_db_name(), get_db_name()), 'w')
-  fp.write(s)
-  fp.close()
-
-def test_deserialize_helper(ds_lst):
-  s = '#include "proto_{}.pb.h"\n'.format(get_db_name())
-  s += '#include "mysql.h"\n'
-  s += '#include "util.h"\n'
-  ds_nestings = []
-  for ds in ds_lst:
-    query_str, nesting, fields = sql_for_ds_query(ds)
-    s += '//ds {}: {}\n'.format(ds.id, ds.__str__(True))
-    s += codegen_deserialize(ds, nesting, fields, query_str)
-    ds_nestings.append((ds, nesting))
-  
-  s += '\n\n'
-  s += """
-int main() {
-  MYSQL *conn = mysql_init(NULL);
-  if (conn == NULL){
-    fprintf(stderr, "mysql_init() failed\\n");
-    exit(1);
-  }
-"""
-  s += 'if (mysql_real_connect(conn, "localhost", "root", "", "{}", 0, NULL, 0) == NULL){{\n'.format(get_db_name())
-  s += """
-    fprintf(stderr, "mysql connect failed\\n");
-    exit(1);
-  }
-"""
-  
-  for ds,nesting in ds_nestings:
-    tname = nesting.table.name
-    s += '  printf("result fo ds {}\\n");\n'.format(ds.id)
-    s += '  {}::P{}List ret_obj_{}_{};\n'.format(get_db_name(), get_capitalized_name(tname), tname, ds.id)
-    s += '  query_data_for_ds{}(conn, &ret_obj_{}_{});\n'.format(ds.id, tname, ds.id)
-    s += insert_indent(test_print_nesting(nesting, 'ret_obj_{}_{}'.format(tname, ds.id)))
-
-  s += '  return 0;\n'
-  s += '}\n'
-  return s
-
-
-def test_generate_sql(read_queries):
-  rqmanagers, dsmeta = get_dsmeta(read_queries)
-  for ds in dsmeta.data_structures:
-    test_generate_sql_helper(ds)
-
-def test_generate_sql_helper(ds):
-  query_str, nesting, fields = sql_for_ds_query(ds)
-  print 'ds = {}, query = {}'.format(ds.__str__(short=True), query_str)
-  print codegen_deserialize(ds, nesting, fields, query_str)
-  print '----\n'
-  if ds.value.is_object():
-    for nextds in ds.value.get_object().nested_objects:
-      nextqf = get_qf_from_nested_t(nextds.table)
-      test_generate_sql_helper(nextds)
-
 

@@ -233,7 +233,7 @@ def merge_order_pred(idx, order):
       r_param_2.add_param(o, o.field_class.get_max_value())
 
   # FIXME: only tree index
-  new_idx = ObjTreeIndex(idx.table, keys, cond, value=idx.value)
+  new_idx = ObjTreeIndex(idx.table, keys, cond, idx.value)
   return new_idx, RANGE, [r_param_1, r_param_2]
 
 def replace_subpred_with_var(pred, placeholder):

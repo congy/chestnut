@@ -2,10 +2,11 @@ import sys
 sys.path.append('../')
 from constants import *
 from schema import *
+from pred import *
+from ds import *
 
 def cgen_fname(f):
   if isinstance(f, QueryField):
-    f = f.field_class
     return '{}_{}'.format(f.table.name, f.field_name)
   elif isinstance(f, AssocOp):
     lst = get_assoc_field_list(f)
@@ -18,9 +19,9 @@ def cgen_scalar_ftype(f):
     return get_cpp_type(f.field_class.tipe)
   elif isinstance(f, Field):
     return get_cpp_type(f.tipe)
-def cgen_obj_type(table):
+def cgen_obj_fulltype(table):
   if isinstance(table, NestedTable):
-    return cgen_obj_ftype(table.upper_table) + \
+    return cgen_obj_fulltype(table.upper_table) + \
       '::{}In{}'.format(get_capitalized_name(table.name), get_capitalized_name(get_main_table(table.upper_table).name))
   else:
     return '{}'.format(get_capitalized_name(table.name))
@@ -52,6 +53,9 @@ def cgen_get_fproto(f):
     return '{}()'.format(f.name)
 
 def cgen_fprint(f):
+  if isinstance(f, QueryField):
+    f.field_class.table = f.table
+    f = f.field_class
   if is_int(f) or is_bool(f):
     return "{}=%d".format(f.name), cgen_fname(f)
   elif is_unsigned_int(f):
@@ -65,17 +69,17 @@ def cgen_fprint(f):
 
 def cgen_ds_type(idx):
   if isinstance(idx, ObjBasicArray):
-    if idx.single_element:
+    if idx.is_single_element():
       qf = get_qf_from_nested_t(idx.table)
       return '{}In{}'.format(get_capitalized_name(qf.field_name), get_capitalized_name(qf.table.name))
-    sz = to_real_value(idx.compute_size())
+    sz = to_real_value(idx.element_count())
     if sz < SMALL_DT_BOUND: 
       return 'SmallBasicArray'
     else:
       return 'BasicArray'
   elif isinstance(idx, IndexBase):
     prefix = ''
-    if to_real_value(idx.compute_size()) < SMALL_DT_BOUND:
+    if to_real_value(idx.element_count()) < SMALL_DT_BOUND:
       prefix='Small'
     if isinstance(idx, ObjTreeIndex):
       return '{}TreeIndex'.format(prefix)
@@ -86,6 +90,9 @@ def cgen_ds_type(idx):
     elif isinstance(idx, ObjArray):
       return '{}ObjArray'.format(prefix)
   assert(False)
+
+def cgen_getpointer_helperds(ds):
+  return 'idptr_ds_{}'.format(ds.id)
 
 def merge_assoc_qf(assoc, qf):
   if isinstance(assoc, QueryField):
@@ -112,7 +119,7 @@ def cgen_cxxvar(v):
     return 'e_{}_{}'.format(v.name, cxxvar_cnt)
   elif isinstance(v, EnvCollectionVariable):
     return 'lst_{}_{}'.format(v.name, cxxvar_cnt)
-  elif isinstance(v, table):
+  elif isinstance(v, Table):
     return 'obj_{}_{}'.format(v.name, cxxvar_cnt)
   elif is_query_field(v):
     return 'qf_{}_{}'.format(get_query_field(v).field_name, cxxvar_cnt)
@@ -130,7 +137,7 @@ def cgen_init_from_proto(typename, table, proto, fields):
     for t in table.tables:
       var = vs[t]
       fs = filter(lambda x: x.table == t, fields)
-      s.append(','.join['{}({}.{}())'.format(cgen_fname(f), var, f.name) for f in fields])
+      s.append(','.join(['{}({}.{}())'.format(cgen_fname(f), var, f.name) for f in fields]))
       for k,v in t.nested_tables.items():
         if t.has_one_or_many_field(k) == 1:
           vs[get_main_table(v)] = '{}.{}()'.format(var, k)
@@ -139,7 +146,7 @@ def cgen_init_from_proto(typename, table, proto, fields):
     return "  {}(const {}& p): {} {{}}\n".format(typename, proto, ','.join(s))
   else:
     return "  {}(const {}& p): {} {{}}\n".format(typename, proto, \
-                                ','.join(['{}(p.{}())'.format(cgen_fname(f), f.name) for f in fields]))
+                                ','.join(['{}(p.{}())'.format(cgen_fname(f), f.field_name) for f in fields]))
 
 
 def cgen_expr_from_protov(expr, init_var, proto_var):

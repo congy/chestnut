@@ -12,10 +12,18 @@
 #include <stx/btree_map.h>
 #include <stx/btree_multimap.h>
 #include <string>
-#include "simple_types.h"
 typedef uint32_t oid_t;
 #define INVALID_POS UINT32_MAX
-//#include "small_sorted_set.h"
+#define INVALID_TYPE_ID 0
+typedef uint32_t oid_t;
+typedef size_t hash_t;
+typedef uint32_t length_t;
+typedef uint32_t count_t;
+typedef uint32_t date_t;
+static const oid_t INVALID_OID = 0;
+
+#define ALIGNED __attribute__((__aligned__(8)))
+#define PACKED  __attribute__((__packed__))
 
 #define BLOCK_SZ 262144
 //#define BLOCK_SZ 256
@@ -227,7 +235,7 @@ public:
   // inline bool insert_by_key(const KeyType& key, const ValueType& value){
   //   multimap.insert(std::pair<KeyType,ValueType>(key, value));
   // }
-  inline bool insert_by_key(const KeyType& key, const ValueType& value){
+  inline size_t insert_by_key(const KeyType& key, const ValueType& value){
     auto prefix_ret = multimap.equal_range(key);
     bool exist = false;
     for (auto prefix_it=prefix_ret.first; prefix_it!=prefix_ret.second; ++prefix_it) { 
@@ -235,6 +243,7 @@ public:
     }
     if (!exist)
       multimap.insert(std::pair<KeyType,ValueType>(key, value));
+    return 0;
   }
   inline bool remove_by_key(const KeyType& key, const ValueType& value){
     auto prefix_ret = multimap.equal_range(key);
@@ -290,7 +299,7 @@ public:
   // inline bool insert_by_key(const KeyType& key, const ValueType& value){
   //   multimap.insert(std::pair<KeyType,ValueType>(key, value));
   // }
-  inline bool insert_by_key(const KeyType& key, const ValueType& value){
+  inline size_t insert_by_key(const KeyType& key, const ValueType& value){
     auto prefix_ret = multimap.equal_range(key);
     bool exist = false;
     for (auto prefix_it=prefix_ret.first; prefix_it!=prefix_ret.second; ++prefix_it) { 
@@ -298,6 +307,7 @@ public:
     }
     if (!exist)
       multimap.insert2(key, value);
+    return 0;
   }
   inline bool remove_by_key(const KeyType& key, const ValueType& value){
     auto prefix_ret = multimap.equal_range(key);
@@ -349,7 +359,7 @@ public:
   // inline bool insert_by_key(const KeyType& key, const ValueType& value){
   //   multimap.insert(std::pair<KeyType,ValueType>(key, value));
   // }
-  inline bool insert_by_key(const KeyType& key, const ValueType& value){
+  inline size_t insert_by_key(const KeyType& key, const ValueType& value){
     auto range = multimap.equal_range(key); 
     bool exist = false;
     for (auto prefix_itr = range.first; prefix_itr != range.second; ++prefix_itr) {
@@ -357,6 +367,7 @@ public:
     }
     if (!exist)
       multimap.insert(std::pair<KeyType,ValueType>(key, value));
+    return 0;
   }
   inline bool remove_by_key(const KeyType& key, const ValueType& value){
     auto range = multimap.equal_range(key); 
@@ -397,7 +408,7 @@ public:
     return key >= cur_idx;
   }
   inline ValueType* get_ptr_by_pos(oid_t pos){
-    if (invalid_key(pos)) return nullptr;
+    if (invalid_pos(pos)) return nullptr;
     return &elements[pos];
   }
   inline oid_t get_pos_by_id(oid_t id){
@@ -522,7 +533,7 @@ public:
   }
   inline bool invalid_key(oid_t key) { return key >= elements.size(); }
   inline ValueType* get_ptr_by_pos(oid_t pos) {
-    if (invalid_key(pos)) return nullptr;
+    if (invalid_pos(pos)) return nullptr;
     return &elements[pos];
   }
   inline oid_t get_pos_by_id(oid_t id){
@@ -785,6 +796,10 @@ class SmallSortedArray {
   SmallSortedArray()  {
     cur_idx = 0;
   }
+  inline ValueType* get_ptr_by_pos(oid_t pos){
+    if (invalid_pos(pos)) return nullptr;
+    return &e[pos];
+  }
   inline size_t get_pos_by_key(const KeyType& key) {
     size_t i = 0;
     for (; i<cur_idx; i++){
@@ -795,7 +810,7 @@ class SmallSortedArray {
   inline size_t size() {
     return cur_idx;
   }
-  inline bool insert_by_key(const KeyType& key, const ValueType& value) {
+  inline size_t insert_by_key(const KeyType& key, const ValueType& value) {
     if (cur_idx >= MAX_NODES_PER_ARRAY) return false;
     size_t insert_pos = get_pos_by_key(key);
     if (e[insert_pos].value == value) return false;
@@ -805,7 +820,7 @@ class SmallSortedArray {
     }
     e[insert_pos].key = key;
     e[insert_pos].value = value;
-    return true;
+    return insert_pos;
   }
   inline bool remove_by_key(const KeyType& key, const ValueType& value) {
     size_t insert_pos = get_pos_by_key(key);
@@ -863,12 +878,16 @@ class SortedArray {
   inline size_t size() {
     return e.size();
   }
+  inline ValueType* get_ptr_by_pos(oid_t pos){
+    if (invalid_pos(pos)) return nullptr;
+    return &e[pos];
+  }
   // inline bool insert_by_key(const KeyType& key, const ValueType& value) {
   //   auto i = get_pos_by_key(key);
   //   e.insert(i, Element(key, value));
   //   return true;
   // }
-  inline bool insert_by_key(const KeyType& key, const ValueType& value) {
+  inline size_t insert_by_key(const KeyType& key, const ValueType& value) {
     auto i0 = std::lower_bound(e.begin(), e.end(), Element(key));
     auto i1 = std::upper_bound(e.begin(), e.end(), Element(key));
     bool exist = false;
@@ -876,10 +895,10 @@ class SortedArray {
       if ((*i).value == value) exist = true;
     }
     if (!exist)  {
-      e.insert(i0, Element(key, value));
-      return true;
+      auto v = e.insert(i0, Element(key, value));
+      return std::distance(e.begin(), v);
     } else {
-      return false;
+      return INVALID_POS;
     }
   }
   inline bool remove_by_key(const KeyType& key, const ValueType& value) {

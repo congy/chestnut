@@ -152,7 +152,7 @@ def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, 
   if idx_pred is None:
     if isinstance(table, DenormalizedTable):
       idx_pred = BinOp(id_field, EQ, Parameter('id'))
-      return [ExecIndexStep(ObjTreeIndex(table, [id_field], idx_pred, MAINPTR), idx_pred, \
+      return [ExecIndexStep(ObjTreeIndex(table, [id_field], idx_pred, IndexValue(MAINPTR)), idx_pred, \
           RANGE, [IndexParam([id_field],[0]), IndexParam([id_field],[MAXINT])])]
     else:
       return [ExecScanStep(ObjBasicArray(table, value))]
@@ -161,7 +161,7 @@ def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, 
 
   if globalv.symbolic_verify:
     if is_valid_idx_cond(idx_pred):
-      test_idx = ObjTreeIndex(table, keys, idx_pred, MAINPTR)
+      test_idx = ObjTreeIndex(table, keys, idx_pred, IndexValue(MAINPTR))
       #is_idx_useful(thread_ctx, test_idx, table, idx_pred, expected=is_valid_idx_cond(idx_pred))
       is_idx_useful(thread_ctx, test_idx, table, idx_pred)
 
@@ -178,7 +178,7 @@ def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, 
         idx_ops.append(ExecIndexStep(idx1, idx_pred, op, params))
       elif isinstance(table, DenormalizedTable):
         idx1 = ObjSortedArray(table, keys, idx_pred, value)
-        idx2 = ObjTreeIndex(table, keys, idx_pred, MAINPTR)
+        idx2 = ObjTreeIndex(table, keys, idx_pred, IndexValue(MAINPTR))
         new_params = [params[0].fork(), params[1].fork() if len(params)>1 else params[0].fork()]
         new_op = RANGE
         idx1.keys.add_denormalized_id_key(id_field)
@@ -188,7 +188,7 @@ def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, 
         idx_ops += [ExecIndexStep(idx1, idx_pred, new_op, new_params), ExecIndexStep(idx2, idx_pred, new_op, new_params)]
       else:
         idx1 = ObjSortedArray(table, keys, idx_pred, value)
-        idx2 = ObjTreeIndex(table, keys, idx_pred, MAINPTR)
+        idx2 = ObjTreeIndex(table, keys, idx_pred, IndexValue(MAINPTR))
         idx_ops += [ExecIndexStep(idx1, idx_pred, op, params), ExecIndexStep(idx2, idx_pred, op, params)]
   else:
     if is_valid_idx_cond(idx_pred):
@@ -197,7 +197,7 @@ def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, 
         idx_ops.append(ExecIndexStep(idx1, idx_pred, op, params))
       elif isinstance(table, DenormalizedTable):
         idx1 = ObjSortedArray(table, keys, idx_pred, value)
-        idx2 = ObjTreeIndex(table, keys, idx_pred, MAINPTR)
+        idx2 = ObjTreeIndex(table, keys, idx_pred, IndexValue(MAINPTR))
         new_op = RANGE
         new_params = [IndexParam([id_field],[0]), IndexParam([id_field],[MAXINT])]
         idx1.keys.add_denormalized_id_key(id_field)
@@ -205,7 +205,7 @@ def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, 
         idx_ops += [ExecIndexStep(idx1, idx_pred, new_op, new_params), ExecIndexStep(idx2, idx_pred, new_op, new_params)]
       else:
         idx1 = ObjArray(table, idx_pred, value)
-        idx2 = ObjArray(table, idx_pred, MAINPTR)
+        idx2 = ObjArray(table, idx_pred, IndexValue(MAINPTR))
         idx_ops += [ExecIndexStep(idx1, idx_pred, op, params), ExecIndexStep(idx2, idx_pred, op, params)]
 
   return idx_ops

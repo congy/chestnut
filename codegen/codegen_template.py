@@ -3,10 +3,10 @@ includes = """
 #include <vector>
 #include <map>
 #include <thread>
-#include <chrono>  
+#include <chrono> 
+#include "mysql.h"
 #include "util.h"
 #include "data_struct.h"
-typedef uint32_t date_t;
 """
 
 server_init_template_begin = """

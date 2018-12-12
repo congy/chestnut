@@ -33,10 +33,6 @@ class ObjNesting(object):
     for k,v in self.assocs.items():
       o.assocs[k] = v.fork()
     return o
-  def fill_id_field(self):
-    self.add_field(QueryField('id', self.table))
-    for k,v in self.assocs.items():
-      v.fill_id_field()
   def get_all_fields(self):
     r = [f for f in self.fields]
     for k,v in self.assocs.items():
@@ -202,7 +198,7 @@ def enumerate_nesting_helper(nesting, table, level):
         next_lst = enumerate_nesting_helper(assoc, main_t, 1)
         for (next_obj,next_dsmng) in next_lst:
           temp_obj = MemObject(table)
-          next_ds = IndexPlaceHolder(nested_t, MAINPTR)
+          next_ds = IndexPlaceHolder(nested_t, IndexValue(MAINPTR))
           temp_obj.add_nested_object(next_ds)
           next_dsmng.add_ds(IndexPlaceHolder(next_obj.table, IndexValue(OBJECT, next_obj)))
           lst[i].append((temp_obj, next_dsmng))
@@ -212,7 +208,7 @@ def enumerate_nesting_helper(nesting, table, level):
       next_lst = enumerate_nesting_helper(assoc, main_t, 1)
       keys, condition = helper_get_assoc_exist_idx(qf)
       for (next_obj,next_dsmng) in next_lst:
-        exist_idx1 = ObjTreeIndex(next_obj.table, keys, condition, value=MAINPTR)
+        exist_idx1 = ObjTreeIndex(next_obj.table, keys, condition, IndexValue(MAINPTR))
         next_dsmng.add_ds(IndexPlaceHolder(next_obj.table, IndexValue(OBJECT, next_obj)))
         next_dsmng.add_ds(exist_idx1)
         lst[i].append((MemObject(table), next_dsmng))
