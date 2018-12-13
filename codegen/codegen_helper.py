@@ -88,7 +88,7 @@ def cgen_ds_type(idx):
     elif isinstance(idx, ObjHashIndex):
       return '{}HashIndex'.format(prefix)
     elif isinstance(idx, ObjArray):
-      return '{}ObjArray'.format(prefix)
+      return '{}BasicArray'.format(prefix)
   assert(False)
 
 def cgen_getpointer_helperds(ds):

@@ -124,25 +124,6 @@ inline bool operator==(const std::string& a, const LongString& b) {
   return a.compare(b.s) == 0;
 }
 
-// struct ItemPointerHasher {
-//   inline size_t operator()(const ItemPointer &item) const {
-//     return std::hash<oid_t>()(item.pos);
-//   }
-//   ItemPointerHasher(const ItemPointerHasher &) {}
-//   ItemPointerHasher() {}
-// };
-// class ItemPointerEqualityChecker {
-// public:
-//  inline bool operator()(const ItemPointer& p1, const ItemPointer& p2) const {
-//    return p1.pos == p2.pos;
-//  }
-//  ItemPointerEqualityChecker(const ItemPointerEqualityChecker &) {}
-//  ItemPointerEqualityChecker() {}
-// };
-
-//ItemPointer is used only for SortedArray 
-//NestedItemPointer is used only for NestedSortedArray
-
 template<typename ValueType>
 class MyIterator : public std::iterator<std::input_iterator_tag, ValueType>
 {
@@ -262,14 +243,8 @@ for (auto prefix##_it=prefix##_ret.first; prefix##_it!=prefix##_ret.second; ++pr
 #define SMALLTREEINDEX_INDEX_FOR_END }
 
 #define SMALLTREEINDEX_RANGE_FOR_BEGIN(prefix, key1, key2, dt_varname, ele_varname) \
-auto prefix##_it_begin = dt_varname.multimap.begin(); \
-auto prefix##_it_end = dt_varname.multimap.end(); \
-if (key1 != nullptr){ \
-  prefix##_it_begin = dt_varname.multimap.lower_bound(*key1); \
-} \
-if (key2 != nullptr){ \
-  prefix##_it_end = dt_varname.multimap.upper_bound(*key2); \
-} \
+auto prefix##_it_begin = dt_varname.lowerkey(key1); \
+auto prefix##_it_end = dt_varname.upperkey(key2); \
 for (auto prefix##_it=prefix##_it_begin; prefix##_it!=prefix##_it_end; ++prefix##_it) { \
   auto ele_varname = prefix##_it->second;
 #define SMALLTREEINDEX_RANGE_FOR_END }
@@ -278,6 +253,14 @@ for (auto prefix##_it=prefix##_it_begin; prefix##_it!=prefix##_it_end; ++prefix#
     auto itr = multimap.find(key);
     if (itr != multimap.end()) return &(itr->second);
     else return nullptr;
+  }
+  inline const typename std::multimap<KeyType, ValueType>::iterator lowerkey(const KeyType* key) {
+    if (key != nullptr) return multimap.lower_bound(*key);
+    else return multimap.begin();
+  }
+  inline const typename std::multimap<KeyType, ValueType>::iterator upperkey(const KeyType* key) {
+    if (key != nullptr) return multimap.upper_bound(*key);
+    else return multimap.end();
   }
 };
 
@@ -319,6 +302,7 @@ public:
     }
   }
 
+
 #define TREEINDEX_INDEX_FOR_BEGIN(prefix, key, dt_varname, ele_varname) \
 auto prefix##_ret = dt_varname.multimap.equal_range(*key); \
 for (auto prefix##_it=prefix##_ret.first; prefix##_it!=prefix##_ret.second; ++prefix##_it) { \
@@ -326,14 +310,8 @@ for (auto prefix##_it=prefix##_ret.first; prefix##_it!=prefix##_ret.second; ++pr
 #define TREEINDEX_INDEX_FOR_END }
 
 #define TREEINDEX_RANGE_FOR_BEGIN(prefix, key1, key2, dt_varname, ele_varname) \
-auto prefix##_it_begin = dt_varname.multimap.begin(); \
-auto prefix##_it_end = dt_varname.multimap.end(); \
-if (key1 != nullptr){ \
-  prefix##_it_begin = dt_varname.multimap.lower_bound(*key1); \
-} \
-if (key2 != nullptr){ \
-  prefix##_it_end = dt_varname.multimap.upper_bound(*key2); \
-} \
+auto prefix##_it_begin = dt_varname.lowerkey(key1); \
+auto prefix##_it_end = dt_varname.upperkey(key2); \
 for (auto prefix##_it=prefix##_it_begin; prefix##_it!=prefix##_it_end; ++prefix##_it) { \
   auto ele_varname = prefix##_it->second;
 #define TREEINDEX_RANGE_FOR_END }
@@ -345,6 +323,14 @@ for (auto prefix##_it=prefix##_it_begin; prefix##_it!=prefix##_it_end; ++prefix#
       return &buffer;
     }
     else return nullptr;
+  }
+  inline const typename std::multimap<KeyType, ValueType>::iterator lowerkey(const KeyType* key) {
+    if (key != nullptr) return multimap.lower_bound(*key);
+    else return multimap.begin();
+  }
+  inline const typename std::multimap<KeyType, ValueType>::iterator upperkey(const KeyType* key) {
+    if (key != nullptr) return multimap.upper_bound(*key);
+    else return multimap.end();
   }
 };
 
@@ -524,6 +510,11 @@ for (size_t prefix##_i=0; prefix##_i<dt_name.elements.size(); prefix##_i++) { \
 //#define BASICARRAY_FOR_END SMALLBASICARRAY_FOR_END
 
 
+#define SINGLE_ELEMENT_FOR_BEGIN(prefix, dt_name, ele_name) \
+{ \
+  auto & ele_name = dt_name;
+#define SINGLE_ELEMENT_FOR_END }
+
 template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
 class BasicArray {
 public:
@@ -672,118 +663,6 @@ for(size_t prefix##_i = 0; prefix##_i <= dt_varname.cur_block; prefix##_i++) { \
 };
 
 
-template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
-class SmallObjArray {
-public:
-  ValueType* elements;
-  SmallObjArray() {
-    cur_idx = 0;
-    elements = new ValueType[MAX_NODES_PER_ARRAY+1];
-  }
-  size_t cur_idx;
-  inline bool invalid_key(oid_t key){
-    return key >= cur_idx;
-  }
-  inline size_t size(){
-    return cur_idx;
-  }
-  inline size_t insert(const ValueType& value) {
-    if (cur_idx > MAX_NODES_PER_ARRAY) return cur_idx;
-    bool exist = false;
-    for (size_t prefix_i=0; prefix_i<cur_idx; prefix_i++) {
-      if (elements[prefix_i] == value) {
-        exist = true;
-        break;
-      }
-    }
-    if (!exist) {
-      elements[cur_idx] = value;
-      cur_idx++;
-      return cur_idx-1;
-    } else {
-      return 0;
-    }
-  }
-  inline size_t remove(const ValueType& value) {
-    for (size_t prefix_i=0; prefix_i<cur_idx; prefix_i++) {
-      if (elements[prefix_i] == value) {
-        memset(&elements[prefix_i], 0, sizeof(ValueType));
-        cur_idx -= 1;
-        return prefix_i;
-      }
-    }
-    return 0;
-  }
-#define SMALLOBJARRAY_FOR_BEGIN(prefix, dt_name, ele_name) \
-for (size_t prefix##_i=0; prefix##_i<dt_name.cur_idx; prefix##_i++) { \
-  auto & ele_name = dt_name.elements[prefix##_i];
-#define SMALLOBJARRAY_FOR_END }
-};
-
-template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
-class ObjArray {
-public:
-  struct Block {
-    ValueType elements[BLOCK_SZ];
-  };
-  size_t cur_idx;
-  size_t cur_block;
-  Block** blocks;
-  ObjArray() {
-    cur_idx = 0;
-    cur_block = 0;
-    blocks = reinterpret_cast<Block**>(malloc(sizeof(Block*)*(MAX_NODES_PER_ARRAY/BLOCK_SZ+1)));
-    blocks[0] = new Block();
-  }
-  inline bool invalid_key(oid_t key){
-    return key >= cur_idx;
-  }
-  inline size_t size(){
-    return cur_idx;
-  }
-  inline void resize() {
-    Block** old_ptr = blocks;
-    blocks = reinterpret_cast<Block**>(malloc(sizeof(Block*)*(cur_block+MAX_NODES_PER_ARRAY/BLOCK_SZ+1)));
-    memcpy(blocks, old_ptr, sizeof(Block*)*(cur_block+1));
-    free(old_ptr);
-  }
-  inline size_t insert(const ValueType& value) {
-    for (size_t i=0; i<cur_idx; i++) {
-      size_t temp_block = i/BLOCK_SZ;
-      size_t temp_offset = i%BLOCK_SZ;
-      if (blocks[temp_block]->elements[temp_offset] == value)
-        return false;
-    }
-    size_t block = cur_idx/BLOCK_SZ;
-    size_t offset = cur_idx%BLOCK_SZ;
-    cur_idx++;
-    if (block > cur_block && block % (MAX_NODES_PER_ARRAY/BLOCK_SZ+1)==0) resize();
-    size_t before_block = cur_block;
-    if (block > cur_block) {
-      cur_block = block;
-      blocks[cur_block] = reinterpret_cast<Block*>(malloc(sizeof(Block)));
-    }
-    blocks[block]->elements[offset] = value;
-    return cur_idx-1;
-  }
-  inline size_t remove(const ValueType& value) {
-    for (size_t i=0; i<cur_idx; i++) {
-      size_t temp_block = i/BLOCK_SZ;
-      size_t temp_offset = i%BLOCK_SZ;
-      if (blocks[temp_block]->elements[temp_offset] == value){
-        blocks[temp_block]->elements[temp_offset].clear();
-        return i;
-      }
-    }
-    return 0;
-  }
-#define OBJARRAY_FOR_BEGIN(prefix, dt_varname, ele_varname) \
-for(size_t prefix##_i = 0; prefix##_i <= dt_varname.cur_block; prefix##_i++) { \
-  for(size_t prefix##_j = 0; prefix##_j < BLOCK_SZ && prefix##_i*BLOCK_SZ + prefix##_j < dt_varname.cur_idx; prefix##_j++) { \
-    auto & ele_varname = dt_varname.blocks[prefix##_i]->elements[prefix##_j];
-#define OBJARRAY_FOR_END } }
-};
-
 template<typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
 class SmallSortedArray {
  public:
@@ -839,10 +718,8 @@ class SmallSortedArray {
 #define SMALLSORTEDARRAY_INDEX_FOR_END }
 
 #define SMALLSORTEDARRAY_RANGE_FOR_BEGIN(prefix, key1, key2, dt_varname, ele_varname) \
-size_t prefix##_pos_start = 0; \
-if (key1 != nullptr) prefix##_pos_start = (dt_varname.get_pos_by_key(*key1)); \
-size_t prefix##_pos_end = dt_varname.cur_idx; \
-if (key2 != nullptr) prefix##_pos_end = (dt_varname.get_pos_by_key(*key2)); \
+size_t prefix##_pos_start = dt_varname.lowerkey(key1); \
+size_t prefix##_pos_end = dt_varname.upperkey(key2); \
 for(size_t prefix##_i=prefix##_pos_start; prefix##_i<prefix##_pos_end; prefix##_i++) { \
   auto & ele_varname = dt_varname.e[prefix##_i].value;
 #define SMALLSORTEDARRAY_RANGE_FOR_END }
@@ -851,6 +728,14 @@ for(size_t prefix##_i=prefix##_pos_start; prefix##_i<prefix##_pos_end; prefix##_
     size_t start_idx = get_pos_by_key(key);
     if (start_idx > MAX_NODES_PER_ARRAY) return nullptr;
     return &(e[start_idx].value);
+  }
+  inline size_t lowerkey(const KeyType* key) {
+    if (key != nullptr) return get_pos_by_key(*key);
+    return 0; 
+  }
+  inline size_t upperkey(const KeyType* key) {
+    if (key != nullptr) return get_pos_by_key(*key);
+    return cur_idx; 
   }
 };
 
@@ -914,6 +799,7 @@ class SortedArray {
     return true;
   }
 
+
 #define SORTEDARRAY_INDEX_FOR_BEGIN(prefix, ptrkey, dt_varname, ele_varname) \
   auto prefix##_pos = dt_varname.get_pos_by_key(*(ptrkey)); \
   for(auto prefix##_i=prefix##_pos; prefix##_i!=dt_varname.e.end(); prefix##_i++) { \
@@ -922,10 +808,8 @@ class SortedArray {
 #define SORTEDARRAY_INDEX_FOR_END }
 
 #define SORTEDARRAY_RANGE_FOR_BEGIN(prefix, key1, key2, dt_varname, ele_varname) \
-auto prefix##_pos_start = dt_varname.e.begin(); \
-if (key1 != nullptr) prefix##_pos_start = (dt_varname.get_pos_by_key(*key1)); \
-auto prefix##_pos_end = dt_varname.e.end(); \
-if (key2 != nullptr) prefix##_pos_end = (dt_varname.get_pos_by_key(*key2)); \
+auto prefix##_pos_start = dt_varname.lowerkey(key1); \
+auto prefix##_pos_end = dt_varname.upperkey(key2); \
 for(auto prefix##_i=prefix##_pos_start; prefix##_i!=prefix##_pos_end; prefix##_i++) { \
   auto & ele_varname = (*prefix##_i).value;
 #define SORTEDARRAY_RANGE_FOR_END }
@@ -934,6 +818,14 @@ for(auto prefix##_i=prefix##_pos_start; prefix##_i!=prefix##_pos_end; prefix##_i
     auto start_idx = get_pos_by_key(key);
     if (start_idx == e.end()) return nullptr;
     return &((*start_idx).value);
+  }
+  inline const typename std::vector<Element>::iterator lowerkey(const KeyType* key) {
+    if (key != nullptr) return get_pos_by_key(*key);
+    return e.begin(); 
+  }
+  inline const typename std::vector<Element>::iterator upperkey(const KeyType* key) {
+    if (key != nullptr) return get_pos_by_key(*key);
+    return e.end(); 
   }
 };
 
@@ -973,100 +865,5 @@ public:
     free(ptrs);
   }
 };
-
-/*
-template<typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-class IdxInterface {
-public:
-  inline size_t size();
-  inline bool insert_by_key(const KeyType& key, const ValueType& value);
-  inline MyIterator<ValueType> begin_itr();
-  inline MyIterator<ValueType> end_itr();
-  inline void SimpleIterate(KeyType* key, std::function<void(ValueType &)> myfunc);
-  void SimpleIterate(KeyType* key_start, KeyType* key_end, std::function<void(ValueType &)> myfunc);
-}
-
-template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
-class BasicInterface {
-public:
-  inline ValueType* get_ptr_by_pos(const ItemPointer& pos);
-  inline size_t size();
-  inline bool insert_by_key(oid_t key, const ValueType& value);
-  inline void SimpleIterate(oid_t* key, std::function<void(ValueType &)> myfunc);
-  void SimpleIterate(oid_t* key_start, oid_t* key_end, std::function<void(ValueType &)> myfunc);
-}
-
-template<typename ValueType, size_t MAX_NODES_PER_ARRAY=1000>
-class ArrayInterface {
-public:
-  inline MyIterator<ValueType> begin_itr();
-  inline MyIterator<ValueType> end_itr();
-  inline bool insert(const ValueType& value) ;
-  inline size_t size() ;
-  inline bool append(const ValueType& value);
-  inline void SimpleIterate(std::function<void(ValueType &)> myfunc);
-  inline void sort(std::function<bool(const ValueType& a, const ValueType& b)> cmp);
-};
-*/
-
-//-- Options for <typename ValueType, size_t MAX_NODES_PER_ARRAY=1000>
-// ** TempArray, Array, NestedArray:
-//class SimpleArray
-//class StdVector
-
-//-- Options for template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
-// ** BasicArray
-//class SimpleBasicArray
-//class BasicStdMap
-
-//-- Options for template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
-// ** NestedBasicArray
-//class BasicStdMap
-//class SimpleSortedArray
-
-//-- Options for template<typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-// ** SortedArray, HashIndex, TreeIndex
-//class BwTreeIndex
-//class StdMultiMap
-//class SimpleSortedArray
-
-//-- Options for template<typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-// ** NestedSortedArray, NestedHashIndex, NestedTreeIndex
-//class StdMultiMap
-//class SimpleSortedArray
-//hash: class StdUnorderedMultiMap
-
-/*
-template <typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using SortedArray = SimpleSortedArray<KeyType, ValueType, MAX_NODES_PER_ARRAY>;
-template <typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using TreeIndex = BwTreeIndex<KeyType, ValueType, MAX_NODES_PER_ARRAY>;
-template <typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using HashIndex = StdUnorderedMultiMap<KeyType, ValueType, MAX_NODES_PER_ARRAY>;
-
-template <typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using NestedSortedArray = SimpleSortedArray<KeyType, ValueType, MAX_NODES_PER_ARRAY>;
-template <typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using NestedTreeIndex = StdMultiMap<KeyType, ValueType, MAX_NODES_PER_ARRAY>;
-template <typename KeyType, typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using NestedHashIndex = StdUnorderedMultiMap<KeyType, ValueType, MAX_NODES_PER_ARRAY>;
-
-
-template <typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using NestedArray = StdVector<ValueType, MAX_NODES_PER_ARRAY>;
-template <typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using Array = StdVector<ValueType, MAX_NODES_PER_ARRAY>;
-
-template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
-//using BasicArray = SimpleBasicArray<ValueType, MAX_NODES_PER_ARRAY>;
-using BasicArray = SimpleBasicVector<ValueType, MAX_NODES_PER_ARRAY>;
-//using BasicArray = BasicStdMap<ValueType, MAX_NODES_PER_ARRAY>;
-
-template<typename ValueType, size_t MAX_NODES_PER_ARRAY>
-using NestedBasicArray = BasicStdMap<ValueType, MAX_NODES_PER_ARRAY>;
-
-template<typename ValueType>
-using TempArray = StdVector<ValueType>;
-*/
 
 #endif // _DATA_STRUCTURE_H_

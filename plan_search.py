@@ -261,7 +261,7 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds
     nextlevel_fields.append(p.lh)
     if is_assoc_field(p.lh):
       steps = assoc_steps_map[p.lh].steps
-      if len(steps) == 0:
+      if len(steps) == 0: # denormalized table
         assert(obj.table.contain_table(get_query_field(p.lh).field_class))
         next_idx_placeholder = idx_placeholder
       else:
@@ -272,6 +272,7 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_preds
           next_idx_placeholder = dsmng.find_placeholder(steps[-1].idx.table)
         else:
           next_idx_placeholder = dsmng.find_placeholder(get_query_field(p.lh).field_class)
+        assoc_steps_map[p.lh].steps = assoc_steps_map[p.lh].steps[:-1]
     else:
       next_idx_placeholder = find_next_idx_placeholder(idx_placeholder, dsmng, p.lh)
       

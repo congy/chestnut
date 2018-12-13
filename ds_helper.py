@@ -90,8 +90,10 @@ def require_basic_ary(idx, relates):
 
 def get_loop_define(idx, is_begin=True, is_range=False):
   range_for = 'RANGE_' if is_range else 'INDEX_'
-  suffix = 'BEGIN' if is_begin else 'END'
+  suffix = 'BEGIN' if is_begin else 'END\n'
   if isinstance(idx, ObjBasicArray):
+    if isinstance(idx.table, NestedTable) and get_main_table(idx.table.upper_table).has_one_or_many_field(idx.table.name) == 1:
+      return 'SINGLE_ELEMENT_FOR_{}'.format(suffix) 
     sz = to_real_value(idx.compute_size())
     if sz < SMALL_DT_BOUND:
       return 'SMALLBASICARRAY_FOR_{}'.format(suffix)
@@ -109,7 +111,7 @@ def get_loop_define(idx, is_begin=True, is_range=False):
     elif isinstance(idx, ObjHashIndex):
       typ = 'HASHINDEX'
     elif isinstance(idx, ObjArray):
-      typ = 'OBJARRAY'
+      typ = 'BASICARRAY'
       range_for = ''
     return '{}{}_{}FOR_{}'.format(prefix, typ, range_for, suffix)
   else:
@@ -137,7 +139,7 @@ def get_idx_define(idx):
     elif isinstance(idx, ObjHashIndex):
       return '{}HashIndex'.format(prefix)
     elif isinstance(idx, ObjArray):
-      return '{}ObjArray'.format(prefix)
+      return '{}BasicArray'.format(prefix)
   assert(False)
 
 def index_conflict(idx1, idx2):

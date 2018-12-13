@@ -46,35 +46,13 @@ project_enabled_module = get_new_assoc("project_to_enabled_module", "one_to_many
 globalv.tables = [issue, project, enabled_module, issue_status]
 globalv.associations = [issue_status_issue, project_issue, project_enabled_module]
 
-q_mp_2 = get_all_records(issue)
-q_mp_2.pfilter(BinOp(f('project').f('status'), NEQ, AtomValue(9)))
-q_mp_2.pfilter(SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, AtomValue('issue_tracking'))))
-q_mp_2.pfilter(ConnectOp(BinOp(f('assigned_to_id'), EQ, Parameter('assigned_to')), AND, 
+q = get_all_records(issue)
+q.pfilter(BinOp(f('project').f('status'), NEQ, AtomValue(9)))
+q.pfilter(ConnectOp(BinOp(f('assigned_to_id'), EQ, Parameter('assigned_to')), AND, 
 SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False)))))
-q_mp_2.aggr(UnaryExpr(COUNT), 'count_issue')
-q_mp_2.complete()
+q.finclude(f('project'), pfilter=ConnectOp(\
+  BinOp(f('status'), NEQ, AtomValue(9)), AND, \
+  SetOp(f('enabled_modules'), EXIST, BinOp(f('name'), EQ, AtomValue('issue_tracking'))))
+q.complete()
 
-q = q_mp_2
-tables = [issue, project, enabled_module, issue_status]
-associations = [issue_status_issue, project_issue, project_enabled_module]
 
-# test enumerate nesting
-# dsmanagers = enumerate_nestings_for_query(q)
-# for i,ds in enumerate(dsmanagers):
-#   print "Nesting {}:\n".format(i)
-#   print ds
-#   print '--------'
-
-# test search plan
-# search_plans_for_one_query(q)
-
-# test_merge(q)
-# test_ilp([q])
-
-data_dir=datafile_dir
-#generate_proto_files(get_cpp_file_path(), tables, associations)
-#generate_db_data_files(data_dir, tables, associations)
-#populate_database(data_dir, tables, associations)
-#test_generate_sql([q])
-#test_deserialize([q])
-test_initialize(tables, associations, [q], 352) #0, 172, 272 

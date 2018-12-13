@@ -97,7 +97,8 @@ class PlanTree(object):
     ele_ops = []
     for k,v in self.next_level_pred.items():
       if is_assoc_field(k):
-        s = self.find_retrieve_assoc_step(k)
+        newk = reconstruct_assoc_from_list(get_assoc_field_list(k)[:-1])
+        s = self.find_retrieve_assoc_step(newk)
         s.add_steps(v.to_steps())
       else:
         ele_ops += v.to_steps()

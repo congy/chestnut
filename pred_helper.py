@@ -183,6 +183,12 @@ def get_assoc_field_list(f):
   elif isinstance(f, AssocOp):
     return [f.lh] + get_assoc_field_list(f.rh)
 
+def reconstruct_assoc_from_list(lst):
+  if len(lst) == 1:
+    return lst[0]
+  else:
+    return AssocOp(lst[0], reconstruct_assoc_from_list(lst[1:]))
+
 def get_full_assoc_field_name(f):
   if isinstance(f, QueryField):
     return f.field_name

@@ -38,7 +38,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
                                             ds_name)
   else:
     key_type_name = ds.get_key_type_name()
-    key_fields = [key for key in ds.key_fields()]
+    key_fields = [get_query_field(key) for key in ds.key_fields()]
     structs = "struct  {} {{\n".format(key_type_name)
     structs += ''.join(["  {} {};\n".format(cgen_scalar_ftype(key), cgen_fname(key)) for i,key in enumerate(key_fields)])
     #init function
@@ -96,6 +96,9 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
       insert_func = 'inline size_t insert_{}_by_key({}& v) {{\n'.format(ds_name, ds.get_value_type_name())
       if ds.value.is_aggr():
         assert(False)
+      elif isinstance(ds, ObjBasicArray) and ds.is_single_element():
+        insert_func += '  {} = v;\n'.format(ds_name)
+        insert_func += '  size_t insertpos = 0;\n'
       else:
         insert_func += '  size_t insertpos = {}.insert(v);\n'.format(ds_name)
     else:

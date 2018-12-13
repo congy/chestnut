@@ -298,6 +298,11 @@ class ExecGetAssocStep(ExecStepSuper):
       primary_ary = ds_manager.find_primary_array(get_main_table(idx.table))
       idx.value.value = primary_ary
       next_obj = primary_ary.value.get_object()
+    if is_main_table(self.idx.table): # top level array/index
+      ds_manager.add_ds(idx, replace=True)
+    else:
+      assert(cur_obj)
+      cur_obj.add_nested_object(idx, replace=True)
     return next_obj
   def retrieves_field(self, f): 
     if self.idx is None:
@@ -345,8 +350,6 @@ class ExecScanStep(ExecStepSuper):
     ele_s = '\n'.join(['  '+line for line in self.ele_ops.__str__(short).split('\n')])
     if isinstance(self.idx, ObjBasicArray):
       s = "Scan {} : \n{}\n".format(self.idx.__str__(short), ele_s)
-    elif isinstance(self.idx, ReadQuery):
-      s = "Scan on result {} : \n{}\n".format(self.idx.return_var.name, ele_s)
     else:
       assert(False)
     return s
@@ -415,7 +418,7 @@ class ExecIndexStep(ExecScanStep):
   def __str__(self, short=False):
     ele_s = '\n'.join(['  '+line for line in self.ele_ops.__str__(short).split('\n')])
     param_s = ','.join([str(p) for p in self.params])
-    s = "Index {} on [{}] (params = [{}]): \n{}\n".format(index_type_to_str[self.idx_op_type], self.idx, param_s, ele_s)
+    s = "Index {} on [{}] (params = [{}]): \n{}\n".format(index_type_to_str[self.idx_op_type], self.idx.value.__str__(short), param_s, ele_s)
     return s
   def compute_cost(self):
     if cost_computed(self.cost):

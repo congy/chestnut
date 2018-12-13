@@ -205,7 +205,7 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
     pass
   else:
     for i,key in enumerate(ds.key_fields()):
-      s += '  {} key_{} = 0;\n'.format(get_cpp_type(key.field_class.tipe), i)
+      s += '  {} key_{} = 0;\n'.format(get_cpp_type(get_query_field(key).field_class.tipe), i)
   # TODO: replace %d with id using sprintf
   if upper_type:
     s += '  char qs[2000];\n'
@@ -246,12 +246,12 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
     key_str = ''
   else:
     for i,key in enumerate(ds.key_fields()):
-      rpos = helper_field_pos_in_row(fields, key)
-      s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(key), rpos)
+      rpos = helper_field_pos_in_row(fields, get_query_field(key))
+      s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(get_query_field(key)), rpos)
     s +='    {}{} key({});\n'.format(cgen_obj_fulltype(upper_type)+'::' if upper_type else '', ds.get_key_type_name(), \
         ','.join(['key_{}'.format(j) for j in range(0, len(ds.key_fields()))]))
     key_str = 'key,'
-  insert_code = '     {}{}insert_{}_by_key({}{});\n'.format('if (pos != nullptr) ' if ds.value.is_main_ptr() else '',\
+  insert_code = '    {}{}insert_{}_by_key({}{});\n'.format('if (pos != nullptr) ' if ds.value.is_main_ptr() else '',\
                   'upper_obj->' if upper_type else '', ds_name, key_str, value_str)
   s += insert_code
   s += '    row = mysql_fetch_row(result);\n'
