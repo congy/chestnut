@@ -467,3 +467,28 @@ def generate_expr_for_aggr(thread_ctx, symbolic_tuple, accu_var, expr, varmap=No
     return varmap[expr].v
   else:
     return expr
+
+
+def check_pred_equiv(thread_ctx, table, pred1, pred2):
+  tup = thread_ctx.get_symbs().symbolic_tables[get_main_table(table)].symbols[0]
+  symb_pred1 = generate_condition_for_pred(thread_ctx, tup, pred1) if pred1 else True
+  symb_pred2 = generate_condition_for_pred(thread_ctx, tup, pred2) if pred2 else True
+
+  thread_ctx.get_symbs().solver.push()
+  thread_ctx.get_symbs().solver.add(z3.Not(symb_pred1==symb_pred2))
+  r = (thread_ctx.get_symbs().solver.check() == z3.unsat)
+  #if r == False:
+  #  print print_table_in_model(thread_ctx, thread_ctx.get_symbs().solver.model())
+  thread_ctx.get_symbs().solver.pop()
+  return r
+
+def check_pred_subset(thread_ctx, table, pred1, pred2): # pred1 -> pred2
+  tup = thread_ctx.get_symbs().symbolic_tables[get_main_table(table)].symbols[0]
+  symb_pred1 = generate_condition_for_pred(thread_ctx, tup, pred1) if pred1 else True
+  symb_pred2 = generate_condition_for_pred(thread_ctx, tup, pred2) if pred2 else True
+
+  thread_ctx.get_symbs().solver.push()
+  thread_ctx.get_symbs().solver.add(z3.Not(z3.Implies(symb_pred1, symb_pred2)))
+  r = (thread_ctx.get_symbs().solver.check() == z3.unsat)
+  thread_ctx.get_symbs().solver.pop()
+  return r

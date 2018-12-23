@@ -215,7 +215,7 @@ def helper_get_idx_step_by_pred(thread_ctx, queried_table, idx_combination, idx_
       idx_pred = merge_into_cnf([foreignkey_idx.condition, idx_pred])
   if foreignkey_idx:
     reverse_key = QueryField('id', upper_table)
-    nonexternal={foreignkey_idx.key_fields()[0]:reverse_key}
+    nonexternal={foreignkey_idx.key_fields()[0]:(reverse_key,foreignkey_idx.condition.rh)}
   else:
     nonexternal={}
   

@@ -33,6 +33,7 @@ def map_contain(a, key, eq_func=(lambda x,y: x==y)):
       return v
   return None
 
+
 def set_equal(a, b, eq_func=(lambda x,y: x==y)):
   if len(a) != len(b):
     return False
@@ -47,6 +48,8 @@ def set_equal(a, b, eq_func=(lambda x,y: x==y)):
 
 def list_equal(a, b, eq_func=(lambda x,y: x==y)):
   return len(a) == len(b) and all([eq_func(a[i],b[i]) for i in range(0, len(a))])
+def map_equal(a, b, value_func=(lambda x,y: x==y)):
+  return len(a) == len(b) and all([k in b and value_func(v, b[k]) for k,v in a.items()])
 
 def set_no_duplicate(a, eq_func=(lambda x,y: x==y)):
   for i,ele in enumerate(a):
@@ -109,6 +112,13 @@ def list_union(lsts):
   for l in lsts:
     r = r + l
   return r
+
+def add_to_list_map(k, v, mp):
+  for k1,v1 in mp.items():
+    if k1==k:
+      v1.append(v)
+      return
+  mp[k] = [v]
 
 def list_combine(lsts):
   r = [s for s in lsts[0]]

@@ -144,7 +144,7 @@ def is_reverse_associated(table, assoc_qf):
   return helper_get_assoc_exist_idx(assoc_qf, for_scan_pred=True)[1]
 
  
-def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, nonexternal):
+def get_all_idxes_on_cond(thread_ctx, queried_table, idx_placeholder, idx_pred, rest_pred, nonexternal):
   assert(queried_table)
   idxes = []
   table = idx_placeholder.table

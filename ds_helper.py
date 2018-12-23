@@ -183,7 +183,7 @@ def get_idxop_and_params_by_pred(pred, keys, nonexternal={}):
         op = RANGE
       elif q.op == EQ:
         if any([q.lh==qf for qf,v in nonexternal.items()]):
-          params[q.lh] = ([nonexternal[q.lh]])
+          params[q.lh] = ([nonexternal[q.lh][0]])
         else:
           params[q.lh] = ([q.rh])
       elif q.op == BETWEEN:

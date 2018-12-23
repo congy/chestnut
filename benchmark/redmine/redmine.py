@@ -8,6 +8,7 @@ from redmine_schema import *
 from nesting import *
 from plan_search import *
 from ds_manager import *
+from populate_database import *
 from ilp.ilp_manager import *
 import globalv
 
@@ -32,8 +33,11 @@ from welcome_index import *
 from project_new import *
 from project_slow import *
 
-#generate_db_data_files(datafile_dir, tables, associations)
-#exit(0)
+
+#generate_proto_files(get_cpp_file_path(), tables, associations)
+generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+#populate_database(data_dir, tables, associations)
+exit(0)
 
 read_queries = [q_ai_0, q_ai_1, \
 q_ii_1, q_ii_2, \
