@@ -468,6 +468,25 @@ def generate_expr_for_aggr(thread_ctx, symbolic_tuple, accu_var, expr, varmap=No
   else:
     return expr
 
+def check_dsop_pred_equiv(thread_ctx, table, ds_exprs, target_pred):
+  tup = thread_ctx.get_symbs().symbolic_tables[get_main_table(table)].symbols[0]
+  target_expr = generate_condition_for_pred(thread_ctx, tup, target_pred) 
+  new_ds_exprs = []
+  for pair in ds_exprs:
+    rest_pred = pair[1]
+    ds_expr = pair[0]
+    rest_expr = generate_condition_for_pred(thread_ctx, tup, rest_pred) if rest_pred else True
+    new_ds_exprs.append(z3.And(ds_expr, rest_expr))
+  ds_expr = or_exprs(new_ds_exprs)
+
+  #print 'target_expr = {}; ds_expr = {}'.format(z3.simplify(target_expr), z3.simplify(ds_expr))
+  thread_ctx.get_symbs().solver.push()
+  thread_ctx.get_symbs().solver.add(z3.Not(target_expr==ds_expr))
+  r = (thread_ctx.get_symbs().solver.check() == z3.unsat)
+  #if r == False:
+  #  print print_table_in_model(thread_ctx, thread_ctx.get_symbs().solver.model())
+  thread_ctx.get_symbs().solver.pop()
+  return r
 
 def check_pred_equiv(thread_ctx, table, pred1, pred2):
   tup = thread_ctx.get_symbs().symbolic_tables[get_main_table(table)].symbols[0]

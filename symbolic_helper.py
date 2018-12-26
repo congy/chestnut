@@ -32,20 +32,24 @@ def get_ids_from_denormalized_symb(table, tup):
     pos = pos + len(t.get_fields())
   return rt    
 
-def get_denormalized_tables(pred):
+def get_denormalized_tables(pred, path=[]):
   if isinstance(pred, ConnectOp):
-    return get_denormalized_tables(pred.lh) + get_denormalized_tables(pred.rh)
+    return get_denormalized_tables(pred.lh, path) + get_denormalized_tables(pred.rh, path)
   elif isinstance(pred, SetOp):
-    r = get_denormalized_tables(pred.lh)
-    r += [pred.lh.field_class]
-    r += get_denormalized_tables(pred.rh)
+    newpath = [p for p in path] + [pred.lh]
+    tableid = KeyPath(QueryField('id', get_query_field(pred.lh).table), newpath)
+    #r = get_denormalized_tables(pred.lh, path)
+    r = [tableid]
+    r += get_denormalized_tables(pred.rh, newpath)
     return r
   elif isinstance(pred, AssocOp):
-    return [pred.lh.field_class] + get_denormalized_tables(pred.rh)
+    newpath = [p for p in path] + [pred.lh]
+    tableid = KeyPath(QueryField('id', pred.lh.table), newpath)
+    return [tableid] + get_denormalized_tables(pred.rh, newpath)
   elif isinstance(pred, BinOp):
     r = []
-    r += get_denormalized_tables(pred.lh)
-    r += get_denormalized_tables(pred.rh)
+    r += get_denormalized_tables(pred.lh, path)
+    r += get_denormalized_tables(pred.rh, path)
     return r
   else:
     return []
@@ -94,36 +98,29 @@ def get_symbolic_param_or_value(thread_ctx, v):
 
 
 # replace is a triple: qf, assoc_obj_id
-def get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, pred, cnt, table_ids, replace=[], updated_fields={}, only_mask=False):
+def get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, path, pred, table_id_map, key_map):
   if isinstance(pred, ConnectOp):
-    cnt, keys1, lh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, pred.lh, cnt, table_ids, replace, updated_fields, only_mask)
-    cnt, keys2, rh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, pred.rh, cnt, table_ids, replace, updated_fields, only_mask)
+    lh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, path, pred.lh, table_id_map, key_map)
+    rh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, path, pred.rh, table_id_map, key_map)
     if pred.op == AND:
-      return cnt, keys1+keys2, z3.And(lh_expr, rh_expr)
+      return z3.And(lh_expr, rh_expr)
     elif pred.op == OR:
-      return cnt, keys1+keys2, z3.Or(lh_expr, rh_expr)
+      return z3.Or(lh_expr, rh_expr)
 
   elif isinstance(pred, SetOp):
-    assoc = get_query_field(pred.lh).table.get_assoc_by_name(get_query_field(pred.lh).field_name)
-    assoc_pos = 0 if assoc.lft == get_query_field(pred.lh).table else 1
-    id_pos = get_field_pos_in_tuple(get_query_field(pred.lh).table, 'id')
-    assoc_id = table_ids[cnt]
-    cnt += 1
+    assoc_table = get_query_field(pred.lh).table
+    assoc = assoc_table.get_assoc_by_name(get_query_field(pred.lh).field_name)
+    assoc_pos = 0 if assoc.lft == assoc_table else 1
+    id_pos = get_field_pos_in_tuple(assoc_table, 'id')
+    newpath = [p for p in path] + [pred.lh]
+    assoc_id = table_id_map[KeyPath(QueryField('id', assoc_table), newpath)]
     if pred.op == EXIST:
       r = False
     else:
       r = True
     next_symbolic_tuple = thread_ctx.get_symbs().symbolic_tables[get_query_field(pred.lh).field_class].symbols[assoc_id-1]
-    cnt, keys, next_symbol_cond = get_denormalizing_cond_helper(thread_ctx, next_symbolic_tuple, pred.rh, cnt, table_ids, replace, updated_fields, only_mask)
+    next_symbol_cond = get_denormalizing_cond_helper(thread_ctx, next_symbolic_tuple, newpath, pred.rh, table_id_map, key_map)
 
-    if any([replace[i][0] == pred.lh for i in range(0, len(replace))]):
-      _replace = filter(lambda x: x[0] == pred.lh, replace)[0]
-      match_cond = _replace[1]==assoc_id
-      if pred.op == EXIST:
-        return cnt, keys, z3.Or(z3.If(match_cond, next_symbol_cond, False), r)
-      else:
-        return cnt, keys, z3.And(z3.If(match_cond, next_symbol_cond, False), r)
-    
     match_expr = []  
     for symbolic_assoc in thread_ctx.get_symbs().symbolic_assocs[assoc].symbols:
       match_expr.append(z3.And(assoc_id == symbolic_assoc[1-assoc_pos],  \
@@ -132,45 +129,31 @@ def get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, pred, cnt, table_i
       r = z3.Or(z3.If(z3.Or(*match_expr), next_symbol_cond, False), r)
     else:
       r = z3.And(z3.If(z3.Or(*match_expr), next_symbol_cond, False), r)
-    return cnt, keys, r
+    return r
 
   elif isinstance(pred, AssocOp):
-    assoc_id = table_ids[cnt]
-    cnt += 1
-    id_pos = get_field_pos_in_tuple(get_query_field(pred.lh).table, 'id')
-    assoc_id_pos = get_field_pos_in_tuple(pred.lh.table, '{}_id'.format(pred.lh.field_name))
+    newpath = [p for p in path] + [pred.lh]
+    assoc_table = pred.lh.table
+    assoc_id = table_id_map[KeyPath(QueryField('id', assoc_table), newpath)]
+    id_pos = get_field_pos_in_tuple(assoc_table, 'id')
+    assoc_id_pos = get_field_pos_in_tuple(assoc_table, '{}_id'.format(pred.lh.field_name))
     next_symbolic_tuple = thread_ctx.get_symbs().symbolic_tables[pred.lh.field_class].symbols[assoc_id-1]
-    cnt, keys, next_symbol_cond = get_denormalizing_cond_helper(thread_ctx, next_symbolic_tuple, pred.rh, cnt, table_ids, replace, updated_fields, only_mask)
-    new_keys = [AssocOp(pred.lh, k) for k in keys]
-
-    if any([replace[i][0] == pred.lh for i in range(0, len(replace))]):
-      _replace = filter(lambda x: x[0] == pred.lh, replace)[0]
-      match_cond = _replace[1]==assoc_id
-      return cnt, new_keys, z3.If(match_cond, next_symbol_cond, get_default_z3v_by_type(get_query_field(pred.rh).field_class))
+    next_symbol_cond = get_denormalizing_cond_helper(thread_ctx, next_symbolic_tuple, newpath, pred.rh, table_id_map, key_map)
     
     r = z3.If(assoc_id==symbolic_tuple[assoc_id_pos], next_symbol_cond, get_default_z3v_by_type(get_query_field(pred.rh).field_class))
-    return cnt, new_keys, r
+    return r
   
   elif isinstance(pred, BinOp):
-    if only_mask:
-      return cnt, [], True
-    cnt, keys, lh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, pred.lh, cnt, table_ids, replace, updated_fields, only_mask)
-    #assert(not isinstance(pred.rh, DoubleParam))
-    if pred.op == BETWEEN:
-      exprs = []
-      for p in [pred.rh.params[0], pred.rh.params[1]]:
-        cnt, keys, rh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, p, cnt, table_ids, replace, updated_fields, only_mask)
-        exprs.append(lh_expr == rh_expr)
-      return cnt, [], z3.And(lh_expr >= exprs[0], lh_expr >= exprs[1])
-    if isinstance(pred.rh, MultiParam):
-      exprs = []
-      for p in pred.rh.params:
-        cnt, keys, rh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, p, cnt, table_ids, replace, updated_fields, only_mask)
-        exprs.append(lh_expr == rh_expr)
-      return cnt, [], z3.Or(*exprs)
-    if isinstance(pred.rh, Parameter):
-      return cnt, [(pred.lh, lh_expr)], True
-    cnt, keys, rh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, pred.rh, cnt, table_ids, replace, updated_fields, only_mask)
+    lh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, path, pred.lh, table_id_map, key_map)
+    if isinstance(pred.lh, AssocOp):
+      cond_expr = (lh_expr != get_default_z3v_by_type(get_query_field(pred.lh).field_class))
+    else:
+      cond_expr = True
+    lh_path = KeyPath(pred.lh, path)
+    if (not is_query_field(pred.rh)) and lh_path in key_map:
+      key_map[lh_path] = lh_expr
+      return cond_expr
+    rh_expr = get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, path, pred.rh, table_id_map, key_map)
     if pred.op == EQ:
       cond_expr = lh_expr == rh_expr
     elif pred.op == NEQ:
@@ -191,20 +174,12 @@ def get_denormalizing_cond_helper(thread_ctx, symbolic_tuple, pred, cnt, table_i
       cond_expr = z3.And(cond_expr, lh_expr != get_default_z3v_by_type(get_query_field(pred.lh).field_class))
     if isinstance(pred.rh, AssocOp):
       cond_expr = z3.And(cond_expr, rh_expr != get_default_z3v_by_type(get_query_field(pred.rh).field_class))
-    return cnt, [], cond_expr
+    return cond_expr
   elif isinstance(pred, QueryField):
-    if pred in updated_fields:
-      v = updated_fields[pred]
-      if isinstance(v, AtomValue):
-        return cnt, [], v.to_z3_value()
-      else:
-        assert(isinstance(v, Parameter))
-        return cnt, [], thread_ctx.get_symbs().param_symbol_map[v]
-    else:
-      fid = get_field_pos_in_tuple(pred.table, pred.field_name)
-      return cnt, [], symbolic_tuple[fid]
+    fid = get_field_pos_in_tuple(pred.table, pred.field_name)
+    return symbolic_tuple[fid]
   elif isinstance(pred, AtomValue):
-    return cnt, [], pred.to_z3_value()
+    return pred.to_z3_value()
   else:
     assert(False)
     

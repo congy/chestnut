@@ -26,7 +26,7 @@ def get_data_file_dir():
   return _data_file_dir
 
 
-MAXINT = 4294967295
+MAXINT = 23451 #4294967295
 INVALID_VALUE = 4294967295+1
 
 MAX_NESTED_LEVEL = 4
@@ -53,6 +53,8 @@ OBJECT = 4013
 #index op type
 RANGE = 1011  
 POINT = 1012  
+OPEN = 1013
+CLOSE = 1014
 index_type_to_str = {RANGE: 'range', POINT: 'point'}
 
 INSERT=3001

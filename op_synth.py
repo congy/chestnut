@@ -10,114 +10,68 @@ from ds_manager import *
 from ds_helper import *
 from planIR import *
 from symbolic_pred import *
+from symbolic_ds import *
+from symbolic_helper import *
 import symbolic_context as symbctx
 import itertools
 import globalv
 
-def get_ds_and_op_on_cond(thread_ctx, queried_table, idx_pred, rest_pred, ds_value, nonexternal={}):
-  # get all fields and their compared value
-  field_cmp_map = {}
-  get_compare_map_by_field(idx_pred, field_cmp_map)
-  state = SynthHelper(queried_table, thread_ctx, field_cmp_map, idx_pred, rest_pred)
-  enumerative_gen(state)
-  idx_ops = []
-  if state.result is None:
+def get_ds_and_op_on_cond(thread_ctx, qtable, pred, ds_value, order=None, fk_pred=None, nonexternal={}):
+  if pred is None:
+    # FIXME
+    assert(False)
     return []
-  temp_op_combs = []
-  for op in state.result:
-    op.replace_param_with_qf(nonexternal)
-    ds_type = lambda *arg: ObjSortedArray(args) if len(op.keys) > 0 else lambda *arg: ObjArray(args)
-    idxop = op.to_ds_ops(queried_table, ds_type, ds_value)
-    idx_ops.append(idxop)
-  r = [idx_ops]
-  if not isinstance(queried_table, NestedTable):
-    idx_ops = []
-    for op in state.result:
-      ds_type = lambda *arg: ObjTreeIndex(args) if len(op.keys) > 0 else lambda *arg: ObjArray(args)
-      idxop = op.to_ds_ops(queried_table, ds_type, IndexValue(MAINPTR))
-      idx_ops.append(idxop)
-    r.append(idx_ops)
-  return r
-  
-class KeyPath(object):
-  def __init__(self, key, path):
-    self.path = path
-    self.key = key
-    self.hashstr = '-'.join([str(x) for x in self.path])+'-'+str(self.key)
-  def __eq__(self, other):
-    return len(self.path) == len(other.path) and all([self.path[i]==other.path[i] for i in range(0, len(self.path))]) and self.key == other.key
-  def __str__(self):
-    return self.hashstr
-  def __hash__(self):
-    return hash(self.hashstr)
-  def is_hasone_assoc(self):
-    return len(self.path) == 0
-  
-def get_compare_map_by_field(pred, mp, upper_path=[], reverse=False):
-  if isinstance(pred, UnaryOp):
-    get_compare_map_by_field(pred.operand, mp, upper_path, (not reverse))
-  elif isinstance(pred, SetOp):
-    next_upper = upper_path + [pred.lh]
-    get_compare_map_by_field(pred.rh, mp, next_upper, reverse)
-  elif isinstance(pred, ConnectOp):
-    get_compare_map_by_field(pred.lh, mp, upper_path, reverse)
-    get_compare_map_by_field(pred.rh, mp, upper_path, reverse)
-  elif isinstance(pred, BinOp):
-    if is_query_field(pred.lh):
-      key = KeyPath(pred.lh, upper_path)
-      if is_query_field(pred.rh):
-        if reverse:
-          pass
-        else:
-          add_to_list_map(key, (pred.op, pred.rh), mp)
-      elif isinstance(pred.rh, MultiParam):
-        if pred.op == BETWEEN:
-          if reverse:
-            add_to_list_map(key, (LE, pred.rh.params[0]), mp)
-            add_to_list_map(key, (GE, pred.rh.params[1]), mp)
-          else:
-            add_to_list_map(key, (GT, pred.rh.params[0]), mp)
-            add_to_list_map(key, (LT, pred.rh.params[1]), mp)
-        elif pred.op == IN:
-          if reverse:
-            # TODO
-            for param in pred.rh.params:
-              add_to_list_map(key, (LT, param), mp)
-              add_to_list_map(key, (GT, param), mp)
-          else:
-            for param in pred.rh.params:
-              add_to_list_map(key, (EQ, param), mp)
-      elif isinstance(pred.rh, Parameter):
-        if pred.op == NEQ or (pred.op==EQ and reverse):
-          add_to_list_map(key, (GT, pred.rh), mp)
-          add_to_list_map(key, (LT, pred.rh), mp)
-        else:
-          if reverse:
-            pass
-          else:
-            add_to_list_map(key, (pred.op, pred.rh), mp)
-      elif isinstance(pred.rh, AtomValue):
-        if reverse:
-          pass
-        else:
-          add_to_list_map(key, (pred.op, pred.rh), mp)
 
-class SynthHelper(object):
-  def __init__(self, table, thread_ctx, pred_pool, idx_pred, rest_pred):
-    self.constant_pred = []
-    self.idx_pred = idx_pred
-    if rest_pred:
-      self.target_pred = ConnectOp(idx_pred, AND, rest_pred)
+  states = enumerative_gen(qtable, thread_ctx, pred, order, fk_pred)
+  all_ops = []
+  for state in states:
+    if len(nonexternal) > 0:
+      for op in state.result:
+        op.replace_param_with_qf(nonexternal)
+    
+    op_and_rest = []
+    for op in state.result:
+      (ds_t, ds_v) = get_ds_type_value_pair(qtable, op.keys, ds_value)
+      op_and_rest.append((op.to_ds_ops(ds_t, ds_v, qtable), op.rest_pred))
+    all_ops.append(op_and_rest)
+
+    if not isinstance(qtable, NestedTable):
+      op_and_rest = []
+      for op in state.result:
+        (ds_t, ds_v) = get_ds_type_value_pair(qtable, op.keys, ds_value, True)
+        op_and_rest.append((op.to_ds_ops(ds_t, ds_v, qtable), op.rest_pred))
+      all_ops.append(op_and_rest)
+  return all_ops
+    
+def get_ds_type_value_pair(table, keys, ds_value, ptr=False):
+  if isinstance(table, NestedTable) and len(keys) > 0:
+    return (get_ds_type_lambda('ObjSortedArray'), ds_value)
+  elif isinstance(table, NestedTable):
+    return (get_ds_type_lambda('ObjArray'), ds_value)
+  elif len(keys) > 0:
+    if ptr:
+      return (get_ds_type_lambda('ObjTreeIndex'), IndexValue(MAINPTR))
     else:
-      self.target_pred = idx_pred
+      return (get_ds_type_lambda('ObjSortedArray'), ds_value)
+  else:
+    if ptr:
+      return (get_ds_type_lambda('ObjArray'), IndexValue(MAINPTR))
+    else:
+      return (get_ds_type_lambda('ObjArray'), ds_value)
+
+  
+class SynthHelper(object):
+  def __init__(self, table, thread_ctx, pred_pool, target_pred, rest_preds):
+    self.constant_pred = []
     self.pred_pool = {}
     self.cur_ops = []
     self.thread_ctx = thread_ctx
-    self.rest_pred = rest_pred
-    self.main_table = table
+    self.main_table = get_main_table(table)
+    self.rest_preds = rest_preds
     self.result = None
     self.tried_ops = [] # a list of hash value array
     self.all_params = []
+    self.target_pred = target_pred
     for k,v in pred_pool.items():
       params = []
       for v1 in v:
@@ -128,20 +82,26 @@ class SynthHelper(object):
           self.constant_pred.append((k,v1))
       if len(params) > 0:
         self.pred_pool[k] = params
-    for k,v in pred_pool.items():
-      print 'pool k = {}, v = {}'.format(k, ','.join([str(v1[1]) for v1 in v]))
-    if len(self.pred_pool) == 0: # no key
-      self.cur_ops = [OpPredHelper()]
-      self.cur_ops[-1].condition = self.constant_pred
-      self.add_result()
+    # for k,v in pred_pool.items():
+    #   print 'pool k = {}, v = {}'.format(k, ','.join([str(v1[1]) for v1 in v]))
     self.max_sz = 1 if len(self.pred_pool) == 0 else reduce(lambda x, y: x*y, [len(v) for k,v in self.pred_pool.items()])
-  def str_ops(self):
-    return '\n'.join([str(o) for o in self.cur_ops])
+  def str_ops(self, print_restp=False):
+    return '\n'.join([o.__str__(print_restp) for o in self.cur_ops])
   def add_result(self):
     ds_str = [str(o) for o in self.cur_ops]
-    print '\n  -- Find result: {}'.format('\n'.join(ds_str))
+    #print '\n  -- Find result: {}'.format('\n'.join(ds_str))
     self.result = [o.fork() for o in self.cur_ops]
-
+  def rest_preds_state_clear(self):
+    # FIXME
+    self.rest_pred_combs = [[merge_into_cnf(self.rest_preds) for i in range(0, len(self.cur_ops))]]
+    self.restp_cnt = 0
+  def assign_rest_preds(self):
+    if self.restp_cnt < len(self.rest_pred_combs) :
+      self.restp_cnt += 1
+      for i,o in enumerate(self.cur_ops):
+        o.set_rest_pred(self.rest_pred_combs[self.restp_cnt-1][i])
+      return True
+    return None
   def check_size(self):
     return len(self.cur_ops) > self.max_sz
   def check_examed(self):
@@ -164,22 +124,12 @@ class SynthHelper(object):
         return True
     return False
   def check_equiv(self):
-    p = []
-    for c in self.cur_ops:
-      p1 = c.to_pred()
-      #print ' -- dsop = {}'.format(c)
-      if p1:
-        p.append(p1)
-    if self.rest_pred:
-      p = [ConnectOp(p1, AND, self.rest_pred) for p1 in p]
-    if len(p) == 0:
-      return False
-    cur_pred = p[0]
-    for p1 in p[1:]:
-      cur_pred = ConnectOp(cur_pred, OR, p1)
-    r = check_pred_equiv(self.thread_ctx, self.main_table, cur_pred, self.target_pred)
-    if r:
-      print '\n ** check equiv: {} {} '.format(cur_pred, r)
+    ds_exprs = [(c.symbolic_result[0], c.rest_pred) for c in self.cur_ops]
+    r = check_dsop_pred_equiv(self.thread_ctx, self.main_table, ds_exprs, self.target_pred)
+    # if r:
+    #   print '\n** ds: {}'.format(self.str_ops(True))
+    #   print '\n op = {}'.format('\n'.join([str(o.dsop) for o in self.cur_ops]))
+    #   print '\n ** check equiv: {} '.format(r)
     if not r:
       self.tried_ops.append([o.fork() for o in self.cur_ops])
     return r
@@ -191,7 +141,7 @@ def param_value_eq(v1, v2):
     return v1[0][0]==v2[0][0] and v1[0][1]==v2[0][1] and v1[1][0]==v2[1][0] and v1[1][1]==v2[1][1]
   else:
     return v1[0]==v2[0] and v1[1]==v2[1]
-
+  
 def keyvalue_to_pred(key, value):
   key = key.key
   if type(value[0]) is tuple:
@@ -220,16 +170,25 @@ def key_map_to_pred(keymap):
     setpred = SetOp(k, EXIST, nextpred)
     preds.append(setpred)
   return merge_into_cnf(preds)  
-  
+
 class OpPredHelper(object):
-  def __init__(self):
+  def __init__(self, table):
     self.keys = []
     self.params = {} # field: (op,value) / ((op,value),(op,value))
     self.point_keys = []
     self.range_keys = []
     self.condition = [] # [(k, (op,value))]
-    self.is_subset = False
-    self.is_superset = False
+    self.rest_pred = None
+    self.table = table
+    self.dsop = None
+    self.symbolic_result = None
+  def create_symbolic_idx(self, thread_ctx):
+    ds_type = get_ds_type_lambda('ObjTreeIndex') if len(self.keys) > 0 else get_ds_type_lambda('ObjArray')
+    ds_value = IndexValue(MAINPTR)
+    self.dsop = self.to_ds_ops(ds_type, ds_value)
+    ds = self.dsop.idx
+    symbolic_ds = SymbolicIndex(ds, None, thread_ctx)
+    self.symbolic_result = symbolic_ds.get_symbolic_tuple_with_cond(self.dsop.op, self.dsop.params)
   def merge_keymap(self):
     m = {k:[v] for k,v in self.params.items()}
     for k,v in self.condition:
@@ -247,11 +206,11 @@ class OpPredHelper(object):
         if v[1] == p:
           return True
     return False
-  def __str__(self):
+  def __str__(self, print_rest=False):
     s1 = ', '.join(['{}'.format(k) for k in self.point_keys])
     s2 = ', '.join(['{}'.format(k) for k in self.range_keys])
     cond = self.to_pred()
-    return 'ds: {} keys = [{} | {}] // cond = {}'.format(hash(self), s1, s2, cond)
+    return 'ds: {} keys = [{} | {}] // cond = {}{}'.format(hash(self), s1, s2, cond, ', rest={}'.format(self.rest_pred) if print_rest else '')
   def __eq__(self, other):
     # return list_equal(self.keys, other.keys) and \
     #     map_equal(self.params, other.params, value_func=(lambda x,y: param_value_eq(x,y))) \
@@ -261,31 +220,16 @@ class OpPredHelper(object):
     p2 = key_map_to_pred(other.merge_keymap())
     return ( p1 is None and p2 is None ) or (p1 is not None and p2 is not None and p1.query_pred_eq(p2))
   def fork(self):
-    newop = OpPredHelper()
+    newop = OpPredHelper(self.table)
     newop.keys = [k for k in self.keys]
     newop.params = {k:v for k,v in self.params.items()}
     newop.point_keys = [k for k in self.point_keys]
     newop.range_keys = [k for k in self.range_keys]
     newop.condition = [k for k in self.condition]
+    newop.rest_pred = self.rest_pred
+    #newop.dsop = self.dsop
+    #newop.symbolic_result = self.symbolic_result
     return newop
-  def next_key_values(self, pred_pool):
-    for k,v in pred_pool.items():
-      if k not in self.keys and k not in self.range_keys:
-        lt = []
-        gt = []
-        for v1 in v:
-          if v1[0] in [LT, LE]:
-            lt.append(v1)
-          elif v1[0] in [GT, GE]:
-            gt.append(v1)
-          else:
-            assert(v1[0] in [EQ, SUBSTR])
-        values = [v1 for v1 in v]
-        if len(lt)>0 and len(gt)>0:
-          for x in itertools.product(lt, gt):
-            values.append((x[0],x[1]))
-        return k, values
-    return None
   def add_key_value(self, key, value):
     #print '{}: add {} {}'.format(hash(self), key, value)
     if value is None:
@@ -301,18 +245,24 @@ class OpPredHelper(object):
     self.keys.append(key)
     self.params[key] = value
     return True
+  def add_order(self, keys):
+    if len(self.range_keys) > 0 and any([KeyPath(k, []) not in self.keys]):
+      return False
+    for k in keys:
+      newk = KeyPath(k, [])
+      if newk not in self.keys:
+        new_value = ((GE, AtomValue(k.field_class.get_min_value())),\
+                     (LE, AtomValue(k.field_class.get_max_value())))
+        self.add_key_value(newk, new_value)
+    return True
   def set_condition(self, cond):
     self.condition = cond
-  def remove_key(self, k):
-    if k not in self.keys:
-      return
-    #print '{}: keys = {}, k = {}'.format(hash(self), ','.join([str(k1) for k1 in self.keys]), k)
-    self.keys.remove(k)
-    del self.params[k]
-    if k in self.point_keys:
-      self.point_keys.remove(k)
-    if k in self.range_keys:
-      self.range_keys.remove(k)
+  def set_rest_pred(self, rest_pred):
+    self.rest_pred = rest_pred
+  def to_pred(self):
+    pred = key_map_to_pred(self.merge_keymap())
+    #print '  ** curop = {}, pred = {}'.format(self, pred)
+    return pred
   def replace_param_with_qf(self, nonexternal):
     for k,v in self.params.items():
       if any([k==qf for qf,v1 in nonexternal.items()]):
@@ -326,41 +276,56 @@ class OpPredHelper(object):
         else:
           if self.params[k][1] == to_be_replaced:
             self.params[k] = (self.params[k][0], qf)
-  def to_pred(self):
-    pred = key_map_to_pred(self.merge_keymap())
-    #print '  ** curop = {}, pred = {}'.format(self, pred)
-    return pred
-  def to_ds_ops(self, ds_table, ds_type, ds_value):
+  def to_ds_ops(self, ds_type, ds_value, qtable=None):
     ds_pred = self.to_pred()
+    table = self.table if qtable is None else qtable
     if ds_pred is None:
-      ds =  ObjBasicArray(ds_table, ds_value)
+      ds = ObjBasicArray(self.table, ds_value)
       return ExecScanStep(ds)
-    table = ds_table
-    op = POINT if len(self.range_keys) == 0 else RANGE
+    op = IndexOp(POINT) if len(self.range_keys) == 0 else IndexOp(RANGE)
     keys = [k for k in self.point_keys] + [k for k in self.range_keys]
-    if op == POINT:
+    pathkeys = self.point_keys+self.range_keys
+    if op.is_point():
       param = IndexParam()
       for k in keys:
         param.add_param(k, self.params[k][1])
       params = [param]
     else:
       params = [IndexParam(), IndexParam()]
-      for k in keys:
-        value = self.params[k]
+      for i,k in enumerate(keys):
+        value = self.params[pathkeys[i]]
         if type(value[0]) is tuple:
+          if value[0][0] in [GT, LT]:
+            op.left = OPEN
+          if value[1][0] in [GT, LT]:
+            op.right= OPEN
           params[0].add_param(k, value[0][1])
           params[1].add_param(k, value[1][1])
         else:
-          params[0].add_param(k, value[1])
-          params[1].add_param(k, value[1])
-  if len(keys) > 0:
-    ds = ds_type(table, keys, ds_pred, ds_value) # ObjSortedArray
-  else:
-    ds = ds_type(table, ds_pred, ds_value) # ObjArray
-  return ExecIndexStep(ds, ds_pred, op, params)
+          if value[0] in [GT, GE]:
+            params[0].add_param(k, value[1])
+            params[1].add_param(k, AtomValue(k.get_query_field().field_class.get_max_value()))
+            if value[0] == GT:
+              op.left = OPEN
+          elif value[0] in [LT, LE]:
+            params[0].add_param(k, AtomValue(k.get_query_field().field_class.get_min_value()))
+            params[1].add_param(k, value[1])
+            if value[0] == LT:
+              op.right = OPEN
+          elif value[0] == EQ:
+            params[0].add_param(k, value[1])
+            params[1].add_param(k, value[1])
+          else:
+            assert(False)
+          
+    if len(keys) > 0:
+      #print 'keys = {}, ds_pred = {}'.format(','.join([str(k) for k in keys]), ds_pred)
+      ds = ds_type(table, IndexKeys(keys, self.range_keys), ds_pred, ds_value) # ObjSortedArray
+    else:
+      ds = ds_type(table, ds_pred, ds_value) # ObjArray
+    return ExecIndexStep(ds, ds_pred, op, params)
 
-
-def enumerate_all_ops(state):
+def enumerate_all_ops(state, order=None):
   ops = []
   all_keys = []
   all_values = []
@@ -384,52 +349,100 @@ def enumerate_all_ops(state):
   for xx in itertools.product(*all_values):
     for i in reversed(range(0, len(state.constant_pred)+1)):
       for consts in itertools.combinations(state.constant_pred, i):
-        op = OpPredHelper()
+        op = OpPredHelper(state.main_table)
         for j,value in enumerate(xx):
           op.add_key_value(all_keys[j], value)
           op.set_condition(list(consts))
-        if op.is_valid() and (not any([op1==op for op1 in ops])):
-          op.is_subset = check_pred_subset(state.thread_ctx, state.main_table, op.to_pred(), state.idx_pred) # pred1 -> pred2
-          op.is_superset = check_pred_subset(state.thread_ctx, state.main_table, state.idx_pred, op.to_pred())
+        if order:
+          if op.add_order(order) == False:
+            continue
+        if (not any([op1==op for op1 in ops])):
+          op.create_symbolic_idx(state.thread_ctx)
           ops.append(op)
-          if op.is_subset and op.is_superset:
-            state.cur_ops = [op]
-            state.add_result()
-  print 'ALL ops:'
-  for op in ops:
-    print op 
-    print '  subset = {}, superset = {}'.format(op.is_subset, op.is_superset)
+  # print 'ALL ops:'
+  # for op in ops:
+  #   print op 
   return ops
 
-def enumerative_gen(state):
-  ops = enumerate_all_ops(state)
-  print 'max sz = {}'.format(state.max_sz)
-  for i in range(1, state.max_sz+1):
-    #print 'search size {}'.format(i)
-    enumerative_gen_helper(ops, state, i)
-    if state.result is not None:
-      break
+def enumerative_gen(queried_table, thread_ctx, pred, order, fk_pred):
+  states = []
+  new_pred = dispatch_not(pred)
+  Nors = count_ors(new_pred)
+  elements = []
+  break_pred_into_compares(new_pred, elements)
+  fk_elements = [fk_pred] if fk_pred else []
+  if fk_pred:
+    target_pred = ConnectOp(pred, AND, fk_pred)
+  else:
+    target_pred = pred
+  for length in range(0, len(elements) + 1):
+    for x in itertools.combinations(elements, length):
+      field_cmp_map = {}
+      for literal in list(x)+fk_elements:
+        get_compare_map_by_field(literal, field_cmp_map)
+      #print '\nidx pred = {}'.format('; '.join([str(x1) for x1 in list(x)+fk_elements]))
+      rest_pred_pool = set_minus(elements, list(x), eq_func=(lambda x,y: x.query_pred_eq(y)))
+      if Nors == 0:
+        rest_preds = [merge_into_cnf(rest_pred_pool)]
+      else:
+        rest_preds = enumerate_rest_pred(rest_pred_pool)
+      #print 'rest_pred = {}'.format('&&'.join([str(rp) for rp in rest_preds]))
+      state = SynthHelper(queried_table, thread_ctx, field_cmp_map, target_pred, rest_preds)
+      if len(state.pred_pool) == 0: # no key
+        state.cur_ops = [OpPredHelper(state.main_table)]
+        state.cur_ops[-1].condition = state.constant_pred
+        state.cur_ops[-1].rest_pred = merge_into_cnf(rest_preds)
+        if order:
+          state.cur_ops[-1].add_order(order)
+        state.add_result()
+        states.append(state)
+        continue
+      ops = enumerate_all_ops(state, order)
+      #print '  max sz = {}'.format(state.max_sz)
+      for i in range(1, state.max_sz+1):
+        #print 'search size {}'.format(i)
+        enumerative_gen_by_depth(ops, state, i)
+        if state.result is not None:
+          break
+      if state.result:
+        states.append(state)
+  return states
 
-def enumerative_gen_helper(ops, state, depth):
+def enumerative_gen_by_depth(ops, state, depth, i=0):
   if state.result is not None:
     return
   if len(state.cur_ops) >= depth:
     # evaluate
     #print 'evaluate: {}'.format(state.str_ops())
-    if (not state.check_examed()) and state.check_equiv():
-      state.add_result()
+    if state.check_contain_all_params() == False:
+      return 
+    if (not state.check_examed()):
+      state.rest_preds_state_clear()
+      while state.assign_rest_preds():
+        if state.check_equiv():
+          state.add_result()
+        if state.result is not None:
+          break
     return
-  for op in ops:
+  for op in ops[i:]:
     if state.result is not None:
       break
-    if op.is_subset == False:
-      continue
     state.cur_ops.append(op)
-    if state.check_dup():
-      state.cur_ops.pop(-1)
-      continue
-    enumerative_gen_helper(ops, state, depth)
+    # if state.check_dup():
+    #   state.cur_ops.pop(-1)
+    #   continue
+    enumerative_gen_by_depth(ops, state, depth, i+1)
     state.cur_ops.pop(-1)
+
+def test_synth(table, pred, order=None):
+  pred.complete_field(table)
+  thread_ctx = symbctx.create_thread_ctx()
+  create_symbolic_obj_graph(thread_ctx, globalv.tables, globalv.associations)
+  query = get_all_records(table)
+  query.pfilter(pred)
+  create_param_map_for_query(thread_ctx, query)
+  get_ds_and_op_on_cond(thread_ctx, table, pred, IndexValue(MAINPTR), order)
+
 
 # # pred_pool: key -> field; value -> [(op, rh),]
 # # cur_ops: [OpPredHelper]
@@ -467,22 +480,3 @@ def enumerative_gen_helper(ops, state, depth):
 #           continue
 #         enumerative_gen(state)
 #     last_op.remove_key(next_key)
-
-def test_synth(table, pred):
-  pred.complete_field(table)
-  thread_ctx = symbctx.create_thread_ctx()
-  create_symbolic_obj_graph(thread_ctx, globalv.tables, globalv.associations)
-  query = get_all_records(table)
-  query.pfilter(pred)
-  create_param_map_for_query(thread_ctx, query)
-  for union_set in enumerate_pred_combinations(pred):
-    for j,cnf in enumerate(union_set):
-      clauses = cnf.split()
-      for length in range(1, len(clauses)+1):
-        for idx_combination in itertools.combinations(clauses, length):
-          rest_preds = set_minus(clauses, idx_combination, eq_func=(lambda x,y: x.query_pred_eq(y)))
-          idx_pred = merge_into_cnf(idx_combination)
-          rest_pred = merge_into_cnf(rest_preds)
-          print '\n\nidx pred = {}'.format(idx_pred)
-          print 'rest pred = {}'.format(rest_pred)
-          get_ds_and_op_on_cond(thread_ctx, table, idx_pred, rest_pred, IndexValue(MAINPTR))

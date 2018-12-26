@@ -22,7 +22,8 @@ set_cpp_file_path('{}/{}/'.format(os.getcwd(), workload_name))
 
 globalv.tables = [issue, user, member, project, enabled_module, version, news, board, message, tracker, role, issue_status, enumeration]
 globalv.associations = [project_issue, issue_tracker, issue_status_issue, member_user, project_member, member_roles,\
-project_tracker, project_news, project_enabled_module, project_version, project_board, message_board, project_enumeration, issue_version, issue_user, issue_enumeration]
+project_tracker, project_news, project_enabled_module, project_version, project_board, message_board, project_enumeration]
+#issue_version, issue_user, issue_enumeration]
 
 from activity_index import *
 from issue_index import *
@@ -31,7 +32,7 @@ from project_index import *
 from project_show import *
 from welcome_index import *
 from project_new import *
-from project_slow import *
+#from project_slow import *
 
 
 #generate_proto_files(get_cpp_file_path(), tables, associations)

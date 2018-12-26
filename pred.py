@@ -57,7 +57,7 @@ class EnvCollectionVariable(TempVariable):
   def to_json(self, full_dump=False):
     return {"atom":False, "name":self.name, "type":self.tipe.name, "fields":[f.field_class.name for f in self.fields]} if full_dump else self.name
     
-def get_envvar_name(v):
+def get_envvar_name():
   global envvar_cnt
   envvar_cnt += 1
   return 'v{}'.format(envvar_cnt)

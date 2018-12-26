@@ -31,7 +31,7 @@ def sql_for_ds_query(ds, select_by_id=False):
   if ds.value.is_object():
     fields = [f for f in ds.value.get_object().fields]
   else:
-    fields = [get_query_field(f) for f in ds.key_fields()]
+    fields = [f.get_query_field() for f in ds.key_fields()]
   if isinstance(table, DenormalizedTable):
     maint = table.get_main_table()
     entry_table = maint.name
@@ -205,7 +205,7 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
     pass
   else:
     for i,key in enumerate(ds.key_fields()):
-      s += '  {} key_{} = 0;\n'.format(get_cpp_type(get_query_field(key).field_class.tipe), i)
+      s += '  {} key_{} = 0;\n'.format(get_cpp_type(key.get_query_field().field_class.tipe), i)
   # TODO: replace %d with id using sprintf
   if upper_type:
     s += '  char qs[2000];\n'
@@ -246,8 +246,8 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
     key_str = ''
   else:
     for i,key in enumerate(ds.key_fields()):
-      rpos = helper_field_pos_in_row(fields, get_query_field(key))
-      s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(get_query_field(key)), rpos)
+      rpos = helper_field_pos_in_row(fields, key.get_query_field())
+      s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(key.get_query_field()), rpos)
     s +='    {}{} key({});\n'.format(cgen_obj_fulltype(upper_type)+'::' if upper_type else '', ds.get_key_type_name(), \
         ','.join(['key_{}'.format(j) for j in range(0, len(ds.key_fields()))]))
     key_str = 'key,'

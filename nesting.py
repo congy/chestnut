@@ -138,20 +138,20 @@ def helper_get_assoc_exist_idx(qf, for_scan_pred=False):
   if main_t.has_one_or_many_field(reverse_assoc_field_name) == 0:
     id_qf = QueryField('id', table)
     assoc_qf = QueryField(reverse_assoc_field_name, main_t)
-    keys = [id_qf]
+    keys = [KeyPath(id_qf)]
     if for_scan_pred:
       condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, UpperQueryField('id', table)))
     else:
-      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('{}_id'.format(table.name))))
+      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('fk_{}_id'.format(table.name))))
   else:
-    if for_scan_pred:
+    #if for_scan_pred:
       assoc_qf = QueryField('{}_id'.format(reverse_assoc_field_name), main_t)
       # not index pred, so do not add parameter, but query field instead
-      return [assoc_qf], BinOp(assoc_qf, EQ, UpperQueryField('id', table=qf.table))
-    else:
-      assoc_qf = AssocOp(QueryField(reverse_assoc_field_name, main_t), QueryField('id', table))
-      keys = [assoc_qf]
-      condition = BinOp(assoc_qf, EQ, Parameter('{}_id'.format(get_main_table(table).name)))
+      return [KeyPath(assoc_qf)], BinOp(assoc_qf, EQ, UpperQueryField('id', table=qf.table))
+    #else:
+      #assoc_qf = AssocOp(QueryField(reverse_assoc_field_name, main_t), QueryField('id', table))
+      #keys = [KeyPath(assoc_qf)]
+      #condition = BinOp(assoc_qf, EQ, Parameter('fk_{}_id'.format(get_main_table(table).name)))
   return keys, condition
 
 def table_already_contained(dsmng, table):
@@ -208,7 +208,7 @@ def enumerate_nesting_helper(nesting, table, level):
       next_lst = enumerate_nesting_helper(assoc, main_t, 1)
       keys, condition = helper_get_assoc_exist_idx(qf)
       for (next_obj,next_dsmng) in next_lst:
-        exist_idx1 = ObjTreeIndex(next_obj.table, keys, condition, IndexValue(MAINPTR))
+        exist_idx1 = ObjTreeIndex(next_obj.table, IndexKeys(keys), condition, IndexValue(MAINPTR))
         next_dsmng.add_ds(IndexPlaceHolder(next_obj.table, IndexValue(OBJECT, next_obj)))
         next_dsmng.add_ds(exist_idx1)
         lst[i].append((MemObject(table), next_dsmng))

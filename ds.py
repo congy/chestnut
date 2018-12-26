@@ -194,6 +194,20 @@ class IndexMeta(object):
     else:
       assert(False)
 
+class KeyPath(object):
+  def __init__(self, key, path=[]):
+    self.path = path
+    self.key = key
+    self.hashstr = '-'.join([str(x) for x in self.path])+'-'+str(self.key)
+  def __eq__(self, other):
+    return len(self.path) == len(other.path) and all([self.path[i]==other.path[i] for i in range(0, len(self.path))]) and self.key == other.key
+  def __str__(self):
+    return self.hashstr
+  def __hash__(self):
+    return hash(self.hashstr)
+  def get_query_field(self):
+    return get_query_field(self.key)
+    
 class IndexKeys(object):
   def __init__(self, keys, range_keys=[]):
     self.keys = keys
@@ -214,18 +228,12 @@ class IndexKeys(object):
   def __str__(self):
     return ','.join([str(k) for k in self.keys])
 
-
 class IndexBase(IndexMeta):
   def __init__(self, table, keys, condition, value):
     self.id = 0 
     self.table = table #table ~ obj_type
-    if isinstance(keys, IndexKeys):
-      self.keys = keys.fork()
-    else:
-      keys_, range_keys_ = get_keys_by_pred(condition)
-      assert(set_equal(keys_, keys))
-      self.keys = IndexKeys(keys, range_keys_)
-    self.condition = get_idx_condition(condition) #used to compute cost
+    self.keys = keys.fork()
+    self.condition = get_idx_condition(condition, keys.keys) #used to compute cost
     self.value = value.fork()
     if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
@@ -319,7 +327,7 @@ class ObjSortedArray(IndexBase):
   
 class ObjArray(IndexBase):
   def __init__(self, table, condition=None, value=MAINPTR):
-    super(ObjArray, self).__init__(table, [], condition, value)
+    super(ObjArray, self).__init__(table, IndexKeys([]), condition, value)
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
@@ -441,47 +449,23 @@ class IndexPlaceHolder(IndexMeta):
     return isinstance(self.table, NestedTable) and get_main_table(self.table.upper_table).has_one_or_many_field(self.table.name) == 1
 
 
-def get_idx_condition(pred):
+def get_idx_condition(pred, keys):
   if isinstance(pred, ConnectOp):
-    return ConnectOp(get_idx_condition(pred.lh), pred.op, get_idx_condition(pred.rh))
+    return ConnectOp(get_idx_condition(pred.lh, keys), pred.op, get_idx_condition(pred.rh, keys))
   elif isinstance(pred, SetOp):
-    return SetOp(pred.lh, pred.op, get_idx_condition(pred.rh))
+    return SetOp(pred.lh, pred.op, get_idx_condition(pred.rh, keys))
   elif isinstance(pred, BinOp):
-    if isinstance(pred.rh, MultiParam) and len(pred.get_all_params()) == 0:
-      return pred
-    if isinstance(pred.rh, Parameter):
+    if pred.lh in keys and not is_query_field(pred.rh):
       return BinOp(pred.lh, EQ, Parameter('idx_param_{}'.format(get_query_field(pred.lh).field_name), tipe=pred.lh.get_type()))
-    elif isinstance(pred.rh, AtomValue) or is_query_field(pred.rh):
-      return pred
     else:
-      assert(False)
+      return pred
+    # if isinstance(pred.rh, MultiParam) and len(pred.get_all_params()) == 0:
+    #   return pred
+    # if isinstance(pred.rh, Parameter):
+    #   return BinOp(pred.lh, EQ, Parameter('idx_param_{}'.format(get_query_field(pred.lh).field_name), tipe=pred.lh.get_type()))
+    # elif isinstance(pred.rh, AtomValue) or is_query_field(pred.rh):
+    #   return pred
+    # else:
+    #   assert(False)
   else:
     assert(False)
-
-def get_keys_by_pred(idx_pred):
-  qs = [idx_pred]
-  keys = []
-  range_keys = []
-  while len(qs) > 0:
-    q = qs.pop()
-    if isinstance(q, ConnectOp):
-      qs.append(q.lh)
-      qs.append(q.rh)
-    elif isinstance(q, SetOp):
-      qs.append(q.rh)
-    elif isinstance(q, BinOp) and isinstance(q.rh, Parameter):
-      if q.op in [LT, LE, GT, GE, BETWEEN]:
-        keys.append(q.lh)
-        range_keys.append(q.lh) 
-      elif q.op in [EQ]:
-        keys.append(q.lh)
-      elif q.op in [IN, SUBSTR, NEQ]:
-        pass
-      else:
-        assert(False)
-        # currently do not support NEQ... needs more hacks to handle this
-  for k in range_keys:
-    keys.remove(k)
-  for k in range_keys:
-    keys.append(k)
-  return keys, range_keys

@@ -11,14 +11,19 @@ def cgen_fname(f):
   elif isinstance(f, AssocOp):
     lst = get_assoc_field_list(f)
     s = '_'.join([f1.field_name for f1 in lst])
+  elif isinstance(f, KeyPath):
+    return cgen_fname(f.key)
   elif isinstance(f, Field):
     return '{}_{}'.format(f.table.name, f.name)
 
 def cgen_scalar_ftype(f):
   if isinstance(f, QueryField):
     return get_cpp_type(f.field_class.tipe)
+  elif isinstance(f, KeyPath):
+    return cgen_scalar_ftype(get_query_field(f.key))
   elif isinstance(f, Field):
     return get_cpp_type(f.tipe)
+
 def cgen_obj_fulltype(table):
   if isinstance(table, NestedTable):
     return cgen_obj_fulltype(table.upper_table) + \
@@ -51,6 +56,8 @@ def cgen_get_fproto(f):
     return '.'.join([s1 for s1 in s])
   elif isinstance(f, Field):
     return '{}()'.format(f.name)
+  elif isinstance(f, KeyPath):
+    assert(False)
 
 def cgen_fprint(f):
   if isinstance(f, QueryField):

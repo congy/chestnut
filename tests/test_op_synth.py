@@ -4,7 +4,6 @@ from schema import *
 from query import *
 from pred import *
 from nesting import *
-from plan_search import *
 from ds_manager import *
 from op_synth import *
 import globalv
@@ -51,6 +50,7 @@ globalv.associations = [issue_status_issue, project_issue, project_enabled_modul
 
 
 pred0 = ConnectOp(BinOp(f('lft'), LT, Parameter('p1')), AND, BinOp(f('rgt'), GT, Parameter('p2')))
+pred00 = BinOp(f('lft'), IN, MultiParam([Parameter('p1'), Parameter('p2')])) # order by id; a case that MySQL would not use combined index
 
 pred1=ConnectOp(ConnectOp(\
       BinOp(f('project').f('status'), NEQ, AtomValue(9)), AND, \
@@ -68,7 +68,17 @@ pred3 = ConnectOp(ConnectOp(\
     ConnectOp(BinOp(f('name'), EQ, AtomValue('issue_tracking')), AND, \
         BinOp(f('restricted'), LE, Parameter('p4')))))
 
-#test_synth(project, pred0)
+pred4 = ConnectOp(ConnectOp(\
+      BinOp(f('project').f('status'), EQ, Parameter('x1')), AND, \
+        SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, Parameter('x2')))),
+      AND,
+      ConnectOp(BinOp(f('assigned_to_id'), EQ, Parameter('assigned_to')), AND, 
+        SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False)))))
+
+pred5 = ConnectOp(BinOp(f('project').f('status'), EQ, Parameter('x1')), AND, \
+        SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, Parameter('x2'))))
+
+#test_synth(project, pred0, order=[f('id',table=project)])
 #test_synth(issue, pred1)
 #test_synth(project, pred2)
 test_synth(issue, pred3)

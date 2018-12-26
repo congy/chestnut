@@ -8,7 +8,7 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-scale=1
+scale=100
 issue = Table('issue', scale*2000)
 user = Table('user', scale*200)
 member = Table('member', scale*400)
@@ -73,13 +73,15 @@ is_private = Field('is_private', 'bool')
 closed_on = Field('closed_on', 'date')
 author_id = Field('author_id', 'oid')
 author_id.range = [1, user.sz]
+priority_id = Field('priority_id', 'smallint')
+priority_id.range = [1, 10]
 issue.add_fields([subject, description, due_date, assigned_to_id, created_on, updated_on, start_date, \
-done_ratio, estimated_hours, parent_id, root_id, lft, rgt, is_private, closed_on, author_id])
+done_ratio, estimated_hours, parent_id, root_id, lft, rgt, is_private, closed_on, author_id, priority_id])
 
 project_issue = get_new_assoc("project_to_issue", "one_to_many", project, issue, "issues", "project")
 issue_tracker = get_new_assoc("issue_to_tracker", "one_to_many", tracker, issue, 'issues', 'tracker')
 issue_status_issue = get_new_assoc('issue_to_status', 'one_to_many', issue_status, issue, 'issues', 'status')
-issue_user = get_new_assoc('issue_user', 'one_to_many', user, issue, 'issues', 'user')
+#issue_user = get_new_assoc('issue_user', 'one_to_many', user, issue, 'issues', 'user')
 
   # create_table "trackers", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.string "name", limit: 30, default: "", null: false
@@ -320,7 +322,7 @@ position_name = Field('position_name', 'varchar(30)')
 enumeration.add_fields([name, etype, is_default, active, parent_id, position_name])
 
 project_enumeration = get_new_assoc("project_to_enumeration", "one_to_many", project, enumeration, "enumerations", "project")
-issue_enumeration = get_new_assoc("issue_to_enumeration", 'one_to_many', enumeration, issue, 'issues', 'enumeration')
+#issue_enumeration = get_new_assoc("issue_to_enumeration", 'one_to_many', enumeration, issue, 'issues', 'enumeration')
 
   # create_table "versions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.integer "project_id", default: 0, null: false
@@ -351,7 +353,7 @@ sharing.value_with_prob = [('none',20), ('descendants',20), ('hierarchy',20), ('
 version.add_fields([name, description, effective_date, created_on, updated_on, wiki_page_title, status, sharing])
 
 project_version = get_new_assoc("project_version", "one_to_many", project, version, "versions", "project")
-issue_version = get_new_assoc('issue_version', 'one_to_many', version, issue, 'issues', 'version')
+#issue_version = get_new_assoc('issue_version', 'one_to_many', version, issue, 'issues', 'version')
 
   # create_table "boards", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.integer "project_id", null: false

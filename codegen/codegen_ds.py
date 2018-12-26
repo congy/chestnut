@@ -38,7 +38,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
                                             ds_name)
   else:
     key_type_name = ds.get_key_type_name()
-    key_fields = [get_query_field(key) for key in ds.key_fields()]
+    key_fields = [key for key in ds.key_fields()]
     structs = "struct  {} {{\n".format(key_type_name)
     structs += ''.join(["  {} {};\n".format(cgen_scalar_ftype(key), cgen_fname(key)) for i,key in enumerate(key_fields)])
     #init function
@@ -60,7 +60,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
     shift_bits = int(32/len(ds.key_fields()))
     structs += "  inline size_t get_hash() const {{ return {}; }}\n".format(' + '.join(['{}'.format(\
                           "{}_{}.get_hash() << {}".format(cgen_fname(key), i, i*shift_bits) \
-                          if is_string_type(key.field_class.tipe) else \
+                          if is_string_type(key.get_query_field().field_class.tipe) else \
                           "(std::hash<{}>()({}) << {})".format(\
                           cgen_scalar_ftype(key), cgen_fname(key), i*shift_bits)) for i,key in enumerate(key_fields)]))                                        
     structs += "};\n"

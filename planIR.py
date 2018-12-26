@@ -258,7 +258,7 @@ class ExecGetAssocStep(ExecStepSuper):
     self.field = field
     self.idx = idx # can be nested object (BasicArray), FK index, or main_obj (scan to find a match)
     self.cost = 0
-    name = get_envvar_name(f)
+    name = get_envvar_name()
     self.var = EnvAtomicVariable(name, field.get_type())
   def fork(self):
     es = ExecGetAssocStep(self.field, self.idx)
@@ -323,6 +323,8 @@ class ExecScanStep(ExecStepSuper):
     self.idx = idx
     self.ele_ops = ExecStepSeq() 
     self.cost = 0
+    self.op = IndexOp(RANGE)
+    self.params = []
   def fork(self):
     es = ExecScanStep(self.idx)
     es.ele_ops = self.ele_ops.fork()
@@ -391,26 +393,41 @@ class ExecScanStep(ExecStepSuper):
   def get_all_variables(self):
     return self.ele_ops.get_all_variables()
 
+class IndexOp(object):
+  def __init__(self, op, left=CLOSE, right=CLOSE):
+    self.op = op
+    self.left = left
+    self.right = right
+  def __eq__(self, other):
+    return self.op == other.op and self.left == other.left and self.right == other.right
+  def is_range(self):
+    return self.op==RANGE
+  def is_point(self):
+    return self.op==POINT
+  def fork(self):
+    return IndexOp(self.op, self.left, self.right)
+  def __str__(self):
+    if self.op == POINT:
+      return 'point'
+    else:
+      return 'range{}{}'.format('[' if self.left == CLOSE else '(', ']' if self.right == CLOSE else ')')
 # scan
 class ExecIndexStep(ExecScanStep):
-  def __init__(self, idx, idx_pred, idx_op_type, params):
+  def __init__(self, idx, idx_pred, idx_op, params):
     self.idx = idx
-    self.idx_op_type = idx_op_type
+    self.op = idx_op
     self.params = params
     self.ele_ops = ExecStepSeq()
     self.idx_pred = idx_pred
     self.cost = 0
-  def to_json(self):
-    return ('ExecIndexStep', {"idx":self.idx.id, "steps":self.ele_ops.to_json(), "params":[p.to_json() for p in self.params], \
-          "op-type":'range' if self.idx_op_type == RANGE else 'point', "idx-pred":self.idx_pred.to_json() if self.idx_pred else None})
   def fork(self):
-    e = ExecIndexStep(self.idx, self.idx_pred, self.idx_op_type, self.params)
+    e = ExecIndexStep(self.idx, self.idx_pred, self.op.fork(), self.params)
     e.ele_ops = self.ele_ops.fork() 
     return e 
   def __eq__(self, other):
     return type(self) == type(other) and \
             self.idx == other.idx and \
-            self.idx_op_type == other.idx_op_type and \
+            self.op == other.op and \
             self.idx_pred == other.idx_pred and \
             self.ele_ops == other.ele_ops
   def template_eq(self, other):
@@ -418,7 +435,7 @@ class ExecIndexStep(ExecScanStep):
   def __str__(self, short=False):
     ele_s = '\n'.join(['  '+line for line in self.ele_ops.__str__(short).split('\n')])
     param_s = ','.join([str(p) for p in self.params])
-    s = "Index {} on [{}] (params = [{}]): \n{}\n".format(index_type_to_str[self.idx_op_type], self.idx.value.__str__(short), param_s, ele_s)
+    s = "Index {} on [{}] (params = [{}]): \n{}\n".format(self.op, self.idx.__str__(short), param_s, ele_s)
     return s
   def compute_cost(self):
     if cost_computed(self.cost):
@@ -436,7 +453,7 @@ class ExecIndexStep(ExecScanStep):
       self.cost = CostOp(lookup_cost, COST_ADD, CostOp(CostOp(total_ele_cnt, COST_DIV, filter_ratio), COST_MUL, ele_cost))
     return self.cost
   def compatible(self, other):
-    return type(self) == type(other) and self.idx == other.idx and self.idx_op_type == other.idx_op_type \
+    return type(self) == type(other) and self.idx == other.idx and self.op == other.op \
           and self.params == other.params
     
 

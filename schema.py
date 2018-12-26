@@ -51,9 +51,7 @@ class Field(object):
     elif self.tipe == 'bool':
       return 0
     elif len(self.range) == 2:
-      lft = self.range[0].table.sz if isinstance(self.range[0], CostTableUnit) else self.range[0]
-      rgt = self.range[1].table.sz if isinstance(self.range[1], CostTableUnit) else self.range[1]
-      return lft
+      return self.range[0]
   def get_max_value(self, for_z3=False):
     if is_string_type(self.tipe):
       return MAXINT if for_z3 else '\"{}\"'.format(''.join(['z' for i in range(0, get_varchar_length(self.tipe))]))
