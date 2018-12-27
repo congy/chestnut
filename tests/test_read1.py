@@ -46,6 +46,7 @@ q.complete()
 
 q1 = get_all_records(users1)
 q1.pfilter(ConnectOp(BinOp(f('id'), EQ, Parameter('i1')), AND, BinOp(f('name'), GE, Parameter('i2'))))
+q1.project([f('id'), f('name')])
 q1.complete()
 
 tables = [users1, users2, groups]
@@ -58,7 +59,7 @@ associations = [user1_to_group, user2_to_group]
 #   print '--------'
 
 # test search plan
-#search_plans_for_one_query(q)
+#search_plans_for_one_query(q1)
 
 #test_merge(q)
 #test_ilp([q])
@@ -70,5 +71,6 @@ data_dir=datafile_dir
 #populate_database(data_dir, tables, associations)
 #test_generate_sql([q])
 #test_deserialize([q])
-test_initialize(tables, associations, [q], 50) #0, 130, 270
+#test_initialize(tables, associations, [q], 50) #0, 130, 270
 
+test_query(tables, associations, q1, 0)

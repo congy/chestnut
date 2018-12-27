@@ -299,7 +299,7 @@ class ExecGetAssocStep(ExecStepSuper):
       idx.value.value = primary_ary
       next_obj = primary_ary.value.get_object()
     if is_main_table(self.idx.table): # top level array/index
-      ds_manager.add_ds(idx, replace=True)
+      ds_manager.add_ds(idx, replace=True) # add foreign key index
     else:
       assert(cur_obj)
       cur_obj.add_nested_object(idx, replace=True)

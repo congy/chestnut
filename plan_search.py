@@ -112,6 +112,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
         for i,next_step in enumerate(next_level_steps):
           plan_tree.next_level_pred[nextlevel_fields[i]] = next_step
         plantree_combs[i].append(plan_tree)
+        #print 'PLAN TREE = {}'.format(ExecStepSeq(plan_tree.to_steps()))
     
     for plan_tree_union in itertools.product(*plantree_combs):
       ptunion = PlanTreeUnion(plan_trees=[p.fork() for p in plan_tree_union])
@@ -204,7 +205,7 @@ def helper_get_idx_step_by_pred(thread_ctx, queried_table, pred, order, idx_plac
   all_steps = \
     get_ds_and_op_on_cond(thread_ctx, idx_placeholder.table, idx_pred, idx_placeholder.value, order, fk_pred, nonexternal)
   
-  #print 'table = {}, pred = {}, idxvalue = {}, len steps = {}'.format(idx_placeholder.table, idx_pred, idx_placeholder.value, len(all_steps))
+  print 'table = {}, pred = {}, idxvalue = {}, len steps = {}'.format(idx_placeholder.table, idx_pred, idx_placeholder.value, len(all_steps))
 
   if added_rest_pred:
     for op_rest_pairs in all_steps:

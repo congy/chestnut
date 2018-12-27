@@ -9,6 +9,11 @@ includes = """
 #include "data_struct.h"
 """
 
+query_includes = """
+#include "util.h"
+#include "data_struct.h"
+"""
+
 server_init_template_begin = """
   void *context = zmq_ctx_new ();
   void *responder = zmq_socket (context, ZMQ_REP);

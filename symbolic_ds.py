@@ -90,6 +90,7 @@ class SymbolicIndex(object):
           prev_eq_rgt = True
           cond_lft = False
           cond_rgt = False
+          param_valid = True
           for i in range(0, len(tup.keys)):
             if isinstance(params[0].params[i], Parameter): 
               param0 = self.thread_ctx.get_symbs().param_symbol_map[params[0].params[i]]
@@ -112,12 +113,17 @@ class SymbolicIndex(object):
               tup_v = z3.If(tup.keys[i], 1, 0)
             else:
               tup_v = tup.keys[i]
-            cond_lft = z3.Or(cond_lft, z3.And(prev_eq_lft, (tup_v > param0) if idx_op.left==OPEN else (tup_v >= param0)))
-            cond_rgt = z3.Or(cond_rgt, z3.And(prev_eq_rgt, (tup_v < param1) if idx_op.right==OPEN else (tup_v <= param1)))
+            cond_lft = z3.Or(cond_lft, z3.And(prev_eq_lft, (tup_v > param0)))
+            cond_rgt = z3.Or(cond_rgt, z3.And(prev_eq_rgt, (tup_v < param1)))
             prev_eq_lft = z3.And(prev_eq_lft, tup_v == param0)
             prev_eq_rgt = z3.And(prev_eq_rgt, tup_v == param1)
+            param_valid = z3.And(param_valid, param0<=param1)
             #print 'cond k {} iter {} cond = {} || {}'.format(ki, i, z3.simplify(cond_lft), z3.simplify(cond_rgt))
           cond = z3.And(cond_lft, cond_rgt)
+          if idx_op.left==CLOSE:
+            cond = z3.Or(cond, z3.And(param_valid, prev_eq_lft))
+          if idx_op.right==CLOSE:
+            cond = z3.Or(cond, z3.And(param_valid, prev_eq_rgt))
         else:
           eqs = []
           for i in range(0, len(tup.keys)):

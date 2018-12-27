@@ -126,8 +126,8 @@ class ReadQuery(object):
       r = r + self.pred.get_all_params()
     for k,v in self.includes.items():
       r = r + v.get_all_params()
-    new_r = clean_lst([r1 if not any([r1==x for x in new_r]) else None for r1 in r])
-    return new_r
+    #new_r = clean_lst([r1 if not any([r1==x for x in r]) else None for r1 in r])
+    return r
   def get_param_value_pair(self, upper_pairs=None):
     if upper_pairs is not None:
       pairs = upper_pairs
@@ -169,7 +169,7 @@ class ReadQuery(object):
     return read_query
   
 def get_param_value_pair_by_pred(pred, r, assigned_values={}):
-  if is_type_or_subtype(pred, ConnectOp):
+  if isinstance(pred, ConnectOp):
     p_lh = get_param_value_pair_by_pred(pred.lh, r, assigned_values)
     p_rh = get_param_value_pair_by_pred(pred.rh, r, assigned_values)
   elif isinstance(pred, SetOp):
@@ -179,7 +179,7 @@ def get_param_value_pair_by_pred(pred, r, assigned_values={}):
   elif isinstance(pred, BinOp):
     pairs = []
     actual_values = []
-    if isinstance(pred.rh, DoubleParam) or isinstance(pred.rh, MultiParam):
+    if isinstance(pred.rh, MultiParam):
       for p in pred.rh.get_all_params():
         pairs.append((pred.lh, p))
     elif isinstance(pred.rh, Parameter):

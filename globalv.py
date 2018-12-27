@@ -47,7 +47,7 @@ def extend_tables(tables, associations, queries):
       for a in q.table.get_assocs():
         associations.append(a)
 
-qr_type = 'proto'
+qr_type = 'struct'
 def set_qr_type(new_type):
   global qr_type
   qr_type = new_type

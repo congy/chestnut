@@ -127,9 +127,9 @@ class SynthHelper(object):
     ds_exprs = [(c.symbolic_result[0], c.rest_pred) for c in self.cur_ops]
     r = check_dsop_pred_equiv(self.thread_ctx, self.main_table, ds_exprs, self.target_pred)
     # if r:
-    #   print '\n** ds: {}'.format(self.str_ops(True))
-    #   print '\n op = {}'.format('\n'.join([str(o.dsop) for o in self.cur_ops]))
-    #   print '\n ** check equiv: {} '.format(r)
+      # print '\n** ds: {}'.format(self.str_ops(True))
+      # print '\n op = {}'.format('\n'.join([str(o.dsop) for o in self.cur_ops]))
+      # print '\n ** check equiv: {} '.format(r)
     if not r:
       self.tried_ops.append([o.fork() for o in self.cur_ops])
     return r

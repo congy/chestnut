@@ -33,14 +33,11 @@ class PlanTreeUnion(object):
     ptu.after_steps = [s.fork() for s in self.after_steps]
     return ptu
   def to_steps(self):
-    if len(self.plan_trees) == 1:
-      return self.plan_trees[0].to_steps() + self.after_steps
-    else:
-      s = []
-      for pt in self.plan_trees:
-        s += pt.to_steps()
-      s += self.after_steps
-      return s
+    s = []
+    for pt in self.plan_trees:
+      s += pt.to_steps()
+    s += self.after_steps
+    return s
 
 class PlanTree(object):
   def __init__(self):
@@ -57,6 +54,7 @@ class PlanTree(object):
     pt = PlanTree()
     pt.index_step = self.index_step.fork()
     pt.sort_step = self.sort_step
+    pt.pre_steps = [s for s in self.pre_steps]
     pt.element_steps = [s.fork() for s in self.element_steps]
     pt.next_level_pred = {k:v.fork() for k,v in self.next_level_pred.items()}
     pt.next_level_query = {k:v.fork() for k,v in self.next_level_query.items()}
@@ -76,13 +74,15 @@ class PlanTree(object):
         s.add_steps(v.to_steps())
       else:
         ele_ops += v.to_steps()
+    ele_ops += self.element_steps
+    idx_step.ele_ops.add_steps(ele_ops)
+    ele_ops = []
     for k,v in self.next_level_query.items():
       if is_assoc_field(k):
         s = self.find_retrieve_assoc_step(k)
         s.add_steps(v.to_steps())
       else:
         ele_ops += v.to_steps()
-    ele_ops += self.element_steps
     idx_step.ele_ops.add_steps(ele_ops)
     if self.sort_step:
       return self.pre_steps + [idx_step, self.sort_step]

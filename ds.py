@@ -184,6 +184,8 @@ class IndexMeta(object):
   def clean_obj(self):
     self.value = self.value.clean_obj()
     return self
+  def is_single_element(self):
+    return False
   def get_value_type_name(self):
     if self.value.is_object():
       return self.value.get_object().get_value_type_name()

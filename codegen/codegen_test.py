@@ -5,6 +5,7 @@ from ds import *
 from query import *
 from codegen_sql import *
 from codegen_initialize import *
+from codegen_ir import *
 
 # ====== test initialize ds ======
 
@@ -38,7 +39,45 @@ def test_initialize(tables, associations, read_queries, planid=0):
   fp.write(main)
   fp.close()
 
+def test_query(tables, associations, query, planid=0):
+  rqmanagers, dsmeta_ = get_dsmeta([query])
+  for idx,rqmng in enumerate(rqmanagers):
+    cnt = 0
+    for i,plan_for_one_nesting in enumerate(rqmng.plans):
+      if cnt + len(plan_for_one_nesting.plans) > planid:
+        j = planid - cnt
+        plan = plan_for_one_nesting.plans[j]
+        dsmeta = plan_for_one_nesting.dsmanagers[j]
+        break
+      cnt = cnt + len(plan_for_one_nesting.plans)
+      
+  header, cpp = cgen_initialize_all(tables, associations, dsmeta)
 
+  fp = open('{}/{}.h'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(header)
+  fp.close()
+
+  fp = open('{}/{}.cc'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(cpp)
+  fp.close()
+
+  header, cpp = cgen_for_read_query(0, query, plan, dsmeta, planid)
+  header = query_includes + '#include {}.h\n\n'.format(get_db_name()) + header 
+  cpp = '#include {}_query.h'.format(get_db_name()) + '\n' + cpp
+
+  fp = open('{}/{}_query.h'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(header)
+  fp.close()
+
+  fp = open('{}/{}_query.cc'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(cpp)
+  fp.close()
+
+  main_body = 'read_data();\n' + cgen_for_query_in_main([query], [planid])
+  main = cgen_for_main_test(main_body, ds_def=True, include_query=True)
+  fp = open('{}/main.cc'.format(get_db_name()), 'w')
+  fp.write(main)
+  fp.close()
 
 # ====== test generate SQL and deserialize ========
 def test_print_nesting(nesting, upper_obj, qf=None, level=1):

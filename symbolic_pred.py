@@ -483,7 +483,7 @@ def check_dsop_pred_equiv(thread_ctx, table, ds_exprs, target_pred):
   thread_ctx.get_symbs().solver.push()
   thread_ctx.get_symbs().solver.add(z3.Not(target_expr==ds_expr))
   r = (thread_ctx.get_symbs().solver.check() == z3.unsat)
-  #if r == False:
+  # if r == False:
   #  print print_table_in_model(thread_ctx, thread_ctx.get_symbs().solver.model())
   thread_ctx.get_symbs().solver.pop()
   return r
