@@ -94,7 +94,10 @@ class ReadQuery(object):
   def complete(self):
     # if nothing gets projected, then return only aggr
     if len(self.projections) == 0:
-      self.return_var = None
+      if len(self.aggrs) > 0:
+        self.return_var = None
+      else:
+        self.project('*')
     # handle avg aggregation
     contain_avg = False
     count_var = None

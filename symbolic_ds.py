@@ -14,8 +14,8 @@ class SymbolicIndexEntry(object):
     self.ids = ids
     self.keys = keys
     self.invalid_value = [get_invalid_z3v_by_type(get_query_field(qf).field_class) for qf in qfs]
-    #self.condition = z3.And(condition, self.keys_valid_cond())
-    self.condition = condition
+    self.condition = z3.And(condition, self.keys_valid_cond())
+    #self.condition = condition
   def keys_valid_cond(self):
     valid_conds = []
     for i,k in enumerate(self.keys):
@@ -58,15 +58,16 @@ class SymbolicIndex(object):
 
   def build_from_idx(self):
     pred = self.idx.condition
-    self.keys = [k for k in self.idx.key_fields()]
-    table_by_path = get_denormalized_tables(pred)
-    self.tables = [t.key.table for t in table_by_path]
-    all_table_ids = [range(1, self.thread_ctx.get_symbs().symbolic_tables[t].sz+1) for t in self.tables]
     main_t = get_main_table(self.idx.table)
-    self.tables.insert(0, main_t)
+    main_id_key = KeyPath(QueryField('id', main_t),[])
+    self.keys = [k for k in self.idx.key_fields()]
+    table_by_path = [main_id_key] + remove_duplicate(get_denormalized_tables(pred))
+    self.tables = [t.get_query_field().table for t in table_by_path]
+    all_table_ids = [range(1, self.thread_ctx.get_symbs().symbolic_tables[t].sz+1) for t in self.tables[1:]]
     for i,symbolic_tuple in enumerate(self.thread_ctx.get_symbs().symbolic_tables[main_t].symbols):
       for table_ids in itertools.product(*all_table_ids):
-        table_id_map = {table_by_path[i]:table_ids[i] for i in range(0, len(table_by_path))}
+        table_id_map = {table_by_path[i]:table_ids[i-1] for i in range(1, len(table_by_path))}
+        table_id_map[main_id_key] = i+1
         key_map = {k:None for k in self.keys}
         cond = get_denormalizing_cond_helper(self.thread_ctx, symbolic_tuple, [], pred, table_id_map, key_map)
         # if i == 0:
@@ -117,7 +118,7 @@ class SymbolicIndex(object):
             cond_rgt = z3.Or(cond_rgt, z3.And(prev_eq_rgt, (tup_v < param1)))
             prev_eq_lft = z3.And(prev_eq_lft, tup_v == param0)
             prev_eq_rgt = z3.And(prev_eq_rgt, tup_v == param1)
-            param_valid = z3.And(param_valid, param0<=param1)
+            param_valid = z3.And(param_valid, param0<=param1 if (idx_op.left==CLOSE and idx_op.right==CLOSE) else param0<param1)
             #print 'cond k {} iter {} cond = {} || {}'.format(ki, i, z3.simplify(cond_lft), z3.simplify(cond_rgt))
           cond = z3.And(cond_lft, cond_rgt)
           if idx_op.left==CLOSE:
@@ -137,13 +138,16 @@ class SymbolicIndex(object):
               assert(False)
             eqs.append(param == tup.keys[i])
           cond = and_exprs(eqs)
+        #debug_add_expr('cond={}, keys: {}'.format(self.idx.condition, ' - '.join(['{}({})'.format(self.tables[ik], tup.ids[ik]) for ik in range(0, len(tup.ids))])), cond)
         ret_idx[main_id-1].append(z3.And(cond, tup.condition))
       else:
         ret_idx[main_id-1].append(tup.condition)
     # TODO: currently does not check duplication
     r = []
     for i in range(0, len(ret_idx)):
-      r.append(or_exprs(ret_idx[i], default=False))
+      expr = or_exprs(ret_idx[i], default=False)
+      r.append(expr)
+    #debug_add_expr('{} -- TUPLE 0: '.format(self.idx), r[0])
     # r = [z3.Or(*ret_idx[i]) for i in range(0, len(ret_idx))]
     # return a 01 bitmask
     return r

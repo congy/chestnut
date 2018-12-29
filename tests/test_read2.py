@@ -54,6 +54,16 @@ SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False)))))
 q_mp_2.aggr(UnaryExpr(COUNT), 'count_issue')
 q_mp_2.complete()
 
+q2 = get_all_records(issue)
+q2.pfilter(BinOp(f('project').f('status'), EQ, Parameter('s1')))
+q2.complete()
+
+q3 = get_all_records(issue)
+q3.pfilter(SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, Parameter('ps'))))
+q3.aggr(UnaryExpr(COUNT), 'count_issue')
+q3.complete()
+
+
 q = q_mp_2
 tables = [issue, project, enabled_module, issue_status]
 associations = [issue_status_issue, project_issue, project_enabled_module]
@@ -66,7 +76,7 @@ associations = [issue_status_issue, project_issue, project_enabled_module]
 #   print '--------'
 
 # test search plan
-# search_plans_for_one_query(q)
+#search_plans_for_one_query(q2)
 
 # test_merge(q)
 # test_ilp([q])
@@ -77,4 +87,5 @@ data_dir=datafile_dir
 #populate_database(data_dir, tables, associations)
 #test_generate_sql([q])
 #test_deserialize([q])
-test_initialize(tables, associations, [q], 352) #0, 172, 272 
+#test_initialize(tables, associations, [q], 352) #0, 172, 272 
+test_query(tables, associations, q3, 0)

@@ -3,6 +3,7 @@ sys.path.append('../')
 from constants import *
 from schema import *
 from pred import *
+from expr import *
 from ds import *
 
 def cgen_fname(f):
@@ -15,6 +16,8 @@ def cgen_fname(f):
     return cgen_fname(f.key)
   elif isinstance(f, Field):
     return '{}_{}'.format(f.table.name, f.name)
+  elif isinstance(f, EnvAtomicVariable):
+    return f.name
 
 def cgen_scalar_ftype(f):
   if isinstance(f, QueryField):
@@ -213,7 +216,7 @@ def cgen_expr_from_protov(expr, init_var, proto_var):
     assert(False)
     return '', ''
   elif isinstance(expr, EnvAtomicVariable):
-    return '', state.find_cxx_var(expr)
+    return '', state.find_ir_var(expr)
   elif isinstance(expr, AssocOp):
     s, rh = cgen_expr_from_protov(expr.rh, init_var, '{}.{}()'.format(proto_var, expr.lh.field_name))
     return s, rh
@@ -224,6 +227,8 @@ def cgen_expr_from_protov(expr, init_var, proto_var):
   else:
     assert(False)
 
+def is_aggr_expr(expr):
+  return isinstance(expr, UnaryExpr)
 
 def cgen_expr_with_placeholder(expr, state, init_var=None):
   if isinstance(expr, ConnectOp):
@@ -257,15 +262,15 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
     else:
       return '',state.find_param_var(expr)
   elif isinstance(expr, EnvAtomicVariable):
-    return '',state.find_cxx_var(expr)
+    return '',state.find_ir_var(expr)
   elif isinstance(expr, AtomValue):
     if is_string_type(expr.get_type()):
       return '','\"{}\"'.format(expr.to_var_or_value())
     else:
       return '',str(int(expr.to_var_or_value()))
   elif isinstance(expr, BinaryExpr):
-    s1, lh = cgen_expr_with_placeholder(expr.lh, init_var, state)
-    s2, rh = cgen_expr_with_placeholder(expr.rh, init_var, state)
+    s1, lh = cgen_expr_with_placeholder(expr.lh, state, init_var)
+    s2, rh = cgen_expr_with_placeholder(expr.rh, state, init_var)
     if type_larger(expr.lh.get_type(), expr.rh.get_type()):
       rh = '({}){}'.format(get_cpp_type(expr.lh.get_type()), rh)
     if type_larger(expr.rh.get_type(), expr.lh.get_type()):
@@ -276,7 +281,7 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
       opd = ''
       s = ''
     else:
-      s, opd = cgen_expr_with_placeholder(expr.operand, init_var, state)
+      s, opd = cgen_expr_with_placeholder(expr.operand, state, init_var)
     if expr.op == MAX:
       return s, 'if ({}<{}) {} = {};\n'.format(init_var, opd, init_var, opd)
     elif expr.op == MIN:
@@ -290,9 +295,9 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
     else:
       assert(False)
   elif isinstance(expr, IfThenElseExpr):
-    s1, cond = cgen_expr_with_placeholder(expr.cond, init_var, state)
-    s2, expr1 = cgen_expr_with_placeholder(expr.expr1, init_var, state)
-    s3, expr2 = cgen_expr_with_placeholder(expr.expr2, init_var, state)
+    s1, cond = cgen_expr_with_placeholder(expr.cond, state, init_var)
+    s2, expr1 = cgen_expr_with_placeholder(expr.expr1, state, init_var)
+    s3, expr2 = cgen_expr_with_placeholder(expr.expr2, state, init_var)
     newv = get_cxxvar_name('temp')
     s = '{} {} = 0;\n'.format(get_cpp_type(expr.expr1.get_type()), newv)
     s += 'if ({}) {} = {};\nelse {} = {};\n'.format(cond, newv, expr1, newv, expr2)
@@ -301,16 +306,16 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
     assert(False)
 
 # deal with avg
-def get_aggr_result(vpair, cxxv, aggr_fields):
+def get_aggr_result(vpair, cxx_var, state):
   if not vpair[1].op == AVG:
     return cxxv
   sum_v = None
   count_v = None
-  for _vpair, cxxvar in aggr_fields:
-    if _vpair[0] == vpair[1].sum_var:
-      sum_v = cxxvar
-    if _vpair[0] == vpair[1].count_var:
-      count_v = cxxvar
+  for k,v in state.ir_map.items():
+    if k == vpair[0].sum_var:
+      sum_v = v
+    if k == vpair[0].count_var:
+      count_v = v
   assert(sum_v and count_v)
   return 'float({}) / float({})'.format(sum_v, count_v)
 

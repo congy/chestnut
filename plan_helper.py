@@ -61,22 +61,19 @@ class PlanTree(object):
     return pt
   def find_retrieve_assoc_step(self, field):
     for s in self.element_steps:
-      if isinstance(s, ExecStepSeq) and s.steps[-1].retrieves_field(get_query_field(field)):
+      fields = get_fields_from_assocop(field)
+      if len(s.steps) <= len(fields) and all([s.steps[i].field == fields[i] for i in range(0, len(s.steps))]):
         return s
     assert(False)
   def to_steps(self):
     idx_step = self.index_step.fork()
-    ele_ops = []
+    ele_ops = self.element_steps
     for k,v in self.next_level_pred.items():
       if is_assoc_field(k):
-        newk = reconstruct_assoc_from_list(get_assoc_field_list(k)[:-1])
-        s = self.find_retrieve_assoc_step(newk)
+        s = self.find_retrieve_assoc_step(k)
         s.add_steps(v.to_steps())
       else:
         ele_ops += v.to_steps()
-    ele_ops += self.element_steps
-    idx_step.ele_ops.add_steps(ele_ops)
-    ele_ops = []
     for k,v in self.next_level_query.items():
       if is_assoc_field(k):
         s = self.find_retrieve_assoc_step(k)

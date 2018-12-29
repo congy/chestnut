@@ -140,14 +140,14 @@ def helper_get_assoc_exist_idx(qf, for_scan_pred=False):
     assoc_qf = QueryField(reverse_assoc_field_name, main_t)
     keys = [KeyPath(id_qf)]
     if for_scan_pred:
-      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, UpperQueryField('id', table)))
+      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('fk_{}_id'.format(table.name))))
     else:
       condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('fk_{}_id'.format(table.name))))
   else:
     #if for_scan_pred:
       assoc_qf = QueryField('{}_id'.format(reverse_assoc_field_name), main_t)
       # not index pred, so do not add parameter, but query field instead
-      return [KeyPath(assoc_qf)], BinOp(assoc_qf, EQ, UpperQueryField('id', table=qf.table))
+      return [KeyPath(assoc_qf)], BinOp(assoc_qf, EQ, Parameter('fk_{}_id'.format(table.name)))
     #else:
       #assoc_qf = AssocOp(QueryField(reverse_assoc_field_name, main_t), QueryField('id', table))
       #keys = [KeyPath(assoc_qf)]

@@ -22,8 +22,8 @@ def sql_for_ds_query(ds, select_by_id=False):
   if isinstance(table, NestedTable):
     upper_qf = get_qf_from_nested_t(table)
     join_strs.append(get_join_condition(upper_qf, 'INNER JOIN'))
-    #pred_strs = ['{}.id = %u'.format(upper_qf.table.name)]
-    pred_strs = ['{}.id = {}'.format(upper_qf.table.name, random.randint(1, upper_qf.table.sz-2))]
+    pred_strs = ['{}.id = %u'.format(upper_qf.table.name)]
+    #pred_strs = ['{}.id = {}'.format(upper_qf.table.name, random.randint(1, upper_qf.table.sz-2))]
     entry_table = upper_qf.table.name
   else:
     pred_strs = []
@@ -65,11 +65,11 @@ def sql_for_ds_query(ds, select_by_id=False):
       insert_no_duplicate(tables, f.table)
     order_str = ','.join(['{}.id'.format(t.name) for t in tables])
     s = 'select {} from {} {} {} group by {} order by {}'.format(field_str, entry_table, ' '.join(join_strs), \
-                    'where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '', group_str, order_str)
+                    ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '', group_str, order_str)
   else:
     field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
     s = 'select {} from {} {} {}'.format(field_str, entry_table, \
-                    ' '.join(join_strs), 'where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
+                    ' '.join(join_strs), ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
   return clean_sql_query(s), nesting, fields
 
 def find_nesting_until_match(nesting, table):
@@ -136,6 +136,7 @@ def sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs):
         if isinstance(pred.lh, QueryField):
           new_pred = pred.rh
         else:
+          sql_get_element_str(pred.lh, fields, nesting, join_strs)
           new_pred = SetOp(pred.lh.rh, pred.op, pred.rh)
         joinp = 'INNER JOIN'
       else:
@@ -184,7 +185,7 @@ def get_join_condition_helper(qf, joinq):
 #   -> left outer join table_name on outer_pred
 def get_join_condition_helper2(qf, joinq):
   if qf.table.has_one_or_many_field(qf.field_name) == 1:
-    return qf.field_class.name, '{}.{}_id = {}.id' .format(\
+    return qf.field_class.name, '{}.{}_id = {}.id '.format(\
                       qf.table.name, qf.field_name, qf.field_class.name)
   elif qf.field_class.has_one_or_many_field(get_reversed_assoc_qf(qf).field_name) == 1:
     return qf.field_class.name, '{}.id = {}.{}_id '.format(\

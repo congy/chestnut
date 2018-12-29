@@ -130,6 +130,13 @@ def insert_no_duplicate(lst, ele, eq_func=(lambda x,y:x==y)):
   if not any([eq_func(x,ele) for x in lst]):
     lst.append(ele)
 
+def remove_duplicate(lst):
+  r = []
+  for l in lst:
+    if l not in r:
+      r.append(l)
+  return r
+
 def insert_indent(s, indent_level=1):
   indent = ''.join(['  ' for i in range(0, indent_level)])
   return ('\n'.join([indent+l if len(l) > 0 else l for l in s.split('\n')])+'\n')

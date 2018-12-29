@@ -56,6 +56,9 @@ class ExecQueryStep(ExecStepSuper):
     self.step.get_used_ds(cur_obj, dsmanager)
     dsmanager.clear_placeholder()
     return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    self.step.copy_ds_id(cur_obj, dsmanager)
+    return cur_obj
 
 class ExecSetVarStep(ExecStepSuper):
   def __init__(self, var, expr, cond=None, proj=[]):
@@ -106,6 +109,8 @@ class ExecSetVarStep(ExecStepSuper):
     used_fields += self.projections
     for f in used_fields:
       cur_obj.add_field(f)
+    return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
     return cur_obj
   def get_all_variables(self):
     return [self.var]
@@ -174,10 +179,15 @@ class ExecStepSeq(ExecStepSuper):
         if check_setvar==False or s.contain_set_entryobj_var():
           return s.get_most_inner_step(check_setvar)
     return self
-  def get_used_ds(self, cur_obj, struct_pool):
+  def get_used_ds(self, cur_obj, dsmanager):
     obj = cur_obj
     for s in self.steps:
-      obj = s.get_used_ds(obj, struct_pool)
+      obj = s.get_used_ds(obj, dsmanager)
+    return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    obj = cur_obj
+    for s in self.steps:
+      obj = s.copy_ds_id(obj, dsmanager)
     return cur_obj
   def get_all_variables(self):
     r = []
@@ -217,6 +227,8 @@ class ExecSortStep(ExecStepSuper):
     return False
   def get_used_ds(self, cur_obj, ds_manager):
     return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    return cur_obj
   def get_all_variables(self):
     return []
 
@@ -246,6 +258,8 @@ class ExecUnionStep(ExecStepSuper):
         self.cost = cost_add(self.cost, v.get_sz())
     return self.cost
   def get_used_ds(self, cur_obj, ds_manager):
+    return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
     return cur_obj
   def fork(self):
     s = ExecUnionStep(self.return_var, [v for v in self.aggrs], [v for v in self.union_vars], self.order)
@@ -289,7 +303,7 @@ class ExecGetAssocStep(ExecStepSuper):
   def get_used_ds(self, cur_obj, ds_manager):
     if self.idx is None:
       cur_obj.add_field(self.field)
-      return
+      return cur_obj
     next_obj = None
     idx = self.idx.fork_without_memobj()
     if idx.value.is_object():
@@ -303,6 +317,26 @@ class ExecGetAssocStep(ExecStepSuper):
     else:
       assert(cur_obj)
       cur_obj.add_nested_object(idx, replace=True)
+    return next_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    if self.idx is None:
+      return cur_obj
+    eq_ds = None
+    if is_main_table(self.idx.table):
+      for ds in dsmanager.data_structures:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    else:
+      for ds in cur_obj.nested_objects:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    assert(eq_ds)
+    self.idx.id = eq_ds.id
+    if self.idx.value.is_object():
+      next_obj = eq_ds.value.get_object()
+    else:
+      primary_ary = dsmanager.find_primary_array(get_main_table(self.idx.table))
+      next_obj = primary_ary.value.get_object()
     return next_obj
   def retrieves_field(self, f): 
     if self.idx is None:
@@ -389,6 +423,25 @@ class ExecScanStep(ExecStepSuper):
       next_obj = primary_ary.value.get_object()
     #else: # aggr
     self.ele_ops.get_used_ds(next_obj, ds_manager)
+    return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    eq_ds = None
+    if is_main_table(self.idx.table):
+      for ds in dsmanager.data_structures:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    else:
+      for ds in cur_obj.nested_objects:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    assert(eq_ds)
+    self.idx.id = eq_ds.id
+    if self.idx.value.is_object():
+      next_obj = eq_ds.value.get_object()
+    else:
+      primary_ary = dsmanager.find_primary_array(get_main_table(self.idx.table))
+      next_obj = primary_ary.value.get_object()
+    self.ele_ops.copy_ds_id(next_obj, dsmanager)
     return cur_obj
   def get_all_variables(self):
     return self.ele_ops.get_all_variables()

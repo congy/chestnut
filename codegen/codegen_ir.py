@@ -26,10 +26,10 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
 
   param_str.append('{}& qresult'.format(cgen_query_result_type(query)))
 
-  if globalv.is_qr_type_proto():
+  if not globalv.is_qr_type_proto():
     header += cgen_nonproto_query_result(query)
 
-  header += ''.join(['// '+l+'\n' for l in str(plan).split('\n')])
+  code += ''.join(['// '+l+'\n' for l in str(plan).split('\n')])
   header += "\nvoid query_{}_plan_{}({});\n".format(qid, plan_id, ', '.join(param_str))
   code += "\nvoid query_{}_plan_{}({}) {{\n".format(qid, plan_id, ', '.join(param_str))
   code += "  char msg[] = \"query {} plan {} run time \";\n".format(qid, plan_id)
@@ -45,7 +45,6 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
 def cgen_for_one_step(step, state, print_result=False):
   s = ''
   if isinstance(step, ExecQueryStep):
-    s += '{} qresult;\n'.format(cgen_query_result_type(step.query))
     state.qr_var = 'qresult'
     next_s, temp_state = cgen_for_one_step(step.step, state)
     s += insert_indent(next_s)
@@ -62,36 +61,46 @@ def cgen_for_one_step(step, state, print_result=False):
     # var = pred / aggr / append()
     expr_s = ''
     if isinstance(step.var, EnvAtomicVariable):
-      ir_var = state.find_or_create_ir_var(step.var)
-      s += '{} {};\n'.format(get_cpp_type(step.var.get_type()), ir_var)
-      inits, expr_s = cgen_expr_with_placeholder(expr, state, ir_var)
+      if not state.exist_ir_var(step.var):
+        ir_var = state.find_or_create_ir_var(step.var)
+        s += '{} {};\n'.format(get_cpp_type(step.var.get_type()), ir_var)
+      else:
+        ir_var = state.find_ir_var(step.var)
+      inits, expr_s = cgen_expr_with_placeholder(step.expr, state, ir_var) if step.expr else ('','')
+      if step.expr and (not is_aggr_expr(step.expr)):
+        expr_s = '{} = {};'.format(ir_var, expr_s)
+      s += inits
     elif isinstance(step.var, EnvCollectionVariable):
       ele_name = cgen_cxxvar(step.var, True)
       state.qr_var = '(*{})'.format(ele_name)
       s += '{}* {};\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery), ele_name)
       expr_s = cgen_add_to_qresult(step.var, ele_name, step.projections, state)
-    dummp,cond_s = cgen_expr_with_placeholder(step.cond, state) if step.cond else 'true'
-    s += 'if ({}) {{\n{} }}\n'.format(cond_s, insert_indent(expr_s))
+    if step.cond:
+      dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
+    else:
+      cond_s = 'true'
+    s += 'if ({}) {{ {} }}\n'.format(cond_s, expr_s)
     return s, state
 
   elif isinstance(step, ExecStepSeq):
-    next_state = state
+    next_state = state.fork()
     for nested_step in step.steps:
       inner_s, next_state = cgen_for_one_step(nested_step, next_state)
+      state.merge(next_state)
       s += inner_s
-    return s, next_state
+    return s, state
 
-  elif isinstance(step, ExecScanStep) or isinstance(step, ExecIndexStep):
+  elif isinstance(step, ExecScanStep):
     new_state = state.add_nextscope_state(step)
     if step.idx.value.is_aggr():
       # TODO
       assert(False)
     ds_name = step.idx.get_ds_name()
     type_prefix = '{}::'.format(step.idx.table.upper_table.get_full_type()) if isinstance(step.idx.table, NestedTable) else ''
-    idx_prefix = '{}.'.format(state.loop_var) if state.level > 1 else ''
+    idx_prefix = '{}.'.format(state.loop_var) if isinstance(step.idx.table, NestedTable) else ''
     ary_name = '{}{}'.format(idx_prefix, ds_name)
     ary_ele_name = cgen_cxxvar(step.idx.table)
-    if isinstance(step, ExecScanStep) or len(step.idx.key_fields())==0:
+    if (not isinstance(step, ExecIndexStep)) or len(step.idx.key_fields())==0:
       if step.idx.is_single_element():
         s += 'auto& {} = {};\n'.format(ary_ele_name, ary_name)
       else:
@@ -100,8 +109,8 @@ def cgen_for_one_step(step, state, print_result=False):
     else:
       keys = []
       for i,p in enumerate(step.params):
-        key_name, init_str = get_param_str(state, p, i)
-        s += '{}{} {};'.format(type_prefix, step.idx.get_key_type_name(), init_str)
+        key_name, init_str = get_param_str(new_state, p, i)
+        s += '{}{} {};\n'.format(type_prefix, step.idx.get_key_type_name(), init_str)
         keys.append(key_name)
       params_str = ', '.join(['&{}'.format(k) for k in keys])
       s += get_loop_define(step.idx, is_range=(step.op.is_range())) + \
@@ -120,15 +129,16 @@ def cgen_for_one_step(step, state, print_result=False):
     irvar = state.find_or_create_ir_var(step.var)
     if step.idx is None:
       assert(is_atomic_field(step.field))
-      s += '{} {} = {}.{};\n'.format(get_cpp_type(step.field.get_type()), irvar, state.loop_var, step.field.field_name)
+      s += '{} {} = {}.{};\n'.format(get_cpp_type(step.field.get_type()), irvar, state.loop_var, cgen_fname(step.field))
       return s, state
     new_state = state.add_nextscope_state(step)
     if isinstance(step.idx, ObjTreeIndex):
-      topds = dsmnger.find_primary_array(get_main_table(idx.table))
-      tempov = cgen_cxxvar('ptrv')
-      s += 'auto {} = {}.find_by_key({}.id);\n'.format(tempv, step.idx.get_ds_name(), state.loop_var)
+      topds = state.dsmnger.find_primary_array(get_main_table(step.idx.table))
+      tempv = cgen_cxxvar('ptrv')
+      fk_id = cgen_fname(QueryField('id', get_main_table(state.ds.table)))
+      s += 'auto {} = {}.find_by_key({}.{});\n'.format(tempv, step.idx.get_ds_name(), state.loop_var, fk_id)
       s += 'if ({} == nullptr) continue;\n'.format(tempv)
-      s += 'auto ptr_{} = ({}.get_ptr_by_pos(tempv->pos));\n'.format(irvar, topds.get_ds_name())
+      s += 'auto ptr_{} = ({}.get_ptr_by_pos({}->pos));\n'.format(irvar, topds.get_ds_name(), tempv)
       s += 'if (ptr_{} == nullptr) continue;\n'.format(irvar)
       s += 'auto& {} = *ptr_{};\n'.format(irvar, irvar)
     else:
@@ -138,6 +148,7 @@ def cgen_for_one_step(step, state, print_result=False):
       else:
         getobj_s, vname = get_obj_from_value_type(step.idx, curobj, state.dsmnger, irvar)
         s += getobj_s
+    new_state.loop_var = irvar
     return s, new_state
 
   elif isinstance(step, ExecSortStep):
@@ -162,7 +173,7 @@ def cgen_for_one_step(step, state, print_result=False):
 
 def cgen_add_to_qresult(qr_array, ele_name, fields, state):
   s = ''
-  upper_qrvar = state.upper_state.qr_var
+  upper_qrvar = state.upper.qr_var
   irvar = state.loop_var
   table = qr_array.tipe
   if isinstance(table, NestedTable) and get_main_table(table.upper_table).has_one_or_many_field(table.name) == 1:
@@ -170,13 +181,16 @@ def cgen_add_to_qresult(qr_array, ele_name, fields, state):
   else:
     s += '{} = {}.add_{}();\n'.format(ele_name, upper_qrvar, table.name) 
   for f in fields:
-    if is_string(f.field_class):
-      s += '{}.set_{}({}.{}.c_str());\n'.format(ele_name, f.field_name, irvar, f.field_name)
+    if type(f) is not tuple:
+      if is_string(f.field_class):
+        s += '{}->set_{}({}.{}.c_str());\n'.format(ele_name, f.field_name, irvar, cgen_fname(f))
+      else:
+        s += '{}->set_{}({}.{});\n'.format(ele_name, f.field_name, irvar, cgen_fname(f))
     else:
-      s += '{}.set_{}({}.{});\n'.format(ele_name, f.field_name, irvar, f.field_name)
-  for vpair,cxx_var in state.aggrs:
-    if not vpair[0].is_temp:
-      s += '{}.set_{}({});\n'.format(ele_name, vpair[0].name, get_aggr_result(vpair, cxx_var, state.aggrs))
+      vpair = f
+      cxx_var = state.find_ir_var(vpair[0])
+      if not vpair[0].is_temp:
+        s += '{}->set_{}({});\n'.format(ele_name, vpair[0].name, get_aggr_result(vpair, cxx_var, state))
   if qr_array.limit > 0 and state.order_maintained(qr_array):
     s += 'if ({}.{}_size() > {}) break;\n'.format(upper_irvar, qr_array.tipe.name, qr_array.limit)
   return s
@@ -198,7 +212,7 @@ def get_obj_from_value_type(idx, ary_ele_name, dsmnger, cxxobj=None):
 
 def get_param_str(state, param, paramid=0):
   ds = state.ds
-  key_name = cgen_cxxvar('{}_key{}'.format(ds.get_ds_name(), paramid))
+  key_name = cgen_cxxvar('{}_key{}'.format(state.ds.get_ds_name(), paramid))
   pstrs = []
   for i in range(0, len(param.params)):
     p = param.params[i]
@@ -207,7 +221,7 @@ def get_param_str(state, param, paramid=0):
     elif isinstance(p, AtomValue):
       pstrs.append(str(p.to_var_or_value()))
     elif isinstance(p, QueryField):
-      pstrs.append(state.get_queryfield_var(p))
+      pstrs.append(state.upper.get_queryfield_var(p))
     else:
       assert(False)
   return key_name, '{}({})'.format(key_name, ','.join([s for s in pstrs]))

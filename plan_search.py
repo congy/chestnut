@@ -91,15 +91,16 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       cond_expr = next_rest_pred
           
       set_steps = []
+      projections = query.projections + query.aggrs
       if len(op_rest_pairs) == 1:
         for v,aggr in query.aggrs:
           new_aggr = replace_subexpr_with_var(aggr, placeholder)
           set_steps.append(ExecSetVarStep(v, new_aggr, cond=cond_expr))
         if variable_to_set[i]:
-          set_steps.append(ExecSetVarStep(variable_to_set[i], None, cond=cond_expr, proj=query.projections))
+          set_steps.append(ExecSetVarStep(variable_to_set[i], None, cond=cond_expr, proj=projections))
       else:
         if variable_to_set[i]:
-          set_steps.append(ExecSetVarStep(variable_to_set[i], None, cond=cond_expr, proj=query.projections))
+          set_steps.append(ExecSetVarStep(variable_to_set[i], None, cond=cond_expr, proj=projections))
 
       for next_level_steps in itertools.product(*nextlevel_tree_combs):
         plan_tree = PlanTree()
@@ -139,20 +140,17 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
     steps = search_steps_for_assoc(obj, dsmng, qf)
     field = qf
     next_fields.append(qf)
-    if len(steps) == 0:
-      assert(idx_placeholder.table.contain_table(qf.field_class))
-      next_idx_placeholder = idx_placeholder
+    #if qf.table.has_one_or_many_field(qf.field_name) != 1:
+    assert(steps[-1].idx is not None)
+    if isinstance(steps[-1].idx, ObjBasicArray):
+      next_idx_placeholder = steps[-1].idx
+    elif isinstance(steps[-1].idx, ObjTreeIndex):
+      next_idx_placeholder = dsmng.find_placeholder(steps[-1].idx.table)
     else:
-      step = ExecStepSeq(steps)
+      next_idx_placeholder = dsmng.find_placeholder(field.field_class)
+    if is_assoc_field(field):
+      step = ExecStepSeq(steps[:-1])
       assoc_steps.append(step)
-      #if qf.table.has_one_or_many_field(qf.field_name) != 1:
-      assert(steps[-1].idx is not None)
-      if isinstance(steps[-1].idx, ObjBasicArray):
-        next_idx_placeholder = steps[-1].idx
-      elif isinstance(steps[-1].idx, ObjTreeIndex):
-        next_idx_placeholder = dsmng.find_placeholder(steps[-1].idx.table)
-      else:
-        next_idx_placeholder = dsmng.find_placeholder(field.field_class)
     #print 'obj = {}'.format(obj)
     #print 'ASSOC = {}, step = {}, next_idx_placeholder = {}'.format(qf, step, next_idx_placeholder)
     next_level_query.append(\
@@ -205,7 +203,7 @@ def helper_get_idx_step_by_pred(thread_ctx, queried_table, pred, order, idx_plac
   all_steps = \
     get_ds_and_op_on_cond(thread_ctx, idx_placeholder.table, idx_pred, idx_placeholder.value, order, fk_pred, nonexternal)
   
-  print 'table = {}, pred = {}, idxvalue = {}, len steps = {}'.format(idx_placeholder.table, idx_pred, idx_placeholder.value, len(all_steps))
+  #print 'table = {}, pred = {}, idxvalue = {}, len steps = {}'.format(idx_placeholder.table, idx_pred, idx_placeholder.value, len(all_steps))
 
   if added_rest_pred:
     for op_rest_pairs in all_steps:
@@ -259,7 +257,7 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred,
         next_idx_placeholder = dsmng.find_placeholder(steps[-1].idx.table)
       else:
         next_idx_placeholder = dsmng.find_placeholder(get_query_field(p.lh).field_class)
-        assoc_steps_map[p.lh].steps = assoc_steps_map[p.lh].steps[:-1]
+      assoc_steps_map[p.lh].steps = assoc_steps_map[p.lh].steps[:-1]
     else:
       next_idx_placeholder = find_next_idx_placeholder(idx_placeholder, dsmng, p.lh)
     assert(next_idx_placeholder)

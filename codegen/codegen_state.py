@@ -15,19 +15,42 @@ class CodegenState(object):
     self.ds = None
     self.qr_varmap = {}
     self.ir_varmap = {}
-    self.aggrs = [] # contain aggr result of lower levels; [((ir_var, aggr_func), cxx_var)]
     self.loop_var = None # if level == 0: loop_var is None
     self.qr_var = None # if level == 0: qr_var = 'qresult'
     
-    self.upper_state = upper
+    self.upper = upper
     self.param_map = {}
     self.dsmnger = None
+  def fork(self):
+    news = CodegenState(self.upper)
+    news.qr_varmap = {k:v for k,v in self.qr_varmap.items()}
+    news.ir_varmap = {k:v for k,v in self.ir_varmap.items()}
+    news.ds = self.ds
+    news.loop_var = self.loop_var
+    news.qr_var = self.qr_var
+    news.topquery = self.topquery
+    news.param_map = {k:v for k,v in self.param_map.items()}
+    news.dsmnger = self.dsmnger
+    return news
+  def merge(self, other):
+    for k,v in other.qr_varmap.items():
+      if k not in self.qr_varmap:
+        self.qr_varmap[k] = v
+    for k,v in other.ir_varmap.items():
+      if k not in self.ir_varmap:
+        self.ir_varmap[k] = v
   def find_ir_var(self, var): # EnvAtomicVariable
     if var in self.ir_varmap:
       return self.ir_varmap[var]
     if self.upper:
       return self.upper.find_ir_var(var)
     assert(False)
+  def exist_ir_var(self, var):
+    if var in self.ir_varmap:
+      return True
+    elif self.upper:
+      return self.upper.exist_ir_var(var)
+    return False
   def find_qr_var(self, var): # EnvAtomicVariable
     if var in self.qr_varmap:
       return self.qr_varmap[var]
@@ -35,7 +58,7 @@ class CodegenState(object):
   def find_or_create_ir_var(self, var):
     if var in self.ir_varmap:
       return self.ir_varmap[var]
-    if self.upper and self.upper.find_ir_var(var):
+    if self.upper and self.upper.exist_ir_var(var):
       return self.upper.find_ir_var(var)
     newv = cgen_cxxvar(var)
     self.ir_varmap[var] = newv
@@ -45,7 +68,7 @@ class CodegenState(object):
     return self.param_map[param]
   def get_queryfield_var(self, qf):
     assert(self.loop_var)
-    return '{}.{}'.format(self.loop_var, qf.field_name)
+    return '{}.{}'.format(self.loop_var, cgen_fname(qf))
   def find_queryfield_or_param(self, v):
     if isinstance(v, QueryField):
       r = self.get_queryfield_var(v)

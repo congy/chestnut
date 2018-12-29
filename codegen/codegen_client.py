@@ -95,10 +95,9 @@ def cgen_ruby_client_print_helper(query, element_var, level=0):
    
 def cgen_nonproto_query_result(query):
   s = 'struct Query{}Result {{\n'.format(query.id)
-  if query.return_var:
-    nexts, next_uppers = cgen_nonproto_query_result_element(query, upper_query=None, repeated=True)
-    s += insert_indent(nexts)
-    s += next_uppers
+  nexts, next_uppers = cgen_nonproto_query_result_element(query, upper_query=None, repeated=True)
+  s += insert_indent(nexts)
+  s += next_uppers
   s += '};\n'
   return s
 
@@ -108,36 +107,42 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
           get_capitalized_name(get_main_table(upper_query.table).name))
   else:
     typename = 'P{}'.format(get_capitalized_name(query.table.name))
-
+  fmap = {}
+  cnt = 0
   upper_s = ''
   for v,aggr in query.aggrs:
     if v.is_temp:
       continue
-    upper_s += '  {} {};\n'.format(get_cpp_type(v.get_type()), v.name)
+    upper_s += '  {} {}_{};\n'.format(get_cpp_type(v.get_type()), v.name, cnt)
+    fmap[v] = cnt
+    cnt += 1
   for v,aggr in query.aggrs:
     if v.is_temp:
       continue
-    upper_s += '  void set_{}({} fv_) {{ {} = fv_; }}\n'.format(v.name, get_cpp_type(v.get_type()), v.name)
-    upper_s += '  {} {}() {{ return {};\n }}'.format(get_cpp_type(f.get_type()), v.name, v.name)
+    upper_s += '  void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(v.name, get_cpp_type(v.get_type()), v.name, fmap[v])
+    upper_s += '  {} {}() {{ return {}_{}; }}'.format(get_cpp_type(v.get_type()), v.name, v.name, fmap[v])
   
-  s = 'struct {} {{\n'.format(typename)
-  s += '  {}() {{}}\n'.format(typename)
-  for f in query.projections:
-    s += '  {} {};\n'.format(get_cpp_type(f.get_type()), f.field_name)
-  for f in query.projections:
-    s += '  inline void set_{}({} fv_) {{ {} = fv_; }}\n'.format(f.field_name, get_cpp_type(f.get_type()), f.field_name)
-    s += '  inline {} {}() {{ return {};\n }}'.format(get_cpp_type(f.get_type()), f.field_name, f.field_name)
-    if is_string(f):
-      s += '  inline void set_{}(const char* v_) {{ {} = v_; }}\n'.format(f.name, f.name)
-  
+  s = ''
   if query.return_var:
+    s += 'struct {} {{\n'.format(typename)
+    s += '  {}() {{}}\n'.format(typename)
+    for f in query.projections:
+      s += '  {} {}_{};\n'.format(get_cpp_type(f.get_type()), f.field_name, cnt)
+      fmap[f] = cnt
+      cnt += 1
+    for f in query.projections:
+      s += '  inline void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(f.field_name, get_cpp_type(f.get_type()), f.field_name, fmap[f])
+      s += '  inline {} {}() {{ return {}_{}; }}\n'.format(get_cpp_type(f.get_type()), f.field_name, f.field_name, fmap[f])
+      if is_string(f.field_class):
+        s += '  inline void set_{}(const char* v_) {{ {}_{} = v_; }}\n'.format(f.field_name, f.field_name, fmap[f])
+    
     rs_var = 'rv_{}'.format(query.table.name)
     if repeated:
       retv = query.return_var
       upper_s += '  std::vector<{}> {};\n'.format(typename, rs_var)
       upper_s += '  size_t {}_size() {{ return {}.size(); }}\n'.format(retv.tipe.name, rs_var)
-      upper_s += '  {}* add_{} {{ {}.push_back({}()); return &{}}.back(); }}\n'.format(\
-              typename, rev.tipe.name, rs_var, typename, rs_var)
+      upper_s += '  {}* add_{}() {{ {}.push_back({}()); return &{}.back(); }}\n'.format(\
+              typename, retv.tipe.name, rs_var, typename, rs_var)
     else:
       upper_s += '  {} {};\n'.format(typename, rs_var)
       upper_s += '  {}* mutable_{} {{ return &{}; }};\n'.format(typename, retv.tipe.name, rs_var)
@@ -152,12 +157,12 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
       s += '{}; }}\n'.format(cmp_expr)
       upper_s += '  inline void sort() {{ std::sort({}.begin(), {}.end()); }}\n'.format(rs_var, rs_var)
     
-  for k,q in query.includes.items():
-    repeated = (k.table.has_one_or_many_field(k.field_name) == 0)
-    inner_s, inner_upper_s = cgen_nonproto_query_result_element(q, upper_query=query, repeated=repeated)
-    s += insert_indent(inner_s)
-    s += inner_upper_s
-  s += '};\n'
+    for k,q in query.includes.items():
+      repeated = (k.table.has_one_or_many_field(k.field_name) == 0)
+      inner_s, inner_upper_s = cgen_nonproto_query_result_element(q, upper_query=query, repeated=repeated)
+      s += insert_indent(inner_s)
+      s += inner_upper_s
+    s += '};\n'
 
   return s, upper_s
 

@@ -335,17 +335,19 @@ def generate_condition_for_pred(thread_ctx, symbolic_tuple, pred):
       return z3.Or(lh_expr, rh_expr)
   elif isinstance(pred, SetOp):
     #FIXME
-    #lh_expr = generate_condition_for_pred(thread_ctx, symbolic_tuple, pred.rh, param_map)
+    lh_table = get_leftmost_qf(pred.lh).table
+    rh_table = get_query_field(pred.lh).field_class
     assoc = get_query_field(pred.lh).table.get_assoc_by_name(get_query_field(pred.lh).field_name)
-    assoc_pos = 0 if assoc.lft == get_query_field(pred.lh).table else 1
-    id_pos = get_field_pos_in_tuple(get_query_field(pred.lh).table, 'id')
+    assoc_pos = 0 if assoc.rgt == rh_table else 1
+    lh_id_pos = get_field_pos_in_tuple(lh_table, 'id')
+    rh_id_pos = get_field_pos_in_tuple(rh_table, 'id')
     exprs = []
-    for i,next_symbolic_tuple in enumerate(thread_ctx.get_symbs().symbolic_tables[get_query_field(pred.lh).field_class].symbols):
+    for i,next_symbolic_tuple in enumerate(thread_ctx.get_symbs().symbolic_tables[rh_table].symbols):
       next_symbol_cond = generate_condition_for_pred(thread_ctx, next_symbolic_tuple, pred.rh)
       match_expr = []  
       for symbolic_assoc in thread_ctx.get_symbs().symbolic_assocs[assoc].symbols:
         match_expr.append(z3.And((i+1) == symbolic_assoc[1-assoc_pos],  \
-                                  symbolic_tuple[id_pos] == symbolic_assoc[assoc_pos]))
+                                  symbolic_tuple[lh_id_pos] == symbolic_assoc[assoc_pos]))
       exprs.append(z3.And(z3.Or(*match_expr), next_symbol_cond))
     if pred.op == EXIST:
       return z3.Or(*exprs)
@@ -353,7 +355,7 @@ def generate_condition_for_pred(thread_ctx, symbolic_tuple, pred):
       return z3.And(*exprs)
   elif isinstance(pred, AssocOp):
     fid = get_field_pos_in_tuple(pred.lh.table, '{}_id'.format(pred.lh.field_name))
-    r = INVALID_VALUE #get_init_value_by_type(get_query_field(pred).get_type())
+    r = INVALID_VALUE
     for i,next_symbolic_tuple in enumerate(thread_ctx.get_symbs().symbolic_tables[pred.lh.field_class].symbols):
       next_symbol_cond = generate_condition_for_pred(thread_ctx, next_symbolic_tuple, pred.rh)
       r = z3.If((i+1)==symbolic_tuple[fid], next_symbol_cond, r)
@@ -484,7 +486,8 @@ def check_dsop_pred_equiv(thread_ctx, table, ds_exprs, target_pred):
   thread_ctx.get_symbs().solver.add(z3.Not(target_expr==ds_expr))
   r = (thread_ctx.get_symbs().solver.check() == z3.unsat)
   # if r == False:
-  #  print print_table_in_model(thread_ctx, thread_ctx.get_symbs().solver.model())
+  #   print print_table_in_model(thread_ctx, thread_ctx.get_symbs().solver.model())
+  #   print_all_debug_expr(thread_ctx.get_symbs().solver.model())
   thread_ctx.get_symbs().solver.pop()
   return r
 

@@ -69,7 +69,7 @@ def cgen_read_data_general(tables, associations, dsmeta):
   code += "  print_time_diff(msg);\n"
   for ds in dsmeta.data_structures:
     code += '  printf("ds {} sz = %d;\\n", {}.size());\n'.format(ds.id, ds.get_ds_name())
-  code += "  std::this_thread::sleep_for(std::chrono::seconds(10));\n"
+  code += "  std::this_thread::sleep_for(std::chrono::seconds(1));\n"
   code += "}\n"
 
   return header, code

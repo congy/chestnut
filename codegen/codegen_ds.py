@@ -59,7 +59,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
     structs += "  inline bool operator<(const {}& other) const {{ return {}; }}\n".format(key_type_name, cmp_str)
     shift_bits = int(32/len(ds.key_fields()))
     structs += "  inline size_t get_hash() const {{ return {}; }}\n".format(' + '.join(['{}'.format(\
-                          "{}_{}.get_hash() << {}".format(cgen_fname(key), i, i*shift_bits) \
+                          "{}.get_hash() << {}".format(cgen_fname(key), i*shift_bits) \
                           if is_string_type(key.get_query_field().field_class.tipe) else \
                           "(std::hash<{}>()({}) << {})".format(\
                           cgen_scalar_ftype(key), cgen_fname(key), i*shift_bits)) for i,key in enumerate(key_fields)]))                                        

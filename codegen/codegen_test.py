@@ -19,6 +19,7 @@ def test_initialize(tables, associations, read_queries, planid=0):
       if cnt + len(plan_for_one_nesting.plans) > planid:
         j = planid - cnt
         plan = plan_for_one_nesting.plans[j]
+        plan.copy_ds_id(None, dsmeta_)
         dsmeta = plan_for_one_nesting.dsmanagers[j]
         break
       cnt = cnt + len(plan_for_one_nesting.plans)
@@ -43,10 +44,12 @@ def test_query(tables, associations, query, planid=0):
   rqmanagers, dsmeta_ = get_dsmeta([query])
   for idx,rqmng in enumerate(rqmanagers):
     cnt = 0
+    print 'Nplans = {}'.format(sum([len(x.plans) for x in rqmng.plans]))
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
       if cnt + len(plan_for_one_nesting.plans) > planid:
         j = planid - cnt
         plan = plan_for_one_nesting.plans[j]
+        plan.copy_ds_id(None, dsmeta_)
         dsmeta = plan_for_one_nesting.dsmanagers[j]
         break
       cnt = cnt + len(plan_for_one_nesting.plans)
@@ -62,8 +65,8 @@ def test_query(tables, associations, query, planid=0):
   fp.close()
 
   header, cpp = cgen_for_read_query(0, query, plan, dsmeta, planid)
-  header = query_includes + '#include {}.h\n\n'.format(get_db_name()) + header 
-  cpp = '#include {}_query.h'.format(get_db_name()) + '\n' + cpp
+  header = query_includes + '#include "{}.h"\n\n'.format(get_db_name()) + header 
+  cpp = '#include "{}_query.h"'.format(get_db_name()) + '\n' + cpp
 
   fp = open('{}/{}_query.h'.format(get_db_name(), get_db_name()), 'w')
   fp.write(header)

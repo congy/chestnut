@@ -25,6 +25,8 @@ def get_ds_and_op_on_cond(thread_ctx, qtable, pred, ds_value, order=None, fk_pre
   states = enumerative_gen(qtable, thread_ctx, pred, order, fk_pred)
   all_ops = []
   for state in states:
+    for op in state.result:
+      op.set_pred()
     if len(nonexternal) > 0:
       for op in state.result:
         op.replace_param_with_qf(nonexternal)
@@ -38,9 +40,10 @@ def get_ds_and_op_on_cond(thread_ctx, qtable, pred, ds_value, order=None, fk_pre
     if not isinstance(qtable, NestedTable):
       op_and_rest = []
       for op in state.result:
-        (ds_t, ds_v) = get_ds_type_value_pair(qtable, op.keys, ds_value, True)
-        op_and_rest.append((op.to_ds_ops(ds_t, ds_v, qtable), op.rest_pred))
-      all_ops.append(op_and_rest)
+        if len(op.condition) > 0 or len(op.keys) > 0:
+          (ds_t, ds_v) = get_ds_type_value_pair(qtable, op.keys, ds_value, True)
+          op_and_rest.append((op.to_ds_ops(ds_t, ds_v, qtable), op.rest_pred))
+          all_ops.append(op_and_rest)
   return all_ops
     
 def get_ds_type_value_pair(table, keys, ds_value, ptr=False):
@@ -126,10 +129,9 @@ class SynthHelper(object):
   def check_equiv(self):
     ds_exprs = [(c.symbolic_result[0], c.rest_pred) for c in self.cur_ops]
     r = check_dsop_pred_equiv(self.thread_ctx, self.main_table, ds_exprs, self.target_pred)
-    # if r:
-      # print '\n** ds: {}'.format(self.str_ops(True))
-      # print '\n op = {}'.format('\n'.join([str(o.dsop) for o in self.cur_ops]))
-      # print '\n ** check equiv: {} '.format(r)
+    # print '\n** ds: {}'.format(self.str_ops(True))
+    # print '\n op = {}'.format('\n'.join([str(o.dsop) for o in self.cur_ops]))
+    # print '\n ** check equiv: {} '.format(r)
     if not r:
       self.tried_ops.append([o.fork() for o in self.cur_ops])
     return r
@@ -182,6 +184,7 @@ class OpPredHelper(object):
     self.table = table
     self.dsop = None
     self.symbolic_result = None
+    self.pred = None
   def create_symbolic_idx(self, thread_ctx):
     ds_type = get_ds_type_lambda('ObjTreeIndex') if len(self.keys) > 0 else get_ds_type_lambda('ObjArray')
     ds_value = IndexValue(MAINPTR)
@@ -259,6 +262,8 @@ class OpPredHelper(object):
     self.condition = cond
   def set_rest_pred(self, rest_pred):
     self.rest_pred = rest_pred
+  def set_pred(self):
+    self.pred = self.to_pred()
   def to_pred(self):
     pred = key_map_to_pred(self.merge_keymap())
     #print '  ** curop = {}, pred = {}'.format(self, pred)
@@ -278,9 +283,11 @@ class OpPredHelper(object):
             self.params[k] = (self.params[k][0], qf)
   def to_ds_ops(self, ds_type, ds_value, qtable=None):
     ds_pred = self.to_pred()
+    if self.pred is None:
+      self.pred = ds_pred
     table = self.table if qtable is None else qtable
     if ds_pred is None:
-      ds = ObjBasicArray(self.table, ds_value)
+      ds = ObjBasicArray(table, ds_value)
       return ExecScanStep(ds)
     op = IndexOp(POINT) if len(self.range_keys) == 0 else IndexOp(RANGE)
     keys = [k for k in self.point_keys] + [k for k in self.range_keys]
@@ -320,9 +327,9 @@ class OpPredHelper(object):
           
     if len(keys) > 0:
       #print 'keys = {}, ds_pred = {}'.format(','.join([str(k) for k in keys]), ds_pred)
-      ds = ds_type(table, IndexKeys(keys, self.range_keys), ds_pred, ds_value) # ObjSortedArray
+      ds = ds_type(table, IndexKeys(keys, self.range_keys), self.pred, ds_value) # ObjSortedArray
     else:
-      ds = ds_type(table, ds_pred, ds_value) # ObjArray
+      ds = ds_type(table, self.pred, ds_value) # ObjArray
     return ExecIndexStep(ds, ds_pred, op, params)
 
 def enumerate_all_ops(state, order=None):

@@ -160,6 +160,8 @@ class IndexValue(object):
       return self.value_type == other.value_type and self.value == other.value
     else:
       return self.value_type == other.value_type
+  def eq_without_memobj(self, other):
+    return self.value_type == other.value_type
   def to_json(self):
     # TODO
     pass
@@ -266,6 +268,10 @@ class IndexBase(IndexMeta):
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and \
     self.keys == other.keys and self.value == other.value and \
+    self.condition.idx_pred_eq(other.condition)
+  def eq_without_memobj(self, other):
+    return type(self) == type(other) and self.table == other.table and \
+    self.keys == other.keys and self.value.eq_without_memobj(other.value) and \
     self.condition.idx_pred_eq(other.condition)
   def compute_size(self):
     return IdxSizeUnit(self)
@@ -401,14 +407,14 @@ class ObjBasicArray(IndexMeta):
   def get_ds_name(self):
     if self.is_single_element():
       return self.table.name
-    if isinstance(self.table, NestedTable):
-      return self.table.name+'_{}'.format(self.id)
     else:
-      return self.table.name
+      return self.table.name+'_{}'.format(self.id)
   def get_relates(self):
     return (isinstance(self.table, NestedTable) and self.value.is_main_ptr())
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and self.value == other.value
+  def eq_without_memobj(self, other):
+    return type(self) == type(other) and self.table == other.table and self.value.eq_without_memobj(other.value)
   def __str__(self, short=False):
     return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), self.value.__str__(short))
   def compute_mem_cost(self):
