@@ -206,5 +206,5 @@ def is_idx_useful(thread_ctx, idx, table, pred, expected=None):
     r = thread_ctx.get_symbs().solver.check() == z3.unsat
   thread_ctx.get_symbs().solver.pop()
 
-  print 'time = {}'.format(time.time()-start_time)
+  #print 'time = {}'.format(time.time()-start_time)
   return r

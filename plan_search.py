@@ -330,6 +330,7 @@ def thread_search_plans_for_one_nesting(query_id, tasks, results, idx):
   # else:
   results[idx] = plans
 
+import time
 def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan=True):
   dsmngers = enumerate_nestings_for_query(query)
   print 'all nestings = {} ({})'.format(len(dsmngers), query_id)
@@ -340,6 +341,7 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
   else:
     cnt = 0
     fail_nesting = []
+    start_time = time.time()
     for k,dsmng in enumerate(dsmngers):
       if print_plan:
         print 'nesting {} = {}'.format(k, dsmng)
@@ -371,4 +373,5 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
   #   print 'FAIL {}'.format(i)
   #   print f
   #   print '-----'
+  print 'query plan search time = {}'.format(time.time()-start_time)
   return plans

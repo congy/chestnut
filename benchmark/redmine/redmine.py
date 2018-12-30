@@ -57,8 +57,9 @@ write_queries = [q_pn_1, q_pn_2, q_pn_3, q_pn_4, q_pn_5, q_pn_6, q_pn_7]
 # ])
 
 #test_merge(q_us_2)
-#prune_nesting_test(read_queries)
+prune_nesting_test(read_queries)
+test_prune_read_plan(read_queries)
 
-test_ilp(read_queries)
+#test_ilp(read_queries)
 #test_prune_read_plan(read_queries)
 #search_plans_for_one_query(q_ai_1)

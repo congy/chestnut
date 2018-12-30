@@ -86,8 +86,8 @@ globalv.set_qr_type('fastv')
 
 #test_merge(q_us_2)
 #prune_nesting_test(read_queries)
-test_ilp(read_queries)
-#test_prune_read_plan(read_queries)
+#test_ilp(read_queries)
+test_prune_read_plan(read_queries)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):

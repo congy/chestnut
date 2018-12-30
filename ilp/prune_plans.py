@@ -60,6 +60,7 @@ def encode_plan_list(lst):
   lst.sort()
   return sum([lst[i]*math.pow(2, i) for i in range(0, len(lst))])
 
+import time
 def prune_read_plans(rqmanagers, dsmeta):
   Nqueries = len(rqmanagers)
   pruned_plans = [0 for i in range(0, Nqueries)]
@@ -67,6 +68,7 @@ def prune_read_plans(rqmanagers, dsmeta):
   temp_plan_cost = [0 for i in range(0, Nqueries)]
 
   for qi,rqmng in enumerate(rqmanagers):
+    start_time = time.time()
     temp_plan_cost[qi] = [0 for i in range(0, len(rqmng.plans))]
     pruned_plans[qi] = [[] for i in range(0, len(rqmng.plans))]
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
@@ -84,10 +86,11 @@ def prune_read_plans(rqmanagers, dsmeta):
         #if mem_cost > globalv.memory_bound:
         #  print 'query {} nesting {} plan {} is removed, mem_cost = {}'.format(qi, i, j, mem_cost)
         #  pruned_plans[qi][i].append(j)
-
+    print 'pass 1 query {}: {}'.format(qi, time.time()-start_time)
   print 'finish pass 1'
   # opt 2.1: if planA's shared ds set (with any other query) is the same as planB's shared ds set, and planA is better than planB, just keep planA
   for qi,rqmng in enumerate(rqmanagers):
+    start_time = time.time()
     map_by_shared_ds = {} # key: encoded shared lst; value: a set of plans
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
       for j in range(0, len(plan_for_one_nesting.plans)):
@@ -117,9 +120,9 @@ def prune_read_plans(rqmanagers, dsmeta):
           pruned_plans[qi][tup1[0]].append(tup1[1])
         elif exist_equal:
           lst[x1] = (tup1[0], tup1[1], tup1[2]-1, tup1[3])
-    print 'finish query {}'.format(qi)
+    print 'pass 2 query {}: {}'.format(qi, time.time()-start_time)
+    #print 'finish query {}'.format(qi)
         
-
   print 'finish pass 2'
 
   for qi,rqmng in enumerate(rqmanagers):

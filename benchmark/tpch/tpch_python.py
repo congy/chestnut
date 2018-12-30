@@ -327,9 +327,9 @@ read_queries = [q1, q3, q4, q5, q6, q7, q12, q13, q14, q15]
 # q8: to be fixed
 #test_merge(q12)
 
-#prune_nesting_test(read_queries)
-#test_prune_read_plan(read_queries)
-search_plans_for_one_query(q5)
+prune_nesting_test(read_queries)
+test_prune_read_plan(read_queries)
+#search_plans_for_one_query(q5)
 #test_ilp(read_queries)
 
 # dsmanagers = enumerate_nestings_for_query(q5)
