@@ -8,6 +8,7 @@ from redmine_schema import *
 from nesting import *
 from plan_search import *
 from ds_manager import *
+from populate_database import *
 from ilp.ilp_manager import *
 import globalv
 
@@ -17,11 +18,12 @@ set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 
-set_cpp_files_path('../../')
+set_cpp_file_path('{}/{}/'.format(os.getcwd(), workload_name))
 
 globalv.tables = [issue, user, member, project, enabled_module, version, news, board, message, tracker, role, issue_status, enumeration]
 globalv.associations = [project_issue, issue_tracker, issue_status_issue, member_user, project_member, member_roles,\
-project_tracker, project_news, project_enabled_module, project_version, project_board, message_board, project_enumeration, issue_version, issue_user, issue_enumeration]
+project_tracker, project_news, project_enabled_module, project_version, project_board, message_board, project_enumeration]
+#issue_version, issue_user, issue_enumeration]
 
 from activity_index import *
 from issue_index import *
@@ -30,10 +32,13 @@ from project_index import *
 from project_show import *
 from welcome_index import *
 from project_new import *
-from project_slow import *
+#from project_slow import *
 
-#generate_db_data_files(datafile_dir, tables, associations)
-#exit(0)
+
+#generate_proto_files(get_cpp_file_path(), tables, associations)
+generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+#populate_database(data_dir, tables, associations)
+exit(0)
 
 read_queries = [q_ai_0, q_ai_1, \
 q_ii_1, q_ii_2, \

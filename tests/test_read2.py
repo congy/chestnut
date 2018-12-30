@@ -3,17 +3,22 @@ sys.path.append("../")
 from schema import *
 from query import *
 from pred import *
-from nesting import *
 from plan_search import *
 from ilp.ilp_manager import *
 from ds_manager import *
+from populate_database import *
+from codegen.protogen import *
+from codegen.codegen_test import *
 import globalv
 
 workload_name = "test2"
 set_db_name(workload_name)
+datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
+set_data_file_dir(datafile_dir)
+set_cpp_file_path('{}/{}/'.format(os.getcwd(), workload_name))
 
-scale=50
-issue = Table('issue', scale*2000)
+scale=1
+issue = Table('issue', scale*1000)
 project = Table('project', scale*80)
 enabled_module = Table('enabled_module', project.sz*6)
 issue_status = Table('issue_status', 10)
@@ -48,7 +53,19 @@ SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False)))))
 q_mp_2.aggr(UnaryExpr(COUNT), 'count_issue')
 q_mp_2.complete()
 
+q2 = get_all_records(issue)
+q2.pfilter(BinOp(f('project').f('status'), EQ, Parameter('s1')))
+q2.complete()
+
+q3 = get_all_records(issue)
+q3.pfilter(SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, Parameter('ps'))))
+q3.aggr(UnaryExpr(COUNT), 'count_issue')
+q3.complete()
+
+
 q = q_mp_2
+tables = [issue, project, enabled_module, issue_status]
+associations = [issue_status_issue, project_issue, project_enabled_module]
 
 # test enumerate nesting
 # dsmanagers = enumerate_nestings_for_query(q)
@@ -58,7 +75,16 @@ q = q_mp_2
 #   print '--------'
 
 # test search plan
-search_plans_for_one_query(q)
+#search_plans_for_one_query(q)
 
 # test_merge(q)
 # test_ilp([q])
+
+data_dir=datafile_dir
+#generate_proto_files(get_cpp_file_path(), tables, associations)
+#generate_db_data_files(data_dir, tables, associations)
+#populate_database(data_dir, tables, associations)
+#test_generate_sql([q])
+#test_deserialize([q])
+#test_initialize(tables, associations, [q], 352) #0, 172, 272 
+test_query(tables, associations, q, 20)

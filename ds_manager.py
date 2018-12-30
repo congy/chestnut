@@ -3,8 +3,8 @@ from util import *
 from cost import *
 
 
-def create_primary_array(table, value=OBJECT):
-  t = ObjBasicArray(table, value)
+def create_primary_array(table):
+  t = ObjBasicArray(table, IndexValue(OBJECT, table))
   return t
 
 def table_contains(tbl1, tbl2): #return True if tbl1 contains tbl2
@@ -51,6 +51,12 @@ class DSManager(object):
         new_ary = create_primary_array(ds.table)
         self.data_structures.append(new_ary)
         return new_ary
+    for ds in self.data_structures:
+      if ds.is_primary and ds.table == table:
+        return ds
+    for ds in self.data_structures:
+      if ds.is_primary and table_contains(ds.table, table):
+        return ds
     return None
   def find_placeholder(self, table):
     for ds in self.data_structures:
@@ -138,7 +144,7 @@ class DSManager(object):
         # if not any([ds.table==ds_.table for ds_ in new_ds]):
         #   nd = create_primary_array(ds.table)
         #   new_ds.append(nd)
-        new_ds.append(IndexPlaceHolder(ds.table, OBJECT))
+        new_ds.append(IndexPlaceHolder(ds.table, IndexValue(OBJECT, ds.table)))
     dsmng.data_structures = new_ds
     return dsmng
   def clear_placeholder(self):
@@ -183,3 +189,4 @@ def collect_all_ds_helper2(ds, symbol=False):
   next_lst, next_memobj = collect_all_ds_helper1(obj.nested_objects)
   next_memobj[ds] = obj
   return next_lst, next_memobj
+

@@ -57,7 +57,7 @@ class EnvCollectionVariable(TempVariable):
   def to_json(self, full_dump=False):
     return {"atom":False, "name":self.name, "type":self.tipe.name, "fields":[f.field_class.name for f in self.fields]} if full_dump else self.name
     
-def get_envvar_name(v):
+def get_envvar_name():
   global envvar_cnt
   envvar_cnt += 1
   return 'v{}'.format(envvar_cnt)
@@ -121,7 +121,7 @@ class AtomValue(object):
     self.v = v
     self.tipe = tipe
   def to_var_or_value(self, replace={}):
-    return self.v
+    return '"{}"'.format(self.v) if is_string_type(self.tipe) or type(self.v) is str else self.v
   def to_z3_value(self):
     if is_string_type(self.tipe) or type(self.v) is str:
       return hash(self.v) % MAXINT
@@ -465,7 +465,7 @@ class BinOp(Pred):
     if isinstance(self.rh, MultiParam):
       for x in self.rh.params:
         x.tipe = self.lh.get_type()
-    elif isinstance(self.rh, Parameter):
+    else:
       self.rh.tipe = self.lh.get_type()
   def __str__(self):
     return "({} {} {})".format(self.lh, pred_op_to_cpp_map[self.op], self.rh)
@@ -646,3 +646,17 @@ def get_query_field(f):
     return f
   elif isinstance(f, AssocOp):
     return get_query_field(f.rh)
+def get_leftmost_qf(f):
+  if isinstance(f, QueryField):
+    return f
+  elif isinstance(f, AssocOp):
+    return f.lh
+def get_fields_from_assocop(f):
+  if isinstance(f, QueryField):
+    return [f]
+  return [f.lh] + get_fields_from_assocop(f.rh)
+def get_query_table(f):
+  if isinstance(f, QueryField):
+    return f.table
+  elif isinstance(f, AssocOp):
+    return get_query_table(f.lh)

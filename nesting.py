@@ -33,6 +33,11 @@ class ObjNesting(object):
     for k,v in self.assocs.items():
       o.assocs[k] = v.fork()
     return o
+  def get_all_fields(self):
+    r = [f for f in self.fields]
+    for k,v in self.assocs.items():
+      r = r + v.get_all_fields()
+    return r
   def add_assoc(self, qf, assoc):
     assoc.level = self.level + 1
     assert(not isinstance(assoc.table, NestedTable))
@@ -41,6 +46,10 @@ class ObjNesting(object):
     else:
       self.assocs[qf] = assoc
   def get_assoc(self, qf):
+    return self.assocs[qf]
+  def get_or_add_assoc(self, qf):
+    if qf not in self.assocs:
+      self.add_assoc(qf, ObjNesting(qf.field_class))
     return self.assocs[qf]
   def __str__(self):
     s = "ObjShape [{}] ({} : ({}))\n".format(self.level, self.table.name, \
@@ -129,20 +138,20 @@ def helper_get_assoc_exist_idx(qf, for_scan_pred=False):
   if main_t.has_one_or_many_field(reverse_assoc_field_name) == 0:
     id_qf = QueryField('id', table)
     assoc_qf = QueryField(reverse_assoc_field_name, main_t)
-    keys = [id_qf]
+    keys = [KeyPath(id_qf)]
     if for_scan_pred:
-      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, UpperQueryField('id', table)))
+      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('fk_{}_id'.format(table.name))))
     else:
-      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('{}_id'.format(table.name))))
+      condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('fk_{}_id'.format(table.name))))
   else:
-    if for_scan_pred:
+    #if for_scan_pred:
       assoc_qf = QueryField('{}_id'.format(reverse_assoc_field_name), main_t)
       # not index pred, so do not add parameter, but query field instead
-      return [assoc_qf], BinOp(assoc_qf, EQ, UpperQueryField('id', table=qf.table))
-    else:
-      assoc_qf = AssocOp(QueryField(reverse_assoc_field_name, main_t), QueryField('id', table))
-      keys = [assoc_qf]
-      condition = BinOp(assoc_qf, EQ, Parameter('{}_id'.format(get_main_table(table).name)))
+      return [KeyPath(assoc_qf)], BinOp(assoc_qf, EQ, Parameter('fk_{}_id'.format(table.name)))
+    #else:
+      #assoc_qf = AssocOp(QueryField(reverse_assoc_field_name, main_t), QueryField('id', table))
+      #keys = [KeyPath(assoc_qf)]
+      #condition = BinOp(assoc_qf, EQ, Parameter('fk_{}_id'.format(get_main_table(table).name)))
   return keys, condition
 
 def table_already_contained(dsmng, table):
@@ -189,7 +198,7 @@ def enumerate_nesting_helper(nesting, table, level):
         next_lst = enumerate_nesting_helper(assoc, main_t, 1)
         for (next_obj,next_dsmng) in next_lst:
           temp_obj = MemObject(table)
-          next_ds = IndexPlaceHolder(nested_t, MAINPTR)
+          next_ds = IndexPlaceHolder(nested_t, IndexValue(MAINPTR))
           temp_obj.add_nested_object(next_ds)
           next_dsmng.add_ds(IndexPlaceHolder(next_obj.table, IndexValue(OBJECT, next_obj)))
           lst[i].append((temp_obj, next_dsmng))
@@ -199,12 +208,13 @@ def enumerate_nesting_helper(nesting, table, level):
       next_lst = enumerate_nesting_helper(assoc, main_t, 1)
       keys, condition = helper_get_assoc_exist_idx(qf)
       for (next_obj,next_dsmng) in next_lst:
-        exist_idx1 = ObjTreeIndex(next_obj.table, keys, condition, value=MAINPTR)
+        exist_idx1 = ObjTreeIndex(next_obj.table, IndexKeys(keys), condition, IndexValue(MAINPTR))
         next_dsmng.add_ds(IndexPlaceHolder(next_obj.table, IndexValue(OBJECT, next_obj)))
         next_dsmng.add_ds(exist_idx1)
         lst[i].append((MemObject(table), next_dsmng))
 
     
+    """
     if qf not in globalv.reversely_visited and qf not in globalv.always_nested \
       and qf not in globalv.always_fk_indexed \
       and is_main_table(table) and not table.is_temp:
@@ -228,6 +238,7 @@ def enumerate_nesting_helper(nesting, table, level):
         new_ds = IndexPlaceHolder(denorm_t, IndexValue(OBJECT, next_obj))
         next_dsmng.add_ds(new_ds)
         lst[i].append((MemObject(denorm_t), next_dsmng))
+    """
 
     """
     # FIXME: only consider such plan in a few circumstances

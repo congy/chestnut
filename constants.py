@@ -26,7 +26,7 @@ def get_data_file_dir():
   return _data_file_dir
 
 
-MAXINT = 4294967295
+MAXINT = 23451 #4294967295
 INVALID_VALUE = 4294967295+1
 
 MAX_NESTED_LEVEL = 4
@@ -53,6 +53,8 @@ OBJECT = 4013
 #index op type
 RANGE = 1011  
 POINT = 1012  
+OPEN = 1013
+CLOSE = 1014
 index_type_to_str = {RANGE: 'range', POINT: 'point'}
 
 INSERT=3001
@@ -79,6 +81,7 @@ IN=15
 SUBSTR=16
 
 EXIST=20
+EXISTS=EXIST
 FORALL=21
 ASSOC=22
 
@@ -135,7 +138,7 @@ def get_param_proto_type(tipe):
   else:
     return get_proto_type(tipe)
 
-#mysql_types = {"int":"int(11)", "smallint":"int(8)", "oid":"int(11)", "uint":"int(11)", "float":"float","bool":"tinyint(1)", "date":"datetime"}
+mysql_types = {"int":"int(11)", "smallint":"int(8)", "oid":"int(11)", "uint":"int(11)", "float":"float","bool":"tinyint(1)", "date":"datetime"}
 
 type_size = {"int":1, "oid":1, "uint":1, "smallint":1, "float":2, "bool":1, "date":1}
 type_to_print_symbol = {'int':'%d', 'oid':'%u', 'smallint':'%u', 'date':'%u', 'uint':'%u', 'float':'%f', 'bool':'%d',
@@ -222,6 +225,15 @@ def get_cpp_type(tipe):
     return 'LongString'
   else:
     return cpp_types[tipe]
+
+def get_sql_type(tipe):
+  if is_varchar_type(tipe):
+    return tipe
+  elif is_long_string_type(tipe):
+    return 'text'
+  else:
+    assert(tipe in mysql_types)
+    return mysql_types[tipe]
 
 def get_varchar_length(tipe):
   if is_long_string_type(tipe):
@@ -310,7 +322,7 @@ def get_init_value_by_type(tipe):
     elif is_float_type(tipe):
       return 0.0
     elif is_varchar_type(tipe):
-      return ''
+      return '""'
       #return ''.join(['0' for i in range(0, get_varchar_length(tipe))])
   else:
     return 0
@@ -327,12 +339,23 @@ cpp_files_to_copy = [
   'bwtree.h',
   'sorted_small_set.h'
 ]
-cpp_files_path = '../'
+cpp_files_to_copy_path = '../../'
 
-def set_cpp_files_path(new_path):
-  global cpp_files_path
-  cpp_files_path = new_path
+def set_files_to_copy_path(new_path):
+  global cpp_files_to_copy_path
+  cpp_files_to_copy_path = new_path
 
-def get_cpp_files_path():
-  global cpp_files_path
-  return cpp_files_path
+def get_cpp_files_to_copy_path():
+  global cpp_files_to_copy_path
+  return cpp_files_to_copy_path
+
+cpp_file_path = ''
+def set_cpp_file_path(new_path):
+  global cpp_file_path
+  cpp_file_path = new_path
+  if not os.path.exists(cpp_file_path):
+    os.system('mkdir {}'.format(cpp_file_path))
+
+def get_cpp_file_path():
+  global cpp_file_path
+  return cpp_file_path

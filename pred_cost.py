@@ -101,8 +101,8 @@ def get_denormalized_table_factor(idx_pred):
   if isinstance(idx_pred, SetOp):
     if idx_pred.rh.has_param():
       pred_factor = get_denormalized_table_factor(idx_pred.rh)
-      assoc = get_query_field(idx_pred.lh).table.get_assoc_by_name(idx_pred.lh.field_name)
-      assoc_factor = CostAssocUnit(uppert=idx_pred.lh.table, assoc=assoc)
+      assoc = get_query_field(idx_pred.lh).table.get_assoc_by_name(get_query_field(idx_pred.lh).field_name)
+      assoc_factor = CostAssocUnit(uppert=get_query_field(idx_pred.lh).table, assoc=assoc)
       if type(pred_factor) is int:
         return assoc_factor
       else:

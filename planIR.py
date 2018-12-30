@@ -23,11 +23,9 @@ class ExecQueryStep(ExecStepSuper):
     if compute_variables:
       self.variables = self.step.get_all_variables()
     #print 'Query step var length = {}'.format(len(self.variables))
-  def __str__(self):
+  def __str__(self, short=False):
     s = 'prepare query {} (len param = {})\n'.format(self.query.id, len(self.new_params))
-    globalv.set_ds_short_print(True)
-    s += '{}'.format(self.step)
-    globalv.set_ds_short_print(False)
+    s += '{}'.format(self.step.__str__(short=True))
     return s
   def to_json(self):
     variables = [x.to_json(full_dump=True) for x in self.variables]
@@ -58,6 +56,9 @@ class ExecQueryStep(ExecStepSuper):
     self.step.get_used_ds(cur_obj, dsmanager)
     dsmanager.clear_placeholder()
     return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    self.step.copy_ds_id(cur_obj, dsmanager)
+    return cur_obj
 
 class ExecSetVarStep(ExecStepSuper):
   def __init__(self, var, expr, cond=None, proj=[]):
@@ -85,7 +86,7 @@ class ExecSetVarStep(ExecStepSuper):
                 "cond":self.cond.to_json() if self.cond else None})
   def compute_cost(self):
     return self.cost
-  def __str__(self):
+  def __str__(self, short=False):
     s = 'if ({}) {} = {}\n'.format(self.cond, self.var, self.expr)
     return s
   def fork(self):
@@ -107,7 +108,11 @@ class ExecSetVarStep(ExecStepSuper):
     #print 'self projection = {}'.format(len(self.projections))
     used_fields += self.projections
     for f in used_fields:
-      cur_obj.add_field(f)
+      if type(f) is not tuple:
+        cur_obj.add_field(f)
+    return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    self.get_used_ds(cur_obj, dsmanager)
     return cur_obj
   def get_all_variables(self):
     return [self.var]
@@ -147,8 +152,8 @@ class ExecStepSeq(ExecStepSuper):
   def add_steps(self, s):
     self.steps = self.steps + s
     assert(all([type(s) is not list for s in self.steps]))
-  def __str__(self):
-    return ''.join([str(s) for s in self.steps])
+  def __str__(self, short=False):
+    return ''.join([s.__str__(short) for s in self.steps])
   def merge_step(self, other):
     step_to_remove = []
     for i in range(0, len(self.steps)):
@@ -176,10 +181,15 @@ class ExecStepSeq(ExecStepSuper):
         if check_setvar==False or s.contain_set_entryobj_var():
           return s.get_most_inner_step(check_setvar)
     return self
-  def get_used_ds(self, cur_obj, struct_pool):
+  def get_used_ds(self, cur_obj, dsmanager):
     obj = cur_obj
     for s in self.steps:
-      obj = s.get_used_ds(obj, struct_pool)
+      obj = s.get_used_ds(obj, dsmanager)
+    return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    obj = cur_obj
+    for s in self.steps:
+      obj = s.copy_ds_id(obj, dsmanager)
     return cur_obj
   def get_all_variables(self):
     r = []
@@ -205,7 +215,7 @@ class ExecSortStep(ExecStepSuper):
       return self.cost
     self.cost = CostOp(self.var.get_sz(), COST_MUL, CostLogOp(self.var.get_sz()))
     return self.cost
-  def __str__(self):
+  def __str__(self, short=False):
     return 'Sort on {}: ({})\n'.format(self.var, ','.join([str(o) for o in self.order]))
   def __eq__(self, other):
     return type(self) == type(other) and set_equal(self.order, other.order) and self.table == other.table
@@ -218,6 +228,8 @@ class ExecSortStep(ExecStepSuper):
   def contain_set_entryobj_var(self):
     return False
   def get_used_ds(self, cur_obj, ds_manager):
+    return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
     return cur_obj
   def get_all_variables(self):
     return []
@@ -232,7 +244,7 @@ class ExecUnionStep(ExecStepSuper):
     # if query.order: merge sort
     # recompute aggrs
     self.cost = 0
-  def __str__(self):
+  def __str__(self, short=False):
     return 'Union [{}]'.format(','.join([str(v) for v in self.union_vars]))
   def to_json(self):
     return ('ExecUnionStep',{"returnv":self.return_var.to_json(), "union_vars":[], "aggrs":[(v.to_json(), f.to_json()) for v,f in self.aggrs],\
@@ -249,6 +261,8 @@ class ExecUnionStep(ExecStepSuper):
     return self.cost
   def get_used_ds(self, cur_obj, ds_manager):
     return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    return cur_obj
   def fork(self):
     s = ExecUnionStep(self.return_var, [v for v in self.aggrs], [v for v in self.union_vars], self.order)
     return s
@@ -260,7 +274,7 @@ class ExecGetAssocStep(ExecStepSuper):
     self.field = field
     self.idx = idx # can be nested object (BasicArray), FK index, or main_obj (scan to find a match)
     self.cost = 0
-    name = get_envvar_name(f)
+    name = get_envvar_name()
     self.var = EnvAtomicVariable(name, field.get_type())
   def fork(self):
     es = ExecGetAssocStep(self.field, self.idx)
@@ -278,8 +292,8 @@ class ExecGetAssocStep(ExecStepSuper):
     return 1
   def template_eq(self, other):
     return self.__eq__(other)
-  def __str__(self):
-    return 'GetAssoc {} via {}\n'.format(self.field, self.idx.value if self.idx else None)
+  def __str__(self, short=False):
+    return 'GetAssoc {} via {}\n'.format(self.field, self.idx.value.__str__(short) if self.idx else None)
   def compatible(self, other):
     return self.__eq__(other)
   def get_read_queries(self):
@@ -291,13 +305,40 @@ class ExecGetAssocStep(ExecStepSuper):
   def get_used_ds(self, cur_obj, ds_manager):
     if self.idx is None:
       cur_obj.add_field(self.field)
-      return
+      return cur_obj
     next_obj = None
     idx = self.idx.fork_without_memobj()
     if idx.value.is_object():
       next_obj = idx.value.get_object()
     elif idx.value.is_main_ptr():
       primary_ary = ds_manager.find_primary_array(get_main_table(idx.table))
+      idx.value.value = primary_ary
+      next_obj = primary_ary.value.get_object()
+    if is_main_table(self.idx.table): # top level array/index
+      ds_manager.add_ds(idx, replace=True) # add foreign key index
+    else:
+      assert(cur_obj)
+      cur_obj.add_nested_object(idx, replace=True)
+    return next_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    if self.idx is None:
+      cur_obj.add_field(self.field)
+      return cur_obj
+    eq_ds = None
+    if is_main_table(self.idx.table):
+      for ds in dsmanager.data_structures:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    else:
+      for ds in cur_obj.nested_objects:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    assert(eq_ds)
+    self.idx.id = eq_ds.id
+    if self.idx.value.is_object():
+      next_obj = eq_ds.value.get_object()
+    else:
+      primary_ary = dsmanager.find_primary_array(get_main_table(self.idx.table))
       next_obj = primary_ary.value.get_object()
     return next_obj
   def retrieves_field(self, f): 
@@ -319,6 +360,8 @@ class ExecScanStep(ExecStepSuper):
     self.idx = idx
     self.ele_ops = ExecStepSeq() 
     self.cost = 0
+    self.op = IndexOp(RANGE)
+    self.params = []
   def fork(self):
     es = ExecScanStep(self.idx)
     es.ele_ops = self.ele_ops.fork()
@@ -342,12 +385,10 @@ class ExecScanStep(ExecStepSuper):
     return self.cost
   def template_eq(self, other):
     return type(self) == type(other) and self.idx == other.idx
-  def __str__(self):
-    ele_s = '\n'.join(['  '+line for line in str(self.ele_ops).split('\n')])
+  def __str__(self, short=False):
+    ele_s = '\n'.join(['  '+line for line in self.ele_ops.__str__(short).split('\n')])
     if isinstance(self.idx, ObjBasicArray):
-      s = "Scan {} : \n{}\n".format(self.idx, ele_s)
-    elif isinstance(self.idx, ReadQuery):
-      s = "Scan on result {} : \n{}\n".format(self.idx.return_var.name, ele_s)
+      s = "Scan {} : \n{}\n".format(self.idx.__str__(short), ele_s)
     else:
       assert(False)
     return s
@@ -377,6 +418,7 @@ class ExecScanStep(ExecStepSuper):
     elif idx.value.is_main_ptr():
       main_t = get_main_table(idx.table)
       primary_ary = ds_manager.find_primary_array(main_t)
+      idx.value.value = primary_ary
       assert(primary_ary)
       # if primary_ary is None:
       #   primary_ary = create_primary_array(main_t)
@@ -385,37 +427,71 @@ class ExecScanStep(ExecStepSuper):
     #else: # aggr
     self.ele_ops.get_used_ds(next_obj, ds_manager)
     return cur_obj
+  def copy_ds_id(self, cur_obj, dsmanager):
+    eq_ds = None
+    if is_main_table(self.idx.table):
+      for ds in dsmanager.data_structures:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    else:
+      for ds in cur_obj.nested_objects:
+        if ds.eq_without_memobj(self.idx):
+          eq_ds = ds
+    assert(eq_ds)
+    self.idx.id = eq_ds.id
+    if self.idx.value.is_object():
+      next_obj = eq_ds.value.get_object()
+    else:
+      primary_ary = dsmanager.find_primary_array(get_main_table(self.idx.table))
+      next_obj = primary_ary.value.get_object()
+    self.ele_ops.copy_ds_id(next_obj, dsmanager)
+    return cur_obj
   def get_all_variables(self):
     return self.ele_ops.get_all_variables()
 
+class IndexOp(object):
+  def __init__(self, op, left=CLOSE, right=CLOSE):
+    self.op = op
+    self.left = left
+    self.right = right
+  def __eq__(self, other):
+    return self.op == other.op and self.left == other.left and self.right == other.right
+  def is_range(self):
+    return self.op==RANGE
+  def is_point(self):
+    return self.op==POINT
+  def fork(self):
+    return IndexOp(self.op, self.left, self.right)
+  def __str__(self):
+    if self.op == POINT:
+      return 'point'
+    else:
+      return 'range{}{}'.format('[' if self.left == CLOSE else '(', ']' if self.right == CLOSE else ')')
 # scan
 class ExecIndexStep(ExecScanStep):
-  def __init__(self, idx, idx_pred, idx_op_type, params):
+  def __init__(self, idx, idx_pred, idx_op, params):
     self.idx = idx
-    self.idx_op_type = idx_op_type
+    self.op = idx_op
     self.params = params
     self.ele_ops = ExecStepSeq()
     self.idx_pred = idx_pred
     self.cost = 0
-  def to_json(self):
-    return ('ExecIndexStep', {"idx":self.idx.id, "steps":self.ele_ops.to_json(), "params":[p.to_json() for p in self.params], \
-          "op-type":'range' if self.idx_op_type == RANGE else 'point', "idx-pred":self.idx_pred.to_json() if self.idx_pred else None})
   def fork(self):
-    e = ExecIndexStep(self.idx, self.idx_pred, self.idx_op_type, self.params)
+    e = ExecIndexStep(self.idx, self.idx_pred, self.op.fork(), self.params)
     e.ele_ops = self.ele_ops.fork() 
     return e 
   def __eq__(self, other):
     return type(self) == type(other) and \
             self.idx == other.idx and \
-            self.idx_op_type == other.idx_op_type and \
+            self.op == other.op and \
             self.idx_pred == other.idx_pred and \
             self.ele_ops == other.ele_ops
   def template_eq(self, other):
     return type(self) == type(other) and self.idx_pred.template_eq(other.idx_pred) and self.idx.value == other.idx.value
-  def __str__(self):
-    ele_s = '\n'.join(['  '+line for line in str(self.ele_ops).split('\n')])
+  def __str__(self, short=False):
+    ele_s = '\n'.join(['  '+line for line in self.ele_ops.__str__(short).split('\n')])
     param_s = ','.join([str(p) for p in self.params])
-    s = "Index {} on [{}] (params = [{}]): \n{}\n".format(index_type_to_str[self.idx_op_type], self.idx, param_s, ele_s)
+    s = "Index {} on [{}] (params = [{}]): \n{}\n".format(self.op, self.idx.__str__(short), param_s, ele_s)
     return s
   def compute_cost(self):
     if cost_computed(self.cost):
@@ -433,7 +509,7 @@ class ExecIndexStep(ExecScanStep):
       self.cost = CostOp(lookup_cost, COST_ADD, CostOp(CostOp(total_ele_cnt, COST_DIV, filter_ratio), COST_MUL, ele_cost))
     return self.cost
   def compatible(self, other):
-    return type(self) == type(other) and self.idx == other.idx and self.idx_op_type == other.idx_op_type \
+    return type(self) == type(other) and self.idx == other.idx and self.op == other.op \
           and self.params == other.params
     
 

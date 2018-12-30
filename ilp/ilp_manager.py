@@ -7,8 +7,9 @@ from ilp_helper import *
 from query_manager import *
 from ilp_helper import *
 from prune_plans import *
-#from gurobipy import *
-from ilp_fake import *
+from gurobipy import *
+from ds_manager import *
+#from ilp_fake import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -105,8 +106,9 @@ class ILPVariableManager(object):
       self.memobjv[dsid] = [(fields[i], newv[i]) for i in range(0, len(fields))]
     for ds in dsmng.data_structures:
       if ds.value.is_main_ptr():
-        dependent = dsmng.find_primary_array_exact_match(ds.table)
-        assert(dependent)
+        #dependent = dsmng.find_primary_array_exact_match(ds.table)
+        dependent = ds.value.value
+        assert(dependent and dependent.id > 0)
         self.dsv_dependency.append((ds.id, dependent.id))
   # return [ds_id], {ds_id:[field]}
   def add_ds_list_helper(self, lst):
@@ -225,12 +227,11 @@ def test_ilp(read_queries, write_queries=[], membound_factor=2):
         plan.get_used_ds(None, new_dsmnger)
         rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
         begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
+        plan.copy_ds_id(None, new_dsmnger)
 
   print dsmeta
 
   prune_read_plans(rqmanagers, dsmeta)
-
-  
 
   ilp = ILPVariableManager()
   ilp.mem_bound = mem_bound 
@@ -248,6 +249,15 @@ def test_ilp(read_queries, write_queries=[], membound_factor=2):
 
   print 'result data structures = {}'.format(ilp.ret_dsmng)
   print 'mem cost = {}'.format(to_real_value(ilp.ret_dsmng.compute_mem_cost()))
+  print 'cost breakdown: '
+  ds_lst, memobj = collect_all_ds_helper1(ilp.ret_dsmng.data_structures)
+  for ds in ds_lst:
+    print 'ds {} cost = {}'.format(ds.id, to_real_value(ds.compute_mem_cost()))
+  for k,v in memobj.items(): 
+    cnt = k.element_count()
+    field_sz = sum([f.field_class.get_sz() for f in v.fields])
+    print 'memobj {} #ele = {}, field = {}, cost = {}'.format(k.__str__(True), to_real_value(cnt), field_sz, to_real_value(cost_mul(cnt, field_sz)))
+
   print 'result query plan:'
   for i in range(0, len(read_queries)):
     print 'QUERY {}:'.format(i)

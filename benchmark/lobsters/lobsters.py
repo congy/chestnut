@@ -1,15 +1,15 @@
 import sys
-import os
 sys.path.append("../../")
 from schema import *
-from constants import *
-from populate_database import *
-from lobsters_schema import *
-
-from nesting import *
+from query import *
+from pred import *
 from plan_search import *
-from ds_manager import *
 from ilp.ilp_manager import *
+from ds_manager import *
+from populate_database import *
+from codegen.protogen import *
+from codegen.codegen_test import *
+from lobsters_schema import *
 import globalv
 
 #from test_ilp import *
@@ -19,7 +19,7 @@ set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 
-set_cpp_files_path('../../')
+set_cpp_file_path('{}/{}/'.format(os.getcwd(), workload_name))
 
 globalv.tables = [story, comment, message, tag, vote, user]
 globalv.associations = [storys_user, storys_tags, storys_hidden, comments_user, comments_story, message_author, message_recipient, \
@@ -84,10 +84,11 @@ globalv.set_qr_type('fastv')
 #generate_plans_for_all_queries(tables, associations, [q_ct_2], [])
 #exit(0)
 
+search_plans_for_one_query(read_queries[6])
 #test_merge(q_us_2)
 #prune_nesting_test(read_queries)
 #test_ilp(read_queries)
-test_prune_read_plan(read_queries)
+#test_prune_read_plan(read_queries)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):

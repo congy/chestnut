@@ -90,8 +90,10 @@ def require_basic_ary(idx, relates):
 
 def get_loop_define(idx, is_begin=True, is_range=False):
   range_for = 'RANGE_' if is_range else 'INDEX_'
-  suffix = 'BEGIN' if is_begin else 'END'
+  suffix = 'BEGIN' if is_begin else 'END\n'
   if isinstance(idx, ObjBasicArray):
+    if isinstance(idx.table, NestedTable) and get_main_table(idx.table.upper_table).has_one_or_many_field(idx.table.name) == 1:
+      return 'SINGLE_ELEMENT_FOR_{}'.format(suffix) 
     sz = to_real_value(idx.compute_size())
     if sz < SMALL_DT_BOUND:
       return 'SMALLBASICARRAY_FOR_{}'.format(suffix)
@@ -109,7 +111,7 @@ def get_loop_define(idx, is_begin=True, is_range=False):
     elif isinstance(idx, ObjHashIndex):
       typ = 'HASHINDEX'
     elif isinstance(idx, ObjArray):
-      typ = 'OBJARRAY'
+      typ = 'BASICARRAY'
       range_for = ''
     return '{}{}_{}FOR_{}'.format(prefix, typ, range_for, suffix)
   else:
@@ -137,7 +139,7 @@ def get_idx_define(idx):
     elif isinstance(idx, ObjHashIndex):
       return '{}HashIndex'.format(prefix)
     elif isinstance(idx, ObjArray):
-      return '{}ObjArray'.format(prefix)
+      return '{}BasicArray'.format(prefix)
   assert(False)
 
 def index_conflict(idx1, idx2):
@@ -181,7 +183,7 @@ def get_idxop_and_params_by_pred(pred, keys, nonexternal={}):
         op = RANGE
       elif q.op == EQ:
         if any([q.lh==qf for qf,v in nonexternal.items()]):
-          params[q.lh] = ([nonexternal[q.lh]])
+          params[q.lh] = ([nonexternal[q.lh][0]])
         else:
           params[q.lh] = ([q.rh])
       elif q.op == BETWEEN:
@@ -208,6 +210,7 @@ def get_idxop_and_params_by_pred(pred, keys, nonexternal={}):
     else:
       r_params[0].add_param(k, v[0])
       r_params[1].add_param(k, v[1])
+  
   return op, r_params
 
 def get_order_param(order):
@@ -232,7 +235,7 @@ def merge_order_pred(idx, order):
       r_param_2.add_param(o, o.field_class.get_max_value())
 
   # FIXME: only tree index
-  new_idx = ObjTreeIndex(idx.table, keys, cond, value=idx.value)
+  new_idx = ObjTreeIndex(idx.table, keys, cond, idx.value)
   return new_idx, RANGE, [r_param_1, r_param_2]
 
 def replace_subpred_with_var(pred, placeholder):

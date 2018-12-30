@@ -1,3 +1,4 @@
+
 import random
 import string
 
@@ -32,6 +33,7 @@ def map_contain(a, key, eq_func=(lambda x,y: x==y)):
       return v
   return None
 
+
 def set_equal(a, b, eq_func=(lambda x,y: x==y)):
   if len(a) != len(b):
     return False
@@ -46,6 +48,8 @@ def set_equal(a, b, eq_func=(lambda x,y: x==y)):
 
 def list_equal(a, b, eq_func=(lambda x,y: x==y)):
   return len(a) == len(b) and all([eq_func(a[i],b[i]) for i in range(0, len(a))])
+def map_equal(a, b, value_func=(lambda x,y: x==y)):
+  return len(a) == len(b) and all([k in b and value_func(v, b[k]) for k,v in a.items()])
 
 def set_no_duplicate(a, eq_func=(lambda x,y: x==y)):
   for i,ele in enumerate(a):
@@ -56,11 +60,7 @@ def set_no_duplicate(a, eq_func=(lambda x,y: x==y)):
       
 def set_union(a, b, eq_func=(lambda x,y: x==y)):
   for ele in b:
-    exist = False
-    for ele1 in a:
-      if eq_func(ele, ele1):
-        exist = True
-    if not exist:
+    if not any([eq_func(x,ele) for x in a]): 
       a.append(ele)
   return a
 
@@ -113,18 +113,29 @@ def list_union(lsts):
     r = r + l
   return r
 
+def add_to_list_map(k, v, mp):
+  for k1,v1 in mp.items():
+    if k1==k:
+      v1.append(v)
+      return
+  mp[k] = [v]
+
 def list_combine(lsts):
   r = [s for s in lsts[0]]
   for l in lsts[1:]:
     r = r + l
   return r
 
-def list_remove_duplicate(lst):
-  l = []
-  for ele in lst:
-    if ele not in l:
-      l.append(ele)
-  return l
+def insert_no_duplicate(lst, ele, eq_func=(lambda x,y:x==y)):
+  if not any([eq_func(x,ele) for x in lst]):
+    lst.append(ele)
+
+def remove_duplicate(lst):
+  r = []
+  for l in lst:
+    if l not in r:
+      r.append(l)
+  return r
 
 def insert_indent(s, indent_level=1):
   indent = ''.join(['  ' for i in range(0, indent_level)])

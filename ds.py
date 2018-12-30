@@ -7,9 +7,9 @@ import itertools
 import globalv
 
 class IndexParam(object):
-  def __init__(self):
-    self.fields = []
-    self.params = []
+  def __init__(self, fields=[], params=[]):
+    self.fields = [f for f in fields]
+    self.params = [p for p in params]
   def to_json(self):
     return [(self.fields[i].to_json(), self.params[i].to_json() if not value_is_basic_type(self.params[i]) else self.params[i]) for i in range(0, len(self.fields))]
   def add_param(self, f, p):
@@ -37,8 +37,6 @@ class AggrResult(object):
     self.delta_exprs = delta_exprs
   def to_json(self):
     return [(v.to_json(), f.to_json()) for a,f in self.aggrs]
-  def __str__(self):
-    return [(v.name, aggr.to_json()) for v, aggr in self.aggrs]
   def merge(self, other):
     self.aggrs += other.aggrs
     self.delta_exprs += other.delta_exprs
@@ -52,13 +50,14 @@ class AggrResult(object):
   def __eq__(self, other):
     #return set_equal(self.aggrs, other.aggrs, eq_func=lambda x,y: x[0]==y[0] and x[1]==y[1])
     return True
-  def __str__(self):
+  def __str__(self, short=False):
     return 'aggr({})'.format(','.join([aggr for v,aggr in self.aggrs]))
 
 class MemObject(object):
   def __init__(self, table):
+    assert(table)
     self.table = table # Table or NestedTable or DenormalizedTable
-    self.fields = []
+    self.fields = [QueryField('id', t) for t in table.tables] if isinstance(table, DenormalizedTable) else [QueryField('id', get_main_table(table))]
     self.nested_objects = [] # array of nested BasicArray / ObjSortedArray / ObjArray
   def get_all_fields(self):
     return self.fields
@@ -87,8 +86,8 @@ class MemObject(object):
   def __eq__(self, other):
     # TODO
     return self.table == other.table
-  def __str__(self):
-    if len(self.nested_objects) == 0:
+  def __str__(self, short=False):
+    if len(self.nested_objects) == 0 or short:
       return 'memobj({}-{})'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
     s = 'memobj({}-{}), nested = {{\n'.format(self.table.get_full_type(), ','.join([f.field_name for f in self.fields]))
     for o in self.nested_objects:
@@ -120,6 +119,11 @@ class MemObject(object):
       if get_main_table(o.table.upper_table) == field.table and o.table.name == field.field_name:
         return o
     return None 
+  def get_value_type_name(self):
+    if isinstance(self.table, NestedTable):
+      return '{}In{}'.format(get_capitalized_name(self.table.name), get_capitalized_name(get_main_table(self.table.upper_table).name))
+    else:
+      return get_capitalized_name(self.table.name)
 
 class IndexValue(object):
   # value: objtype / None / aggrs
@@ -134,7 +138,7 @@ class IndexValue(object):
     elif value_type == OBJECT:
       self.value = value.fork() if isinstance(value, MemObject) else MemObject(value)
     else:
-      self.value = None
+      self.value = value
   def to_json(self):
     if self.value_type == MAINPTR:
       return "mainptr"
@@ -146,12 +150,17 @@ class IndexValue(object):
     return self.value_type == OBJECT
   def is_aggr(self):
     return self.value_type == AGGR
-  def __str__(self):
+  def __str__(self, short=False):
     if self.value_type == MAINPTR:
-      return 'ptr'
+      return 'ptr to {}'.format(self.value.id if self.value else 'none')
     else:
-      return str(self.value)
+      return self.value.__str__(short)
   def __eq__(self, other):
+    if self.value_type == MAINPTR:
+      return self.value_type == other.value_type and self.value == other.value
+    else:
+      return self.value_type == other.value_type
+  def eq_without_memobj(self, other):
     return self.value_type == other.value_type
   def to_json(self):
     # TODO
@@ -167,7 +176,7 @@ class IndexValue(object):
     return self.value
   def set_type(self, table):
     self.value.table = table
-
+  
 class IndexMeta(object):
   # common class members:
   # id, table, value
@@ -177,7 +186,32 @@ class IndexMeta(object):
   def clean_obj(self):
     self.value = self.value.clean_obj()
     return self
+  def is_single_element(self):
+    return False
+  def get_value_type_name(self):
+    if self.value.is_object():
+      return self.value.get_object().get_value_type_name()
+    elif self.value.is_main_ptr():
+      return 'ItemPointer'
+    elif self.value.is_aggr():
+      return 'AggrFor{}'.format(get_capitalized_name(self.table.name))
+    else:
+      assert(False)
 
+class KeyPath(object):
+  def __init__(self, key, path=[]):
+    self.path = path
+    self.key = key
+    self.hashstr = '-'.join([str(x) for x in self.path])+'-'+str(self.key)
+  def __eq__(self, other):
+    return len(self.path) == len(other.path) and all([self.path[i]==other.path[i] for i in range(0, len(self.path))]) and self.key == other.key
+  def __str__(self):
+    return self.hashstr
+  def __hash__(self):
+    return hash(self.hashstr)
+  def get_query_field(self):
+    return get_query_field(self.key)
+    
 class IndexKeys(object):
   def __init__(self, keys, range_keys=[]):
     self.keys = keys
@@ -188,25 +222,27 @@ class IndexKeys(object):
     return len(self.range_keys) > 0
   def fork(self):
     return IndexKeys([k for k in self.keys], [k for k in self.range_keys])
+  def add_denormalized_id_key(self, idf):
+    if any([k==idf for k in self.keys]):
+      if not any([k==idf for k in self.range_keys]):
+        self.range_keys.append(idf)
+    else:
+      self.keys.append(idf)
+      self.range_keys.append(idf)
   def __str__(self):
     return ','.join([str(k) for k in self.keys])
-
 
 class IndexBase(IndexMeta):
   def __init__(self, table, keys, condition, value):
     self.id = 0 
     self.table = table #table ~ obj_type
-    if isinstance(keys, IndexKeys):
-      self.keys = keys.fork()
-    else:
-      keys_, range_keys_ = get_keys_by_pred(condition)
-      assert(set_equal(keys_, keys))
-      self.keys = IndexKeys(keys, range_keys_)
-    self.condition = get_idx_condition(condition)
-    self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
+    self.keys = keys.fork()
+    self.condition = get_idx_condition(condition, keys.keys) #used to compute cost
+    self.value = value.fork()
     if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
     self.mem_cost = 0
+    self.is_refered = False
   def to_json(self):
     tables = [self.table.name]
     cur_table = self.table
@@ -220,31 +256,22 @@ class IndexBase(IndexMeta):
 
   def is_range_key(self, key):
     return self.keys.contain_range_key()
-  def get_idx_name(self):
-    return 'dt_{}'.format(self.id)
+  def get_ds_name(self):
+    return 'ds_{}'.format(self.id)
   def get_key_type_name(self):
-    if len(self.keys) > 0:
-      return "{}_key_type".format(self.get_idx_name())
+    if len(self.key_fields()) > 0:
+      return "{}_key_type".format(self.get_ds_name())
     else:
       return 'size_t'
-  def get_value_type_name(self):
-    if self.value.is_object():
-      if isinstance(self.table, NestedTable):
-        return '{}In{}{}'.format(get_capitalized_name(self.table.name),\
-                        get_capitalized_name(get_main_table(self.table.upper_table).name), self.id)
-      else:
-        return get_capitalized_name(self.table.name)
-    elif self.value.is_main_ptr():
-      return 'ItemPointer'
-    elif self.value.is_aggr():
-      return 'AggrFor{}'.format(get_capitalized_name(self.table.name))
-    else:
-      assert(False)
   def get_relates(self):
     return (isinstance(self.table, NestedTable) and self.value.is_main_ptr())
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and \
     self.keys == other.keys and self.value == other.value and \
+    self.condition.idx_pred_eq(other.condition)
+  def eq_without_memobj(self, other):
+    return type(self) == type(other) and self.table == other.table and \
+    self.keys == other.keys and self.value.eq_without_memobj(other.value) and \
     self.condition.idx_pred_eq(other.condition)
   def compute_size(self):
     return IdxSizeUnit(self)
@@ -254,7 +281,7 @@ class IndexBase(IndexMeta):
     return self.keys.keys
 
 class ObjTreeIndex(IndexBase):
-  def __init__(self, table, keys, condition=None, value=MAINPTR):
+  def __init__(self, table, keys, condition, value):
     super(ObjTreeIndex, self).__init__(table, keys, condition, value)
     self.basic_ary = None
   def compute_mem_cost(self):
@@ -263,23 +290,23 @@ class ObjTreeIndex(IndexBase):
     temp = IdxSizeUnit(self)
     #self.mem_cost = CostOp(temp, COST_ADD, CostLogOp(temp))
     self.mem_cost = temp
-    self.mem_cost = cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys])+1)
+    self.mem_cost = cost_mul(self.mem_cost, sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1)
     return self.mem_cost
   def element_count(self):
     return IdxSizeUnit(self)
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] treeindex : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
-    self.id, self.table.get_full_type(), self.keys, self.condition, self.value)
+    self.id, self.table.get_full_type(), self.keys, self.condition, self.value.__str__(short))
   def fork(self):
     return ObjTreeIndex(self.table, self.keys, self.condition, self.value) 
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjTreeIndex(self.table, self.keys, self.condition, OBJECT) 
+      return ObjTreeIndex(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table)) 
     else:
       return self.fork()
 
 class ObjSortedArray(IndexBase):
-  def __init__(self, table, keys, condition=None, value=OBJECT):
+  def __init__(self, table, keys, condition, value):
     #assert(isinstance(table, NestedTable))
     super(ObjSortedArray, self).__init__(table, keys, condition, value)
   def compute_mem_cost(self):
@@ -288,27 +315,27 @@ class ObjSortedArray(IndexBase):
     self.mem_cost = IdxSizeUnit(self)
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
-    self.mem_cost = cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys])+1)
+    self.mem_cost = cost_mul(self.mem_cost, sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1)
     return self.mem_cost
   def element_count(self):
     mem_cost = IdxSizeUnit(self)
     if isinstance(self.table, NestedTable):
       mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
     return mem_cost
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] sorted-array : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
-    self.id, self.table.get_full_type(), self.keys, self.condition, value_to_str_short(self.value))
+    self.id, self.table.get_full_type(), self.keys, self.condition, self.value.__str__(short))
   def fork(self):
     return ObjSortedArray(self.table, self.keys, self.condition, self.value) 
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjSortedArray(self.table, self.keys, self.condition, OBJECT) 
+      return ObjSortedArray(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table)) 
     else:
       return self.fork()
   
 class ObjArray(IndexBase):
   def __init__(self, table, condition=None, value=MAINPTR):
-    super(ObjArray, self).__init__(table, [], condition, value)
+    super(ObjArray, self).__init__(table, IndexKeys([]), condition, value)
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
@@ -321,15 +348,15 @@ class ObjArray(IndexBase):
     if isinstance(self.table, NestedTable):
       mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
     return mem_cost
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] array : [table = {}, cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), \
-    self.condition, value_to_str_short(self.value))
+    self.condition, self.value.__str__(short))
   def fork(self):
     return ObjArray(self.table, self.condition, self.value) 
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjArray(self.table, self.condition, OBJECT) 
+      return ObjArray(self.table, self.condition, IndexValue(OBJECT, self.table)) 
     else:
       return self.fork()
 
@@ -344,26 +371,27 @@ class ObjHashIndex(IndexBase):
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
     return self.mem_cost
-  def __str__(self):
+  def __str__(self, short=False):
     return '[{}] hashindex : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), ','.join([str(k) for k in self.keys]), \
-    self.condition, value_to_str_short(self.value))
+    self.condition, self.value.__str__(short))
   def fork(self):
     return ObjHashIndex(self.table, self.keys, self.condition, self.value)
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjHashIndex(self.table, self.keys, self.condition, OBJECT)
+      return ObjHashIndex(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table))
     else:
       return self.fork()
 
 class ObjBasicArray(IndexMeta):
-  def __init__(self, table, value=OBJECT):
+  def __init__(self, table, value):
     self.id = 0 
     self.table = table #table ~ obj_type
-    self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
+    self.value = value.fork()
     if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
     self.mem_cost = 0
+    self.is_refered = False
   def to_json(self):
     tables = [self.table.name]
     cur_table = self.table
@@ -372,28 +400,23 @@ class ObjBasicArray(IndexMeta):
       tables.insert(0, cur_table.name)
     value = self.value.to_json()
     return ("BasicArray", {"id":self.id, "table":'.'.join([t for t in tables]), "value":value})
-  def get_idx_name(self):
+  def get_key_type_name(self):
+    return 'size_t'
+  def key_fields(self):
+    return []
+  def get_ds_name(self):
     if self.is_single_element():
       return self.table.name
-    if isinstance(self.table, NestedTable):
-      return self.table.name+'_{}'.format(self.id)
     else:
-      return self.table.name
-  def get_value_type_name(self):
-    if self.value.is_object():
-      if isinstance(self.table, NestedTable):
-        return '{}In{}{}'.format(get_capitalized_name(self.table.name),\
-                        get_capitalized_name(get_main_table(self.table.upper_table).name), self.id)
-      else:
-        return get_capitalized_name(self.table.name)
-    elif self.value.is_main_ptr() or self.value.is_nested_ptr():
-      return 'ItemPointer'
+      return self.table.name+'_{}'.format(self.id)
   def get_relates(self):
     return (isinstance(self.table, NestedTable) and self.value.is_main_ptr())
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and self.value == other.value
-  def __str__(self):
-    return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), value_to_str_short(self.value))
+  def eq_without_memobj(self, other):
+    return type(self) == type(other) and self.table == other.table and self.value.eq_without_memobj(other.value)
+  def __str__(self, short=False):
+    return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), self.value.__str__(short))
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
@@ -412,7 +435,7 @@ class ObjBasicArray(IndexMeta):
     return ObjBasicArray(self.table, self.value)
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjBasicArray(self.table, OBJECT)
+      return ObjBasicArray(self.table, IndexValue(OBJECT, self.table))
     else:
       return self.fork()
 
@@ -421,72 +444,36 @@ class IndexPlaceHolder(IndexMeta):
   def __init__(self, table, value):
     self.table = table
     self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
-    if self.value.is_object() and (not isinstance(value, IndexValue)):
-      self.value.set_type(self.table)
   def fork(self):
     return IndexPlaceHolder(self.table, self.value)
   def fork_without_memobj(self):
     assert(False)
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and self.value == other.value
-  def __str__(self):
-    s = 'Placeholder [table = {}, value = {}]'.format(self.table.get_full_type(), self.value)
+  def __str__(self, short=False):
+    s = 'Placeholder [table = {}, value = {}]'.format(self.table.get_full_type(), self.value.__str__(short))
     return s
   def is_single_element(self):
     return isinstance(self.table, NestedTable) and get_main_table(self.table.upper_table).has_one_or_many_field(self.table.name) == 1
 
-def value_to_str_short(value):
-  if globalv.ds_short_print:
-    if value.is_object():
-      return 'memobj'
-    elif value.is_main_ptr():
-      return 'ptr'
-    else:
-      return 'aggr'
-  else:
-    return str(value)
 
-def get_idx_condition(pred):
+def get_idx_condition(pred, keys):
   if isinstance(pred, ConnectOp):
-    return ConnectOp(get_idx_condition(pred.lh), pred.op, get_idx_condition(pred.rh))
+    return ConnectOp(get_idx_condition(pred.lh, keys), pred.op, get_idx_condition(pred.rh, keys))
   elif isinstance(pred, SetOp):
-    return SetOp(pred.lh, pred.op, get_idx_condition(pred.rh))
+    return SetOp(pred.lh, pred.op, get_idx_condition(pred.rh, keys))
   elif isinstance(pred, BinOp):
-    if isinstance(pred.rh, MultiParam) and len(pred.get_all_params()) == 0:
-      return pred
-    if isinstance(pred.rh, Parameter):
+    if pred.lh in keys and not is_query_field(pred.rh):
       return BinOp(pred.lh, EQ, Parameter('idx_param_{}'.format(get_query_field(pred.lh).field_name), tipe=pred.lh.get_type()))
-    elif isinstance(pred.rh, AtomValue) or is_query_field(pred.rh):
-      return pred
     else:
-      assert(False)
+      return pred
+    # if isinstance(pred.rh, MultiParam) and len(pred.get_all_params()) == 0:
+    #   return pred
+    # if isinstance(pred.rh, Parameter):
+    #   return BinOp(pred.lh, EQ, Parameter('idx_param_{}'.format(get_query_field(pred.lh).field_name), tipe=pred.lh.get_type()))
+    # elif isinstance(pred.rh, AtomValue) or is_query_field(pred.rh):
+    #   return pred
+    # else:
+    #   assert(False)
   else:
     assert(False)
-
-def get_keys_by_pred(idx_pred):
-  qs = [idx_pred]
-  keys = []
-  range_keys = []
-  while len(qs) > 0:
-    q = qs.pop()
-    if isinstance(q, ConnectOp):
-      qs.append(q.lh)
-      qs.append(q.rh)
-    elif isinstance(q, SetOp):
-      qs.append(q.rh)
-    elif isinstance(q, BinOp) and isinstance(q.rh, Parameter):
-      if q.op in [LT, LE, GT, GE, BETWEEN]:
-        keys.append(q.lh)
-        range_keys.append(q.lh) 
-      elif q.op in [EQ]:
-        keys.append(q.lh)
-      elif q.op in [IN, SUBSTR, NEQ]:
-        pass
-      else:
-        assert(False)
-        # currently do not support NEQ... needs more hacks to handle this
-  for k in range_keys:
-    keys.remove(k)
-  for k in range_keys:
-    keys.append(k)
-  return keys, range_keys

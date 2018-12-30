@@ -51,9 +51,7 @@ class Field(object):
     elif self.tipe == 'bool':
       return 0
     elif len(self.range) == 2:
-      lft = self.range[0].table.sz if isinstance(self.range[0], CostTableUnit) else self.range[0]
-      rgt = self.range[1].table.sz if isinstance(self.range[1], CostTableUnit) else self.range[1]
-      return lft
+      return self.range[0]
   def get_max_value(self, for_z3=False):
     if is_string_type(self.tipe):
       return MAXINT if for_z3 else '\"{}\"'.format(''.join(['z' for i in range(0, get_varchar_length(self.tipe))]))
@@ -295,13 +293,19 @@ class DenormalizedTable(object):
   def __init__(self, tables, fields=[]):
     self.tables = tables
     self.join_fields = fields
-    self.name = '#'.join([t.name for t in self.tables])
+    self.name = 'XX'.join([t.name for t in self.tables])
     self.is_temp = False
     self.sz = to_real_value(self.cost_real_size())
   def __eq__(self, other):
     return type(self) == type(other) and set_equal(self.tables, other.tables)
   def get_full_type(self):
     return self.name
+  def get_main_table(self):
+    cur_tables = [self.tables[0]]
+    for qf in self.join_fields:
+      assert(qf.table in cur_tables)
+      cur_tables.append(qf.field_class)
+    return self.tables[0]
   def contain_table(self, table):
     if isinstance(table, Table):
       return any([t==table for t in self.tables])
@@ -311,6 +315,12 @@ class DenormalizedTable(object):
       return False
   def cost_str_symbol(self):
     return 'N{}'.format(self.name)
+  def get_qf_by_tables(self, maint, assoct):
+    # TODO: may return AssocOp
+    for f in self.join_fields:
+      if f.table == maint and f.field_class == assoct:
+        return f
+    assert(False)
   def cost_real_size(self):
     assert(len(self.join_fields) + 1 == len(self.tables))
     cost = self.tables[0].sz
@@ -401,3 +411,9 @@ def get_main_table(table):
 
 def is_main_table(table):
   return not isinstance(table, NestedTable)
+
+def get_upper_table_list(table):
+  if isinstance(table, NestedTable):
+    return get_upper_table_list(table.upper_table)+[table.related_table.name]
+  else:
+    return [table.name]

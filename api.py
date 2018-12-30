@@ -4,8 +4,9 @@ from pred import *
 from schema import *
 from query import *
 
+# body = obj_def? query_stmt+
 language=r"""
-  body = obj_def+ query_stmt+
+  body = space query_stmt+
 
   space = ~"\s*"
   quote = "\"" / "'"
@@ -83,6 +84,7 @@ class VisitState(object):
     self.queries = {}
     self.query_stack = []
     self.table_stack = []
+    self.assigned_tables_and_assocs = False
   def find_table_by_name(self, name, exist=True):
     for t in self.tables:
       if t.name == name:
@@ -105,31 +107,36 @@ class VisitState(object):
   def clear_query_stack(self):
     self.query_stack = []
     self.table_stack = []
+  def set_tables_and_assocs(self, tables, assocs):
+    self.tables = tables
+    self.associations = assocs
+    self.assigned_tables_and_assocs = True
 
 #  body = obj_def+ query_stmt+
 class BodyPNode(PNode):
   def __init__(self, children):
     super(BodyPNode, self).__init__(children)
   def visit(self, state):
-    # handle class def first
-    for c in self.children:
-      if isinstance(c, ObjDefPNode):
-        c.visit(state)
-    # handle associations
-    assocs = []
-    for a in state.associations:
-      assocs.append(get_new_assoc(a[0], a[1], state.find_table_by_name(a[2]), state.find_table_by_name(a[3]), a[4], a[5], a[6], a[7]))
-    state.associations = assocs
+    if state.assigned_tables_and_assocs == False:
+      # handle class def first
+      for c in self.children:
+        if isinstance(c, ObjDefPNode):
+          c.visit(state)
+      # handle associations
+      assocs = []
+      for a in state.associations:
+        assocs.append(get_new_assoc(a[0], a[1], state.find_table_by_name(a[2]), state.find_table_by_name(a[3]), a[4], a[5], a[6], a[7]))
+      state.associations = assocs
 
-    print 'tables:'
-    for t in state.tables:
-      print 'table {}, sz = {}'.format(t.name, t.sz)
-      for f in t.get_fields():
-        print '\t{} type = {}, vrange = {}, prob = {}'.format(f.name, f.tipe, f.range, f.value_with_prob)
-    print 'associations:'
-    for a in state.associations:
-      print "{} {} {} {} {} {} {}".format(a.assoc_type, a.lft.name, a.rgt.name, a.lft_ratio, a.rgt_ratio, a.lft_field_name, a.rgt_field_name)
-    
+      print 'tables:'
+      for t in state.tables:
+        print 'table {}, sz = {}'.format(t.name, t.sz)
+        for f in t.get_fields():
+          print '\t{} type = {}, vrange = {}, prob = {}'.format(f.name, f.tipe, f.range, f.value_with_prob)
+      print 'associations:'
+      for a in state.associations:
+        print "{} {} {} {} {} {} {}".format(a.assoc_type, a.lft.name, a.rgt.name, a.lft_ratio, a.rgt_ratio, a.lft_field_name, a.rgt_field_name)
+      
     # handle queries then
     for c in self.children:
       if isinstance(c, QueryStmtPNode):
@@ -581,8 +588,10 @@ class MyVisitor(RuleVisitor):
   global language
   grammar = Grammar(language)
   #  body = obj_def+ query_stmt+
+  #  body = space query_stmt+
   def visit_body(self, node, visited_children):
-    return BodyPNode(visited_children[0] + visited_children[1])
+    #return BodyPNode(visited_children[0] + visited_children[1])
+    return BodyPNode(visited_children[1])
 
   #  space = ~"\s*"
   def visit_space(self, node, visited_children):
@@ -866,248 +875,3 @@ class MyVisitor(RuleVisitor):
     #TODO: children = visited_children
     return EUopPNode(node.text)
 
-
-tree = MyVisitor().parse("""
-class Lineitem < NRecord[6000]:
-  uint quantity, values=[1, 50]
-  float extendedprice, values=[0, 1000000]
-  float discount, values=[0, 0.1]
-  float tax, values=[0, 0.08]
-  varchar(1) returnflag, values=[('A', 33), ('R', 33), ('N', 33)]
-  varchar(1) linestatus, values=[('O', 50), ('F', 50)]
-  date shipdate
-  date commitdate
-  date receiptdate
-  varchar(18) shipinstruct, values=[('DELIVER IN PERSON', 25), ('COLLECT COD', 25), ('NONE', 25), ('TAKE BACK RETURN', 25)]
-  varchar(8) shipmode, values=[('AIR REG', 14), ('AIR', 14), ('TRUCT', 14), ('MAIL', 14), ('RAIL', 14), ('FOB', 14), ('SHIP', 16)]
-  string comment
-
-  has_one: order => Order
-  has_one: part => Part
-  has_one: supplier => Supplier
-end
-
-class Order < NRecord[1000]:
-  varchar(1) orderstatus, values=[('O', 50), ('F', 50)]
-  float totalprice
-  varchar(9) orderpriority, values=[('1-URGENT', 20), ('2-HIGH', 20), ('3-MEDIUM', 20), ('4-NOT SPECIFIED', 20), ('5-LOW', 20)]
-  date orderdate
-  varchar(4) clerk
-  smallint orderpriority, values=[(False, 90), (True, 10)]
-  string comment
-
-  has_many: lineitems => Lineitem
-  has_one: customer => Customer
-end
-
-class Customer < NRecord[1000]:
-  varchar(8) name
-  varchar(16) address
-  varchar(10) phone
-  float acctbal
-  varchar(10) mktsegment, values=[('AUTOMOBILE', 20), ('BUILDING', 20), ('FURNITURE', 20), ('MACHINERY', 20), ('HOUSEHOLD', 20)]
-  string comment
-
-  has_one: nation => Nation
-end
-
-class Part < NRecord[1000]:
-  varchar(15) name
-  varchar(15) mfgr
-  varchar(10) brand, values=[('BRAND#11', 4),('BRAND#12', 4),('BRAND#13', 4),('BRAND#14', 4),('BRAND#15', 4), ('BRAND#21', 4),('BRAND#22', 4),('BRAND#23', 4),('BRAND#24', 4),('BRAND#25', 4), ('BRAND#31', 4),('BRAND#32', 4),('BRAND#33', 4),('BRAND#34', 4),('BRAND#35', 4), ('BRAND#41', 4),('BRAND#42', 4),('BRAND#43', 4),('BRAND#44', 4),('BRAND#45', 4), ('BRAND#51', 4),('BRAND#52', 4),('BRAND#53', 4),('BRAND#55', 4),('BRAND#55', 4)]
-  varchar(10) p_type, values=[('STANDARD', 17), ('PROMO', 17), ('SMALL', 17), ('MEDIUM', 17), ('LARGE', 17), ('ECONOMY', 15)]
-  uint psize, values=[1, 25]
-  varchar(9) container, values=[('SM CASE',4),('SM BOX',4),('SM BAG',4),('SM JAR',4),('SM PKG',4),('MED CASE',4),('MED BOX',4),('MED BAG',4),('MED JAR',4),('MEDPKG',4),('LG CASE',4),('LG BOX',4),('LG BAG',4),('LG JAR',4),('LG PKG',4),('JUNBO CASE',4),('JUMBO BOX',4),('JUMBO BAG',4),('JUMBO JAR',4),('JUMBO PKG',4),('WRAP CASE',4),('WRAP BOX',4),('WRAP BAG',4),('WRAP JAR',4),('WRAP PKG',4)] 
-  float retailprice
-  string comment
-end
-
-class Supplier < NRecord[100]:
-  varchar(15) name
-  varchar(20) address
-  varchar(15) phone
-  float acctbal
-  string comment
-
-  has_one: nation => Nation
-  has_many: lineitems => Lineitem
-end
-
-class Nation < NRecord[25]:
-  varchar(25) name
-  string comment
-  has_one: region => Region
-end
-
-class Region < NRecord[5]:
-  varchar(25) name
-  string comment
-end
-
-q1 = Lineitem.where(shipdate < param[shipdate])
-q1g = q1.groupby(returnflag, linestatus)
-q1g.orderby(returnflag, linestatus)
-q1g.lineitems.aggr(sum(quantity), "sum_quantity")
-q1g.lineitems.aggr(sum(extendedprice*(1-discount)), "sum_disc_price")
-
-q4 = Order.where(orderdate between [param[date1], param[date2]])
-          .where(exists(lineitems, commitdate < receiptdate))
-q4g = q4.groupby(orderpriority)
-q4g.orderby(orderpriority)
-q4g.orders.aggr(count(), "count")
-
-call('q4', 'delete from R', 888)
-
-q5 = Lineitem.where(supplier.nation.region.name == param[region])
-             .where(order.customer.nation.id == supplier.nation.id)
-             .where(order.orderdate between [param[date1], param[date2]])
-q5g = q5.groupby(supplier.nation.id)
-q5g.lineitems.aggr(sum(extendedprice*(1-discount)), "revenue")
-q5g.orderby(revenue)
-
-q6 = Lineitem.where(shipdate between [param[date1], param[date2]])
-             .where(discount between [param[disc1], param[disc2]])
-             .where(quantity < param[quant])
-q6.aggr(sum(extendedprice*(1-discount)), "revenue")
-
-q7 = Lineitem.where((((shipdate between [param[date1], param[date2]]) && (supplier.nation.name == param[nation1])) && (order.customer.nation.name == param[nation2])) ||
-                    (((shipdate between [param[date1], param[date2]]) && (supplier.nation.name == param[nation2])) && (order.customer.nation.name == param[nation1])))
-q7g = q7.groupby(supplier.nation.name, order.customer.nation.name, shipdate)
-q7g.lineitems.aggr(sum(extendedprice*(1-discount)), "revenue")
-
-q8 = Lineitem.all()
-q8g = q8.groupby(order.orderdate)
-q8g.lineitems.aggr(sum(ite(supplier.nation.name == param[nation], extendedprice*(1-discount), 0)), "sum")
-q8g.lineitems.aggr(sum(extendedprice*(1-discount)), "div")
-
-q12 = Lineitem.where(shipmode == 1)
-              .where(commitdate < receiptdate)
-              .where(shipdate < commitdate)
-              .where(receiptdate between [param[date1], param[date2]])
-q12.aggr(sum(ite((order.orderpriority == 1) || (order.orderpriority == 2), 1, 0)), "high_line_count")
-q12.aggr(sum(ite((order.orderpriority != 1) && (order.orderpriority != 2), 1, 0)), "low_line_count")
-
-q14 = Lineitem.where(shipdate between [param[date1], param[date2]])
-q14.aggr(sum(ite(part.p_type == 1, extendedprice*(1-discount), 0)), "promo_revenue_1")
-q14.aggr(sum(extendedprice*(1-discount)), "promo_revenue_2")
-
-q18 = Order.all()
-q18.lineitems.aggr(sum(quantity), "sum_quantity")
-q18.where(sum_quantity > param[qlimit])
-q18.orderby(totalprice, orderdate)
-""")
-
-
-
-state = VisitState()
-tree.visit(state)
-
-
-"""
-q1 = Lineitem.where(shipdate < param[shipdate])
-q1g = q1.groupby(returnflag, linestatus)
-q1g.orderby(returnflag, linestatus)
-q1g.lineitems.aggr(sum(quantity), "sum_quantity")
-q1g.lineitems.aggr(sum(extendedprice*(1-discount)), "sum_disc_price")
-"""
-"""
-q3 = Order.where(customer.mktsegment == param[p_mktseg])
-        .where(orderdate < param[date1])
-        .where(exists(lineitems, shipdate > param[date2]))
-q3.lineitems.aggr(sum(extendedprice*(1-discount)), "revenue")
-q3.orderby(revenue, orderdate)
-q3.project(id, revenue, orderdate, shippriority)
-"""
-"""
-q4 = Order.where(orderdate between [param[date1], param[date2]])
-          .where(exists(lineitems, commitdate < receiptdate))
-q4g = q4.groupby(orderpriority)
-q4g.orderby(orderpriority)
-q4g.orders.aggr(count(), "count")
-"""
-"""
-q5 = Lineitem.where(supplier.nation.region.name == param[region])
-             .where(order.customer.nation.id == supplier.nation.id)
-             .where(order.orderdate between [param[date1], param[date2]])
-q5g = q5.groupby(supplier.nation.id)
-q5g.lineitems.aggr(sum(extendedprice*(1-discount)), "revenue")
-q5g.orderby(revenue)
-"""
-"""
-q6 = Lineitem.where(shipdate between [param[date1], param[date2]])
-             .where(discount between [param[disc1], param[disc2]])
-             .where(quantity < param[quant])
-q6.aggr(sum(extendedprice*(1-discount)), "revenue")
-"""
-"""
-q7 = Lineitem.where((((shipdate between [param[date1], param[date2]]) && (supplier.nation.name == param[nation1])) && (order.customer.nation.name == param[nation2])) ||
-                    (((shipdate between [param[date1], param[date2]]) && (supplier.nation.name == param[nation2])) && (order.customer.nation.name == param[nation1])))
-q7g = q7.groupby(supplier.nation.name, order.customer.nation.name, shipdate)
-q7g.lineitems.aggr(sum(extendedprice*(1-discount)), "revenue")
-"""
-"""
-q8 = Lineitem.where(order.orderdate between [param[date1], param[date2]])
-             .where(order.customer.nation.region.name == param[region])
-             .where(part.type == param[ptype])
-q8g = q8.groupby(order.orderdate)
-q8g.lineitems.aggr(sum(ite(supplier.nation.name == param[nation], extendedprice*(1-discount), 0)), "sum")
-q8g.lineitems.aggr(sum(extendedprice*(1-discount)), "div")
-"""
-"""
-q9 = Lineitem.where(part.name == param[partn])
-q9g = q9.groupby(supplier.nation.name, order.orderdate)
-q9g.lineitems.aggr(sum(extendedprice*(1-discount)-(partsupplier.supplycost*quantity)), "amount")
-"""
-"""
-q10 = Customer.where(order.orderdate between [param[date1], param[date2]])
-              .include(nation)
-q10.orders.lineitems.where(returnflag == 'R').aggr(sum(extendedprice*(1-discount)), "revenue")
-q10.orders.aggr(sum(revenue), "totalrev")
-q10.orderby(totalrev)
-"""
-"""
-q12 = Lineitem.where(shipmode == 1)
-              .where(commitdate < receiptdate)
-              .where(shipdate < commitdate)
-              .where(receiptdate between [param[date1], param[date2]])
-q12.aggr(sum(ite((order.orderpriority == 1) || (order.orderpriority == 2), 1, 0)), "high_line_count")
-q12.aggr(sum(ite((order.orderpriority != 1) && (order.orderpriority != 2), 1, 0)), "low_line_count")
-"""
-"""
-q13 = Customer.order.where(comment %like% param[substr])
-q13.order.aggr(count(), "c_count")
-q13g = q13.groupby(c_count)
-q13g.orderby(c_count)
-"""
-"""
-q14 = Lineitem.where(shipdate between [param[date1], param[date2]])
-q14.aggr(sum(ite(part.p_type == 1, extendedprice*(1-discount), 0)), "promo_revenue_1")
-q14.aggr(sum(extendedprice*(1-discount)), "promo_revenue_2")
-"""
-"""
-q15 = Supplier.lineitems.where(shipdate between [param[date1], param[date2]])
-f=q15.lineitems.aggr(sum(extendedprice*(1-discount)), "total_revenue")
-n=f.aggr(max(total_revenue), "max_revenue")
-"""
-"""
-q18 = Order.all()
-q18.lineitems.aggr(sum(quantity), "sum_quantity")
-q18.where(sum_quantity > param[qlimit])
-q18.orderby(totalprice, orderdate)
-"""
-"""
-q19 = Lineitem.where()
-"""
-"""
-"""
-
-
-
-
-#remaining:
-# q2 -> does not support loop in predicate (ps.supplier.nation.exists(suppliers, exists(partsuppliers, xxx)))
-# q16 -> count(distinct..) not supported
-# q17, q21 -> nested query with outer dependency not supported
-# q22 -> substring(xxx from xxx) not supported
-# q11 ?
-# q20 ?
