@@ -67,7 +67,7 @@ class PlanTree(object):
     assert(False)
   def to_steps(self):
     idx_step = self.index_step.fork()
-    ele_ops = self.element_steps
+    ele_ops = []
     for k,v in self.next_level_pred.items():
       if is_assoc_field(k):
         s = self.find_retrieve_assoc_step(k)
@@ -80,6 +80,7 @@ class PlanTree(object):
         s.add_steps(v.to_steps())
       else:
         ele_ops += v.to_steps()
+    ele_ops += self.element_steps
     idx_step.ele_ops.add_steps(ele_ops)
     if self.sort_step:
       return self.pre_steps + [idx_step, self.sort_step]
@@ -90,13 +91,15 @@ class NestingFailException(Exception):
   def __init__(self, message):
     super(NestingFailException, self).__init__(message)
 
-def get_initvar_steps(aggrs, preds):
+def get_initvar_steps(aggrs, preds, arrays=[]):
   steps = []
   for a in aggrs:
     av_type = a.get_type()
     steps.append(ExecSetVarStep(a, AtomValue(get_init_value_by_type(av_type), av_type)))
   for p in preds:
     steps.append(ExecSetVarStep(p, AtomValue(False, 'bool')))
+  for a in arrays:
+    steps.append(ExecSetVarStep(a, 'init'))
   return steps
 
 def is_foreignkey_indexed(dsmanager, assoc_qf):

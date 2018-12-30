@@ -109,7 +109,7 @@ def generate_one_proto_for_query(query):
     s += '  {} {} = {};\n'.format(proto_types[v.tipe], v.name, cnt)
     cnt += 1
   if query.return_var:
-    s += '  repeated P{} result = {};\n'.format(get_capitalized_name(query.table.name), cnt)
+    s += '  repeated P{} {} = {};\n'.format(get_capitalized_name(query.table.name), query.table.name, cnt)
   s += '}\n'
   return s
   

@@ -265,7 +265,7 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
     return '',state.find_ir_var(expr)
   elif isinstance(expr, AtomValue):
     if is_string_type(expr.get_type()):
-      return '','\"{}\"'.format(expr.to_var_or_value())
+      return '',expr.to_var_or_value()
     else:
       return '',str(int(expr.to_var_or_value()))
   elif isinstance(expr, BinaryExpr):
@@ -329,7 +329,7 @@ def cgen_print_query_result(query):
     s += "  printf(\"aggrs: {}\\n\", {});\n".format(', '.join(['{} = {}'.format(k.name, v) for k,v in fields.items()]),\
                   ','.join(['qresult.{}()'.format(k.name) for k,v in fields.items()]))
   if query.return_var:
-    return_cxx_var = 'qresult.rv_{}'.format(query.table.name)
+    return_cxx_var = 'qresult.{}'.format(query.table.name)
     s += "  printf(\"sz = %u\\n\", {}.size());\n".format(return_cxx_var)
     s += "  size_t cnt_{} = 0;\n".format(query.table.name)
     s += "  for (auto i = {}.begin(); i != {}.end(); i++) {{\n".format(return_cxx_var, return_cxx_var)

@@ -108,9 +108,11 @@ class ExecSetVarStep(ExecStepSuper):
     #print 'self projection = {}'.format(len(self.projections))
     used_fields += self.projections
     for f in used_fields:
-      cur_obj.add_field(f)
+      if type(f) is not tuple:
+        cur_obj.add_field(f)
     return cur_obj
   def copy_ds_id(self, cur_obj, dsmanager):
+    self.get_used_ds(cur_obj, dsmanager)
     return cur_obj
   def get_all_variables(self):
     return [self.var]
@@ -320,6 +322,7 @@ class ExecGetAssocStep(ExecStepSuper):
     return next_obj
   def copy_ds_id(self, cur_obj, dsmanager):
     if self.idx is None:
+      cur_obj.add_field(self.field)
       return cur_obj
     eq_ds = None
     if is_main_table(self.idx.table):

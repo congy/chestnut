@@ -136,7 +136,7 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
       if is_string(f.field_class):
         s += '  inline void set_{}(const char* v_) {{ {}_{} = v_; }}\n'.format(f.field_name, f.field_name, fmap[f])
     
-    rs_var = 'rv_{}'.format(query.table.name)
+    rs_var = query.table.name
     if repeated:
       retv = query.return_var
       upper_s += '  std::vector<{}> {};\n'.format(typename, rs_var)

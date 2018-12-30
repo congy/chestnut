@@ -18,11 +18,18 @@ import globalv
 
 def get_ds_and_op_on_cond(thread_ctx, qtable, pred, ds_value, order=None, fk_pred=None, nonexternal={}):
   if pred is None:
-    # FIXME
-    assert(False)
-    return []
+    op = OpPredHelper(get_main_table(qtable))
+    if order:
+      op.add_order(order)
+    (ds_t, ds_v) = get_ds_type_value_pair(qtable, op.keys, ds_value)
+    return [[(op.to_ds_ops(ds_t, ds_v, qtable), None)]]
 
-  states = enumerative_gen(qtable, thread_ctx, pred, order, fk_pred)
+  cache = globalv.check_synth_cache(pred, order, fk_pred)
+  if cache:
+    states = cache
+  else:
+    states = enumerative_gen(qtable, thread_ctx, pred, order, fk_pred)
+    globalv.add_to_synth_cache(pred, order, fk_pred, states)
   all_ops = []
   for state in states:
     for op in state.result:
@@ -249,7 +256,7 @@ class OpPredHelper(object):
     self.params[key] = value
     return True
   def add_order(self, keys):
-    if len(self.range_keys) > 0 and any([KeyPath(k, []) not in self.keys]):
+    if len(self.range_keys) > 0 and any([KeyPath(k, []) not in self.keys for k in keys]):
       return False
     for k in keys:
       newk = KeyPath(k, [])

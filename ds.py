@@ -290,7 +290,7 @@ class ObjTreeIndex(IndexBase):
     temp = IdxSizeUnit(self)
     #self.mem_cost = CostOp(temp, COST_ADD, CostLogOp(temp))
     self.mem_cost = temp
-    self.mem_cost = cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys])+1)
+    self.mem_cost = cost_mul(self.mem_cost, sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1)
     return self.mem_cost
   def element_count(self):
     return IdxSizeUnit(self)
@@ -315,7 +315,7 @@ class ObjSortedArray(IndexBase):
     self.mem_cost = IdxSizeUnit(self)
     if isinstance(self.table, NestedTable):
       self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
-    self.mem_cost = cost_mul(self.mem_cost, sum([get_query_field(k).field_class.get_sz() for k in self.keys.keys])+1)
+    self.mem_cost = cost_mul(self.mem_cost, sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1)
     return self.mem_cost
   def element_count(self):
     mem_cost = IdxSizeUnit(self)

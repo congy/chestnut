@@ -19,6 +19,29 @@ reversely_visited = []
 pred_scope = []
 use_template = False
 
+op_synth_cache = []
+def order_equal(o1, o2):
+  if o1 is None and o2 is None:
+    return True
+  if o1 is None or o2 is None:
+    return False
+  return len(o1) == len(o2) and all([o1[i]==o2[i] for i in range(0, len(o1))])
+def fk_equal(fk1, fk2):
+  if fk1 is None and fk2 is None:
+    return True
+  if fk1 is None or fk2 is None:
+    return False
+  return fk1==fk2
+def add_to_synth_cache(pred, order, fk, state):
+  global op_synth_cache
+  op_synth_cache.append((pred, order, fk, state))
+def check_synth_cache(pred, order, fk):
+  global op_synth_cache
+  for p,o,k,s in op_synth_cache:
+    if p == pred and order_equal(o, order) and fk_equal(k,fk):
+      return s
+  return None
+
 def set_use_template():
   global use_template
   use_template = True

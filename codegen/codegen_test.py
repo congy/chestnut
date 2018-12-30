@@ -19,8 +19,8 @@ def test_initialize(tables, associations, read_queries, planid=0):
       if cnt + len(plan_for_one_nesting.plans) > planid:
         j = planid - cnt
         plan = plan_for_one_nesting.plans[j]
-        plan.copy_ds_id(None, dsmeta_)
         dsmeta = plan_for_one_nesting.dsmanagers[j]
+        plan.copy_ds_id(None, dsmeta)
         break
       cnt = cnt + len(plan_for_one_nesting.plans)
       
@@ -49,8 +49,8 @@ def test_query(tables, associations, query, planid=0):
       if cnt + len(plan_for_one_nesting.plans) > planid:
         j = planid - cnt
         plan = plan_for_one_nesting.plans[j]
-        plan.copy_ds_id(None, dsmeta_)
         dsmeta = plan_for_one_nesting.dsmanagers[j]
+        plan.copy_ds_id(None, dsmeta)
         break
       cnt = cnt + len(plan_for_one_nesting.plans)
       

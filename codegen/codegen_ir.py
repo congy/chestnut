@@ -45,7 +45,9 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
 def cgen_for_one_step(step, state, print_result=False):
   s = ''
   if isinstance(step, ExecQueryStep):
-    state.qr_var = 'qresult'
+    if state.topquery.return_var:
+      state.qr_varmap[state.topquery.return_var] = 'qresult'
+      state.qr_var = 'qresult'
     next_s, temp_state = cgen_for_one_step(step.step, state)
     s += insert_indent(next_s)
     for v,aggr in state.topquery.aggrs:
@@ -73,8 +75,13 @@ def cgen_for_one_step(step, state, print_result=False):
     elif isinstance(step.var, EnvCollectionVariable):
       ele_name = cgen_cxxvar(step.var, True)
       state.qr_var = '(*{})'.format(ele_name)
-      s += '{}* {};\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery), ele_name)
-      expr_s = cgen_add_to_qresult(step.var, ele_name, step.projections, state)
+      if type(step.expr) is str and step.expr == 'init':
+        qr_array = state.find_or_create_qr_var(step.var)
+        # FIXME
+        s += '{} {};\n'.format(cgen_query_result_type(state.topquery), qr_array)
+      else:
+        s += '{}* {};\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery), ele_name)
+        expr_s = cgen_add_to_qresult(step.var, ele_name, step.projections, state)
     if step.cond:
       dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
     else:
@@ -169,11 +176,26 @@ def cgen_for_one_step(step, state, print_result=False):
     return s, state
 
   elif isinstance(step, ExecUnionStep):
-    assert(False)
+    assert(state.exist_qr_var(step.return_var))
+    rtv = state.find_qr_var(step.return_var)
+    memberv = state.topquery.table.name
+    for v in step.union_vars:
+      assert(state.exist_qr_var(v))
+      addv = state.find_qr_var(v)
+      if globalv.is_qr_type_proto():
+        s += 'for(size_t ix=0; ix < {}.{}_size(); ix++) {{\n'.format(addv, memberv)
+        s += '  auto* x1 = {}.add_{}();\n'.format(rtv, memberv)
+        for f in state.topquery.projections:
+          s += '  x1->set_{}({}.{}(ix).{}());\n'.format(f.field_name, addv, memberv, f.field_name)
+        s += '}\n'
+      else:
+        s += '{}.{}.insert({}.{}.end(), {}.{}.begin(), {}.{}.end());\n'.format(\
+              rtv, memberv, rtv, memberv, addv, memberv, addv, memberv)
+    return s, state
 
 def cgen_add_to_qresult(qr_array, ele_name, fields, state):
   s = ''
-  upper_qrvar = state.upper.qr_var
+  upper_qrvar = state.upper.find_qr_var(qr_array)
   irvar = state.loop_var
   table = qr_array.tipe
   if isinstance(table, NestedTable) and get_main_table(table.upper_table).has_one_or_many_field(table.name) == 1:

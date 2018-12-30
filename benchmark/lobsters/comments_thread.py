@@ -18,7 +18,7 @@ q_ct_1.return_limit(20)
 q_ct_1.project([f('thread_id')])
 q_ct_1.complete()
 
-threads = [Parameter('thread_id_{}'.format(i)) for i in range(0, 20)]
+threads = [Parameter('thread_id_{}'.format(i)) for i in range(0, 5)]
 q_ct_2 = get_all_records(comment)
 q_ct_2.pfilter(BinOp(f('thread_id'), IN, MultiParam(threads)))
 q_ct_2.orderby([f('confidence')])

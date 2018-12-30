@@ -51,10 +51,6 @@ class CodegenState(object):
     elif self.upper:
       return self.upper.exist_ir_var(var)
     return False
-  def find_qr_var(self, var): # EnvAtomicVariable
-    if var in self.qr_varmap:
-      return self.qr_varmap[var]
-    assert(False)
   def find_or_create_ir_var(self, var):
     if var in self.ir_varmap:
       return self.ir_varmap[var]
@@ -63,6 +59,25 @@ class CodegenState(object):
     newv = cgen_cxxvar(var)
     self.ir_varmap[var] = newv
     return newv
+  def find_qr_var(self, var): # EnvAtomicVariable
+    if var in self.qr_varmap:
+      return self.qr_varmap[var]
+    if self.upper:
+      return self.upper.find_ir_var(var)
+    assert(False)
+  def exist_qr_var(self, var):
+    if var in self.qr_varmap:
+      return True
+    elif self.upper:
+      return self.upper.exist_qr_var(var)
+    return False
+  def find_or_create_qr_var(self, var):
+    if var in self.qr_varmap:
+      return self.qr_varmap[var]
+    else:
+      newv = cgen_cxxvar(var)
+      self.qr_varmap[var] = newv
+      return newv
   def find_param_var(self, param):
     assert(param in self.param_map)
     return self.param_map[param]

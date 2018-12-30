@@ -3,7 +3,6 @@ sys.path.append("../")
 from schema import *
 from query import *
 from pred import *
-from nesting import *
 from plan_search import *
 from ilp.ilp_manager import *
 from ds_manager import *
@@ -76,7 +75,7 @@ associations = [issue_status_issue, project_issue, project_enabled_module]
 #   print '--------'
 
 # test search plan
-#search_plans_for_one_query(q2)
+#search_plans_for_one_query(q)
 
 # test_merge(q)
 # test_ilp([q])
@@ -88,4 +87,4 @@ data_dir=datafile_dir
 #test_generate_sql([q])
 #test_deserialize([q])
 #test_initialize(tables, associations, [q], 352) #0, 172, 272 
-test_query(tables, associations, q3, 0)
+test_query(tables, associations, q, 20)

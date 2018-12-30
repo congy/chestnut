@@ -102,16 +102,20 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
         if variable_to_set[i]:
           set_steps.append(ExecSetVarStep(variable_to_set[i], None, cond=cond_expr, proj=projections))
 
+      if len(op_rest_pairs) > 1:
+        init_qr_var = [variable_to_set[i]]
+      else:
+        init_qr_var = []
       for next_level_steps in itertools.product(*nextlevel_tree_combs):
         plan_tree = PlanTree()
-        plan_tree.pre_steps = get_initvar_steps([v for v,aggr in query.aggrs], [])
+        plan_tree.pre_steps = get_initvar_steps([v for v,aggr in query.aggrs], [], init_qr_var)
         plan_tree.element_steps += assoc_steps
         plan_tree.element_steps += set_steps
         plan_tree.index_step = idx_step
         if x > sortedN:
           plan_tree.sort_step = ExecSortStep(query.return_var, query.order)
-        for i,next_step in enumerate(next_level_steps):
-          plan_tree.next_level_pred[nextlevel_fields[i]] = next_step
+        for i2,next_step in enumerate(next_level_steps):
+          plan_tree.next_level_pred[nextlevel_fields[i2]] = next_step
         plantree_combs[i].append(plan_tree)
         #print 'PLAN TREE = {}'.format(ExecStepSeq(plan_tree.to_steps()))
     

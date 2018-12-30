@@ -465,7 +465,7 @@ class BinOp(Pred):
     if isinstance(self.rh, MultiParam):
       for x in self.rh.params:
         x.tipe = self.lh.get_type()
-    elif isinstance(self.rh, Parameter):
+    else:
       self.rh.tipe = self.lh.get_type()
   def __str__(self):
     return "({} {} {})".format(self.lh, pred_op_to_cpp_map[self.op], self.rh)
