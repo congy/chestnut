@@ -138,7 +138,7 @@ def helper_get_assoc_exist_idx(qf, for_scan_pred=False):
   if main_t.has_one_or_many_field(reverse_assoc_field_name) == 0:
     id_qf = QueryField('id', table)
     assoc_qf = QueryField(reverse_assoc_field_name, main_t)
-    keys = [KeyPath(id_qf)]
+    keys = [KeyPath(id_qf, [assoc_qf])]
     if for_scan_pred:
       condition = SetOp(assoc_qf, EXIST, BinOp(id_qf, EQ, Parameter('fk_{}_id'.format(table.name))))
     else:

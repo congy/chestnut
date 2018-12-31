@@ -21,9 +21,10 @@ class DSManager(object):
     for i,ds_ in enumerate(self.data_structures):
       if ds_ == ds:
         if replace:
+          ds.merge(ds_)
           self.data_structures[i] = ds
         else:
-         self.data_structures[i].merge(ds)
+          self.data_structures[i].merge(ds)
         return
     self.data_structures.append(ds)
   def remove_ds(self, ds):

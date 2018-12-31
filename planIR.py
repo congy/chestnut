@@ -335,6 +335,7 @@ class ExecGetAssocStep(ExecStepSuper):
           eq_ds = ds
     assert(eq_ds)
     self.idx.id = eq_ds.id
+    self.idx.upper = eq_ds.upper
     if self.idx.value.is_object():
       next_obj = eq_ds.value.get_object()
     else:
@@ -377,9 +378,9 @@ class ExecScanStep(ExecStepSuper):
       element_cost = self.ele_ops.compute_cost()
       # FIXME: a constant for sequential memory access
       if self.idx.value.is_object():
-        self.cost = CostOp(self.idx.table.get_sz_for_cost(), COST_MUL, cost_minus(element_cost, 4))
+        self.cost = CostOp(self.idx.compute_single_size(), COST_MUL, cost_minus(element_cost, 4))
       else:
-        self.cost = CostOp(self.idx.table.get_sz_for_cost(), COST_MUL, element_cost)
+        self.cost = CostOp(self.idx.compute_single_size(), COST_MUL, element_cost)
     else:
       assert(False)
     return self.cost
@@ -439,6 +440,7 @@ class ExecScanStep(ExecStepSuper):
           eq_ds = ds
     assert(eq_ds)
     self.idx.id = eq_ds.id
+    self.idx.upper = eq_ds.upper
     if self.idx.value.is_object():
       next_obj = eq_ds.value.get_object()
     else:
@@ -496,17 +498,15 @@ class ExecIndexStep(ExecScanStep):
   def compute_cost(self):
     if cost_computed(self.cost):
       return self.cost
-    total_ele_cnt = self.idx.compute_size()
-    if self.idx_pred:
-      filter_ratio = get_div_ratio_by_pred(self.idx_pred) 
-    else:
-      filter_ratio = 1
-    ele_cost = self.ele_ops.compute_cost(non_zero=True)
+    total_ele_cnt = self.idx.compute_single_size()
     lookup_cost = cost_mul(CostLogOp(total_ele_cnt), 2)
+    element_cost = self.ele_ops.compute_cost()
+    div_ratio = get_idx_op_cost_div(self.op, self.params)
+    left_ele_cnt = CostOp(total_ele_cnt, COST_DIV, div_ratio)
     if isinstance(self.idx, ObjHashIndex):
-      self.cost = CostOp(CostOp(total_ele_cnt, COST_DIV, filter_ratio), COST_MUL, ele_cost)
+      self.cost = CostOp(left_ele_cnt, COST_MUL, element_cost)
     else:
-      self.cost = CostOp(lookup_cost, COST_ADD, CostOp(CostOp(total_ele_cnt, COST_DIV, filter_ratio), COST_MUL, ele_cost))
+      self.cost = CostOp(lookup_cost, COST_ADD, CostOp(left_ele_cnt, COST_MUL, element_cost))
     return self.cost
   def compatible(self, other):
     return type(self) == type(other) and self.idx == other.idx and self.op == other.op \

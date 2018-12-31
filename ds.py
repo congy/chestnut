@@ -70,19 +70,25 @@ class MemObject(object):
   def add_fields(self, fs):
     for f in fs:
       self.add_field(f)
-  def add_nested_object(self, obj, replace=False):
-    assert(not isinstance(obj, MemObject))
-    for i,o in enumerate(self.nested_objects):
-      if obj==o:
+  def add_nested_object(self, ds, replace=False):
+    for i,d in enumerate(self.nested_objects):
+      if ds==d:
         if replace:
-          self.nested_objects[i]=obj
+          ds.merge(d)
+          self.nested_objects[i] = ds
+        else:
+          self.nested_objects[i].merge(ds)
         return
-    self.nested_objects.append(obj)
+    self.nested_objects.append(ds)
   def fork(self):
     newo = MemObject(self.table)
     newo.fields = [f for f in self.fields]
     newo.nested_objects = [o.fork() for o in self.nested_objects]
     return newo
+  def merge(self, other):
+    for o in other.nested_objects:
+      if not any([o==o_ for o_ in self.nested_objects]):
+        self.nested_objects.append(o)
   def __eq__(self, other):
     # TODO
     return self.table == other.table
@@ -101,19 +107,6 @@ class MemObject(object):
     field_sz = sum([f.get_sz() for f in self.fields]) 
     nested_sz = sum([o.compute_mem_cost(single_ele=True) for o in self.nested_objects])
     return cost_add(field_sz, nested_sz)
-  def merge(self, other):
-    for f in other.fields:
-      self.add_field(f)
-    for o in other.nested_objects:
-      exist = False
-      for o1 in self.nested_objects:
-        if o == o1:
-          o1.merge(o)
-          exist = True
-        #if isinstance(o, IndexPlaceHolder) and isinstance(o1, IndexPlaceHolder) and o.table==o1.table and not o.value==o1.value:
-        #  assert(False)
-      if not exist:
-        self.nested_objects.append(o)
   def find_nested_obj_by_field(self, field):
     for o in self.nested_objects:
       if get_main_table(o.table.upper_table) == field.table and o.table.name == field.field_name:
@@ -197,20 +190,6 @@ class IndexMeta(object):
       return 'AggrFor{}'.format(get_capitalized_name(self.table.name))
     else:
       assert(False)
-
-class KeyPath(object):
-  def __init__(self, key, path=[]):
-    self.path = path
-    self.key = key
-    self.hashstr = '-'.join([str(x) for x in self.path])+'-'+str(self.key)
-  def __eq__(self, other):
-    return len(self.path) == len(other.path) and all([self.path[i]==other.path[i] for i in range(0, len(self.path))]) and self.key == other.key
-  def __str__(self):
-    return self.hashstr
-  def __hash__(self):
-    return hash(self.hashstr)
-  def get_query_field(self):
-    return get_query_field(self.key)
     
 class IndexKeys(object):
   def __init__(self, keys, range_keys=[]):
@@ -233,7 +212,7 @@ class IndexKeys(object):
     return ','.join([str(k) for k in self.keys])
 
 class IndexBase(IndexMeta):
-  def __init__(self, table, keys, condition, value):
+  def __init__(self, table, keys, condition, value, upper=None):
     self.id = 0 
     self.table = table #table ~ obj_type
     self.keys = keys.fork()
@@ -242,7 +221,9 @@ class IndexBase(IndexMeta):
     if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
     self.mem_cost = 0
+    self.ecount = 0
     self.is_refered = False
+    self.upper = upper
   def to_json(self):
     tables = [self.table.name]
     cur_table = self.table
@@ -273,118 +254,100 @@ class IndexBase(IndexMeta):
     return type(self) == type(other) and self.table == other.table and \
     self.keys == other.keys and self.value.eq_without_memobj(other.value) and \
     self.condition.idx_pred_eq(other.condition)
-  def compute_size(self):
-    return IdxSizeUnit(self)
+  def element_count(self):
+    if cost_computed(self.ecount):
+      return self.ecount
+    self.ecount = IdxSizeUnit(self)
+    return self.ecount
   def compute_single_size(self):
-    return self.compute_size()
+    return IdxSizeUnit(self, single=True)
   def key_fields(self):
     return self.keys.keys
 
 class ObjTreeIndex(IndexBase):
-  def __init__(self, table, keys, condition, value):
-    super(ObjTreeIndex, self).__init__(table, keys, condition, value)
+  def __init__(self, table, keys, condition, value, upper=None):
+    super(ObjTreeIndex, self).__init__(table, keys, condition, value, upper)
     self.basic_ary = None
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
-    temp = IdxSizeUnit(self)
-    #self.mem_cost = CostOp(temp, COST_ADD, CostLogOp(temp))
-    self.mem_cost = temp
-    self.mem_cost = cost_mul(self.mem_cost, sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1)
+    self.mem_cost = cost_mul(2, cost_mul(self.element_count(), sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1))
     return self.mem_cost
-  def element_count(self):
-    return IdxSizeUnit(self)
   def __str__(self, short=False):
-    return '[{}] treeindex : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
-    self.id, self.table.get_full_type(), self.keys, self.condition, self.value.__str__(short))
+    return '[{}] treeindex : [table = {}{}, keys = ({}), cond = {}, value = {}]'.format(\
+    self.id, self.table.get_full_type(), '({})'.format(self.upper.id) if self.upper else '', \
+    self.keys, self.condition, self.value.__str__(short))
   def fork(self):
-    return ObjTreeIndex(self.table, self.keys, self.condition, self.value) 
+    return ObjTreeIndex(self.table, self.keys, self.condition, self.value, self.upper) 
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjTreeIndex(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table)) 
+      return ObjTreeIndex(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table), self.upper) 
     else:
       return self.fork()
 
 class ObjSortedArray(IndexBase):
-  def __init__(self, table, keys, condition, value):
+  def __init__(self, table, keys, condition, value, upper=None):
     #assert(isinstance(table, NestedTable))
-    super(ObjSortedArray, self).__init__(table, keys, condition, value)
+    super(ObjSortedArray, self).__init__(table, keys, condition, value, upper)
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
-    self.mem_cost = IdxSizeUnit(self)
-    if isinstance(self.table, NestedTable):
-      self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
-    self.mem_cost = cost_mul(self.mem_cost, sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1)
+    self.mem_cost = cost_mul(self.element_count(), sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()]))
     return self.mem_cost
-  def element_count(self):
-    mem_cost = IdxSizeUnit(self)
-    if isinstance(self.table, NestedTable):
-      mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
-    return mem_cost
   def __str__(self, short=False):
-    return '[{}] sorted-array : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
-    self.id, self.table.get_full_type(), self.keys, self.condition, self.value.__str__(short))
+    return '[{}] sorted-array : [table = {}{}, keys = ({}), cond = {}, value = {}]'.format(\
+    self.id, self.table.get_full_type(), '({})'.format(self.upper.id) if self.upper else '',\
+    self.keys, self.condition, self.value.__str__(short))
   def fork(self):
-    return ObjSortedArray(self.table, self.keys, self.condition, self.value) 
+    return ObjSortedArray(self.table, self.keys, self.condition, self.value, self.upper) 
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjSortedArray(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table)) 
+      return ObjSortedArray(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table), self.upper) 
     else:
       return self.fork()
   
 class ObjArray(IndexBase):
-  def __init__(self, table, condition=None, value=MAINPTR):
-    super(ObjArray, self).__init__(table, IndexKeys([]), condition, value)
+  def __init__(self, table, condition, value, upper=None):
+    super(ObjArray, self).__init__(table, IndexKeys([]), condition, value, upper)
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
-    self.mem_cost = IdxSizeUnit(self)
-    if isinstance(self.table, NestedTable):
-      self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
+    self.mem_cost = self.element_count()
     return self.mem_cost
-  def element_count(self):
-    mem_cost = IdxSizeUnit(self)
-    if isinstance(self.table, NestedTable):
-      mem_cost = CostOp(mem_cost, COST_MUL, self.table.get_duplication_number())
-    return mem_cost
   def __str__(self, short=False):
-    return '[{}] array : [table = {}, cond = {}, value = {}]'.format(\
-    self.id, self.table.get_full_type(), \
+    return '[{}] array : [table = {}({}), cond = {}, value = {}]'.format(\
+    self.id, self.table.get_full_type(), '({})'.format(self.upper.id) if self.upper else '',\
     self.condition, self.value.__str__(short))
   def fork(self):
-    return ObjArray(self.table, self.condition, self.value) 
+    return ObjArray(self.table, self.condition, self.value, self.upper) 
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjArray(self.table, self.condition, IndexValue(OBJECT, self.table)) 
+      return ObjArray(self.table, self.condition, IndexValue(OBJECT, self.table), self.upper) 
     else:
       return self.fork()
 
 class ObjHashIndex(IndexBase):
-  def __init__(self, table, keys, condition=None, value=MAINPTR):
-    super(ObjHashIndex, self).__init__(table, keys, condition, value)
+  def __init__(self, table, keys, condition, value, upper):
+    super(ObjHashIndex, self).__init__(table, keys, condition, value, upper)
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
-    temp = IdxSizeUnit(self)
-    self.mem_cost = CostOp(temp, COST_MUL, 2)
-    if isinstance(self.table, NestedTable):
-      self.mem_cost = CostOp(self.mem_cost, COST_MUL, self.table.get_duplication_number())
+    self.mem_cost = cost_mul(2, cost_mul(self.element_count(), sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])))
     return self.mem_cost
   def __str__(self, short=False):
     return '[{}] hashindex : [table = {}, keys = ({}), cond = {}, value = {}]'.format(\
     self.id, self.table.get_full_type(), ','.join([str(k) for k in self.keys]), \
     self.condition, self.value.__str__(short))
   def fork(self):
-    return ObjHashIndex(self.table, self.keys, self.condition, self.value)
+    return ObjHashIndex(self.table, self.keys, self.condition, self.value, self.upper)
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjHashIndex(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table))
+      return ObjHashIndex(self.table, self.keys, self.condition, IndexValue(OBJECT, self.table), self.upper)
     else:
       return self.fork()
 
 class ObjBasicArray(IndexMeta):
-  def __init__(self, table, value):
+  def __init__(self, table, value, upper=None):
     self.id = 0 
     self.table = table #table ~ obj_type
     self.value = value.fork()
@@ -392,6 +355,8 @@ class ObjBasicArray(IndexMeta):
       self.value.set_type(self.table)
     self.mem_cost = 0
     self.is_refered = False
+    self.upper = upper
+    self.ecount = 0
   def to_json(self):
     tables = [self.table.name]
     cur_table = self.table
@@ -416,26 +381,27 @@ class ObjBasicArray(IndexMeta):
   def eq_without_memobj(self, other):
     return type(self) == type(other) and self.table == other.table and self.value.eq_without_memobj(other.value)
   def __str__(self, short=False):
-    return '[{}] Basic array: {}, value = {}'.format(self.id, self.table.get_full_type(), self.value.__str__(short))
+    return '[{}] Basic array: {}{}, value = {}'.format(self.id, self.table.get_full_type(), \
+    '({})'.format(self.upper.id) if self.upper else '', self.value.__str__(short))
+  def element_count(self):
+    if cost_computed(self.ecount):
+      return self.ecount
+    self.ecount = IdxBaseUnit(self)
+    return self.ecount
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
-    self.mem_cost = self.compute_size()
-    self.mem_cost = cost_mul(self.mem_cost, (len(self.table.tables) if isinstance(self.table, DenormalizedTable) else 1))
+    self.mem_cost = self.element_count()
     return self.mem_cost
-  def compute_size(self):
-    return self.table.cost_all_sz() 
-  def element_count(self):
-    return self.table.cost_all_sz() 
   def compute_single_size(self):
-    return self.table.sz 
+    return IdxBaseUnit(self, single=True)
   def is_single_element(self):
     return isinstance(self.table, NestedTable) and get_main_table(self.table.upper_table).has_one_or_many_field(self.table.name) == 1
   def fork(self):
-    return ObjBasicArray(self.table, self.value)
+    return ObjBasicArray(self.table, self.value, self.upper)
   def fork_without_memobj(self):
     if self.value.is_object():
-      return ObjBasicArray(self.table, IndexValue(OBJECT, self.table))
+      return ObjBasicArray(self.table, IndexValue(OBJECT, self.table), self.upper)
     else:
       return self.fork()
 

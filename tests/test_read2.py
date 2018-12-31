@@ -17,7 +17,7 @@ datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 set_cpp_file_path('{}/{}/'.format(os.getcwd(), workload_name))
 
-scale=1
+scale=10
 issue = Table('issue', scale*1000)
 project = Table('project', scale*80)
 enabled_module = Table('enabled_module', project.sz*6)
@@ -87,4 +87,5 @@ data_dir=datafile_dir
 #test_generate_sql([q])
 #test_deserialize([q])
 #test_initialize(tables, associations, [q], 352) #0, 172, 272 
-test_query(tables, associations, q, 20)
+#test_query(tables, associations, q, 20)
+test_cost([q])

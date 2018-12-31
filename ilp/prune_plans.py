@@ -247,24 +247,8 @@ def test_prune_read_plan(read_queries, membound_factor=2):
   #print dsmeta
   mem_bound = compute_mem_bound(membound_factor)
 
-  rqmanagers = []
-  dsmeta = DSManager()
-  begin_ds_id = 1
-  old_plan_cnt = 0
-  for query in read_queries:
-    nesting_plans = search_plans_for_one_query(query, print_plan=False)
-    rqmanagers.append(RQManager(query, nesting_plans))
-    for i,plan_for_one_nesting in enumerate(nesting_plans):
-      #print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
-      dsmng = plan_for_one_nesting.nesting
-      for j,plan in enumerate(plan_for_one_nesting.plans):
-        new_dsmnger = dsmng.copy_tables()
-        plan.get_used_ds(None, new_dsmnger)
-        rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
-        begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
-        old_plan_cnt += 1
+  rqmanagers, dsmeta = get_dsmeta(read_queries)
 
-  
   print 'mem_bound = {}'.format(mem_bound)
   prune_read_plans(rqmanagers, dsmeta)
 

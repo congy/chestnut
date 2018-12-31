@@ -167,3 +167,9 @@ def find_next_idx_placeholder(idx_placeholder, dsmng, field):
     return next_ds
   else:
     return dsmng.find_placeholder(field.field_class)
+
+def set_upperds_helper(ds_lst, upperds=None):
+  for ds in ds_lst:
+    ds.upper = upperds
+    if ds.value.is_object():
+      set_upperds_helper(ds.value.get_object().nested_objects, ds)

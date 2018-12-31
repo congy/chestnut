@@ -7,9 +7,9 @@ from ilp_helper import *
 from query_manager import *
 from ilp_helper import *
 from prune_plans import *
-from gurobipy import *
 from ds_manager import *
-#from ilp_fake import *
+#from gurobipy import *
+from ilp_fake import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -188,24 +188,25 @@ class ILPVariableManager(object):
     # find result plan for write queries:
     # TODO
 
-  def construct_result_dsmng_helper1(self, lst):
+  def construct_result_dsmng_helper1(self, lst, upperds=None):
     ret_lst = []
     for ds in lst:
       if self.dsv[ds.id].x > 0.5:
         new_ds = ds.fork_without_memobj()
         new_ds.id = ds.id
+        newds.upper = upperds
         if new_ds.value.is_object():
-          self.construct_result_dsmng_helper2(new_ds, ds)
+          self.construct_result_dsmng_helper2(new_ds, ds, newds)
         ret_lst.append(new_ds)
     return ret_lst
 
-  def construct_result_dsmng_helper2(self, ret_ds, ds):
+  def construct_result_dsmng_helper2(self, ret_ds, ds, upperds):
     ret_obj = ret_ds.value.get_object()
     obj = ds.value.get_object()
     for field,ilpv in self.memobjv[ds.id]:
       if ilpv.x > 0.5:
         ret_obj.add_field(field)
-    ret_obj.nested_objects = self.construct_result_dsmng_helper1(obj.nested_objects)
+    ret_obj.nested_objects = self.construct_result_dsmng_helper1(obj.nested_objects, upperds)
 
 
 def test_ilp(read_queries, write_queries=[], membound_factor=2):
@@ -213,21 +214,22 @@ def test_ilp(read_queries, write_queries=[], membound_factor=2):
   prune_nestings(read_queries)
   mem_bound = compute_mem_bound(membound_factor)
 
-  rqmanagers = []
-  dsmeta = DSManager()
-  begin_ds_id = 1
-  for query in read_queries:
-    nesting_plans = search_plans_for_one_query(query, print_plan=False)
-    rqmanagers.append(RQManager(query, nesting_plans))
-    for i,plan_for_one_nesting in enumerate(nesting_plans):
-      #print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
-      dsmng = plan_for_one_nesting.nesting
-      for j,plan in enumerate(plan_for_one_nesting.plans):
-        new_dsmnger = dsmng.copy_tables()
-        plan.get_used_ds(None, new_dsmnger)
-        rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
-        begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
-        plan.copy_ds_id(None, new_dsmnger)
+  # rqmanagers = []
+  # dsmeta = DSManager()
+  # begin_ds_id = 1
+  # for query in read_queries:
+  #   nesting_plans = search_plans_for_one_query(query, print_plan=False)
+  #   rqmanagers.append(RQManager(query, nesting_plans))
+  #   for i,plan_for_one_nesting in enumerate(nesting_plans):
+  #     #print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
+  #     dsmng = plan_for_one_nesting.nesting
+  #     for j,plan in enumerate(plan_for_one_nesting.plans):
+  #       new_dsmnger = dsmng.copy_tables()
+  #       plan.get_used_ds(None, new_dsmnger)
+  #       rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
+  #       begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
+  #       plan.copy_ds_id(None, new_dsmnger)
+  rqmanagers, dsmeta = get_dsmeta(read_queries)
 
   print dsmeta
 

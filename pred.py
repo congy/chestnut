@@ -217,6 +217,20 @@ class QueryField(object):
   def to_json(self):
     return self.field_name
 
+class KeyPath(object):
+  def __init__(self, key, path=[]):
+    self.path = path
+    self.key = key
+    self.hashstr = '-'.join([str(x) for x in self.path])+'-'+str(self.key)
+  def __eq__(self, other):
+    return len(self.path) == len(other.path) and all([self.path[i]==other.path[i] for i in range(0, len(self.path))]) and self.key == other.key
+  def __str__(self):
+    return self.hashstr
+  def __hash__(self):
+    return hash(self.hashstr)
+  def get_query_field(self):
+    return get_query_field(self.key)
+
 # used in if condition...
 class UpperQueryField(QueryField): 
   def __str__(self):

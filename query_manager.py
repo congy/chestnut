@@ -26,7 +26,7 @@ class WQManager(object):
 def collect_all_structures(dsmeta, dsmng, begin_ds_id=1):
   return data_structures_merge_helper(dsmeta.data_structures, dsmng.data_structures, begin_ds_id)
 
-def data_structures_merge_helper(lst1, lst2, begin_ds_id):
+def data_structures_merge_helper(lst1, lst2, begin_ds_id, upperds=None):
   cur_ds_id = begin_ds_id
   delta_structures = []
   temp_lst1 = [ds for ds in lst1]
@@ -35,7 +35,7 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id):
     for ds1 in temp_lst1:
       if ds1 == ds2:
         ds2.id = ds1.id
-        cur_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id)
+        cur_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id, upperds)
         delta_structures += new_delta
         exist = True
     if not exist:
@@ -43,9 +43,11 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id):
       cur_ds_id = cur_ds_id + 1
       tempds.id = cur_ds_id
       ds2.id = cur_ds_id
+      tempds.upper = upperds
+      ds2.upper = upperds
       delta_structures.append(tempds)
       lst1.append(tempds)
-      new_ds_id, new_delta = collect_structures_helper_index(tempds, ds2, cur_ds_id)
+      new_ds_id, new_delta = collect_structures_helper_index(tempds, ds2, cur_ds_id, upperds)
       cur_ds_id = new_ds_id
       delta_structures += new_delta
   for ds2 in lst2:
@@ -56,14 +58,14 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id):
           ds2.value.value = ds1
   return cur_ds_id, delta_structures
 
-def collect_structures_helper_memobj(obj, newobj, begin_ds_id):
+def collect_structures_helper_memobj(obj, newobj, begin_ds_id, upperds):
   obj.add_fields(newobj.fields)
-  return data_structures_merge_helper(obj.nested_objects, newobj.nested_objects, begin_ds_id)
+  return data_structures_merge_helper(obj.nested_objects, newobj.nested_objects, begin_ds_id, upperds)
 
-def collect_structures_helper_index(ds, newds, begin_ds_id):
+def collect_structures_helper_index(ds, newds, begin_ds_id, upperds):
   if ds.value.is_main_ptr() or ds.value.is_aggr():
     return begin_ds_id, []
-  return collect_structures_helper_memobj(ds.value.get_object(), newds.value.get_object(), begin_ds_id)
+  return collect_structures_helper_memobj(ds.value.get_object(), newds.value.get_object(), begin_ds_id, ds)
 
 def get_dsmeta(read_queries):
   rqmanagers = []
@@ -88,3 +90,14 @@ def test_merge(query):
   rqmanagers, dsmeta = get_dsmeta([query])
   print dsmeta
   print_ds_with_cost(dsmeta)
+
+def test_cost(queries):
+  rqmanagers, dsmeta = get_dsmeta(queries)
+  ds_lst, memobj = collect_all_ds_helper1(dsmeta.data_structures)
+  for ds in ds_lst:
+    print 'ds {} cost = {}'.format(ds.__str__(True), to_real_value(ds.compute_mem_cost()))
+    print ''
+  for k,v in memobj.items(): 
+    cnt = k.element_count()
+    print 'memobj {} #element = {}'.format(k.__str__(True), to_real_value(cnt))
+    print ''

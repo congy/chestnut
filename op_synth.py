@@ -92,6 +92,7 @@ class SynthHelper(object):
           self.constant_pred.append((k,v1))
       if len(params) > 0:
         self.pred_pool[k] = params
+    # print 'table = {}'.format(self.main_table)
     # for k,v in pred_pool.items():
     #   print 'pool k = {}, v = {}'.format(k, ','.join([str(v1[1]) for v1 in v]))
     self.max_sz = 1 if len(self.pred_pool) == 0 else reduce(lambda x, y: x*y, [len(v) for k,v in self.pred_pool.items()])

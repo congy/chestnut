@@ -331,13 +331,15 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       old_count = len(res)
       p = PlansForOneNesting(dsmng, res)
-      if print_plan: 
-        for plan in res:
+      for plan in res:
+        new_dsmnger = dsmng.copy_tables()
+        plan.get_used_ds(None, new_dsmnger)
+        new_dsmnger.clear_placeholder()
+        set_upperds_helper(new_dsmnger.data_structures)
+        plan.copy_ds_id(None, new_dsmnger)
+        if print_plan: 
           print 'PLAN {}'.format(cnt)
           print plan
-          new_dsmnger = dsmng.copy_tables()
-          plan.get_used_ds(None, new_dsmnger)
-          new_dsmnger.clear_placeholder()
           print '** struct:'
           print new_dsmnger
           print '=============\n'

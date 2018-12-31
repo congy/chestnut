@@ -94,13 +94,13 @@ def get_loop_define(idx, is_begin=True, is_range=False):
   if isinstance(idx, ObjBasicArray):
     if isinstance(idx.table, NestedTable) and get_main_table(idx.table.upper_table).has_one_or_many_field(idx.table.name) == 1:
       return 'SINGLE_ELEMENT_FOR_{}'.format(suffix) 
-    sz = to_real_value(idx.compute_size())
+    sz = to_real_value(idx.compute_single_size())
     if sz < SMALL_DT_BOUND:
       return 'SMALLBASICARRAY_FOR_{}'.format(suffix)
     else:
       return 'BASICARRAY_FOR_{}'.format(suffix)
   elif isinstance(idx, IndexBase):
-    if to_real_value(idx.compute_size()) < SMALL_DT_BOUND:
+    if to_real_value(idx.compute_single_size()) < SMALL_DT_BOUND:
       prefix = 'SMALL'
     else:
       prefix = ''
@@ -123,14 +123,14 @@ def get_idx_define(idx):
     if idx.single_element:
       qf = get_qf_from_nested_t(idx.table)
       return '{}In{}'.format(get_capitalized_name(qf.field_name), get_capitalized_name(qf.table.name))
-    sz = to_real_value(idx.compute_size())
+    sz = to_real_value(idx.compute_single_size())
     if sz < SMALL_DT_BOUND: 
       return 'SmallBasicArray'
     else:
       return 'BasicArray'
   elif isinstance(idx, IndexBase):
     prefix = ''
-    if to_real_value(idx.compute_size()) < SMALL_DT_BOUND:
+    if to_real_value(idx.compute_single_size()) < SMALL_DT_BOUND:
       prefix='Small'
     if isinstance(idx, ObjTreeIndex):
       return '{}TreeIndex'.format(prefix)
