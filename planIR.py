@@ -502,6 +502,7 @@ class ExecIndexStep(ExecScanStep):
     lookup_cost = cost_mul(CostLogOp(total_ele_cnt), 2)
     element_cost = self.ele_ops.compute_cost()
     div_ratio = get_idx_op_cost_div(self.op, self.params)
+    #print 'step on {}, div ratio = {}'.format(self.idx, to_real_value(div_ratio))
     left_ele_cnt = CostOp(total_ele_cnt, COST_DIV, div_ratio)
     if isinstance(self.idx, ObjHashIndex):
       self.cost = CostOp(left_ele_cnt, COST_MUL, element_cost)

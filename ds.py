@@ -271,7 +271,7 @@ class ObjTreeIndex(IndexBase):
   def compute_mem_cost(self):
     if cost_computed(self.mem_cost):
       return self.mem_cost
-    self.mem_cost = cost_mul(2, cost_mul(self.element_count(), sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+1))
+    self.mem_cost = cost_mul(self.element_count(), sum([k.get_query_field().field_class.get_sz() for k in self.key_fields()])+2)
     return self.mem_cost
   def __str__(self, short=False):
     return '[{}] treeindex : [table = {}{}, keys = ({}), cond = {}, value = {}]'.format(\

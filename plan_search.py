@@ -340,6 +340,7 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
         if print_plan: 
           print 'PLAN {}'.format(cnt)
           print plan
+          print 'plan cost = {}'.format(to_real_value(plan.compute_cost()))
           print '** struct:'
           print new_dsmnger
           print '=============\n'

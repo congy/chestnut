@@ -127,14 +127,19 @@ def get_idx_op_cost_div(idxop, params):
       factor = cost_mul(factor, f.field_class.get_nv_for_cost())
     return factor
   else:
+    factor = 1
     for i in range(0, len(params[0].fields)):
       p1 = params[0].params[i]
       p2 = params[1].params[i]
       f = get_query_field(params[0].fields[i].key)
-      if isinstance(p1, Parameter) or isinstance(p2, Parameter):
-        return 2
-      else:
-        return 1
+      if p1 == p2:
+        if isinstance(p1, AtomValue):
+          factor = cost_mul(factor, f.field_class.get_nv_for_cost(p1.v))
+        else:
+          factor = cost_mul(factor, f.field_class.get_nv_for_cost())
+      elif isinstance(p1, Parameter) or isinstance(p2, Parameter):
+        factor = cost_mul(factor, 2)
+    return factor
 
 def get_query_result_sz(table, pred):
   base_sz = table.sz

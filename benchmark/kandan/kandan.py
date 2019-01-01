@@ -67,11 +67,11 @@ q_cc_w1, q_cc_w2]
 
 #q_ci_1.assigned_param_values = {Parameter('channel_id'):'47'}
 
-#search_plans_for_one_query(read_queries[0])
+#search_plans_for_one_query(read_queries[4])
 
 # test_merge(q)
-test_cost(read_queries[:1])
-#test_ilp(read_queries, membound_factor=1)
+#test_cost(read_queries[:1])
+test_ilp(read_queries, membound_factor=1)
 
 data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)

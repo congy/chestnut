@@ -8,8 +8,8 @@ from query_manager import *
 from ilp_helper import *
 from prune_plans import *
 from ds_manager import *
-#from gurobipy import *
-from ilp_fake import *
+from gurobipy import *
+#from ilp_fake import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -194,9 +194,9 @@ class ILPVariableManager(object):
       if self.dsv[ds.id].x > 0.5:
         new_ds = ds.fork_without_memobj()
         new_ds.id = ds.id
-        newds.upper = upperds
+        new_ds.upper = upperds
         if new_ds.value.is_object():
-          self.construct_result_dsmng_helper2(new_ds, ds, newds)
+          self.construct_result_dsmng_helper2(new_ds, ds, new_ds)
         ret_lst.append(new_ds)
     return ret_lst
 
