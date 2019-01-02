@@ -19,7 +19,7 @@ set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 
-set_cpp_file_path('{}/{}/'.format(os.getcwd(), workload_name))
+set_cpp_file_path('../../')
 
 globalv.tables = [story, comment, message, tag, vote, user]
 globalv.associations = [storys_user, storys_tags, storys_hidden, comments_user, comments_story, message_author, message_recipient, \

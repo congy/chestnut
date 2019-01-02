@@ -98,7 +98,7 @@ class CodegenState(object):
   def order_maintained(self, target_order):
     if target_order is None:
       return True
-    range_keys = [k.key for k in step.idx.keys.range_keys]
+    range_keys = [k.key for k in self.ds.keys.range_keys]
     if all([o in range_keys for o in target_order]):
       return True
   def add_nextscope_state(self, step):

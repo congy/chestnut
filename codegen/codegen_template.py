@@ -55,3 +55,5 @@ ruby_template_begin = """
 ruby_template_end = """
   @rep_sock.close()
 """
+
+copy_cpp_files = ['Makefile','atomic_stack.h','bloom_filter.h','data_struct.h','sorted_small_set.h','util.cc','util.h']

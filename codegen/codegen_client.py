@@ -132,20 +132,22 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
       cnt += 1
     for f in query.projections:
       s += '  inline void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(f.field_name, get_cpp_type(f.get_type()), f.field_name, fmap[f])
-      s += '  inline {} {}() {{ return {}_{}; }}\n'.format(get_cpp_type(f.get_type()), f.field_name, f.field_name, fmap[f])
+      s += '  inline {} {}() const {{ return {}_{}; }}\n'.format(get_cpp_type(f.get_type()), f.field_name, f.field_name, fmap[f])
       if is_string(f.field_class):
         s += '  inline void set_{}(const char* v_) {{ {}_{} = v_; }}\n'.format(f.field_name, f.field_name, fmap[f])
     
     rs_var = query.table.name
+    retv = query.return_var
     if repeated:
-      retv = query.return_var
       upper_s += '  std::vector<{}> {};\n'.format(typename, rs_var)
       upper_s += '  size_t {}_size() {{ return {}.size(); }}\n'.format(retv.tipe.name, rs_var)
       upper_s += '  {}* add_{}() {{ {}.push_back({}()); return &{}.back(); }}\n'.format(\
               typename, retv.tipe.name, rs_var, typename, rs_var)
+      #upper_s += '  {}& get_{}(size_t ix) const {{ return {}[ix]; }}\n'.format(typename, retv.tipe.name, rs_var)
     else:
       upper_s += '  {} {};\n'.format(typename, rs_var)
-      upper_s += '  {}* mutable_{} {{ return &{}; }};\n'.format(typename, retv.tipe.name, rs_var)
+      upper_s += '  {}* mutable_{}() {{ return &{}; }};\n'.format(typename, retv.tipe.name, rs_var)
+      #upper_s += '  {} get_{}() const {{ return {}; }}\n'.format(typename, retv.tipe.name, rs_var)
       
     if query.order:
       s += '  inline bool operator< (const {}& other) const {{ return '.format(typename)

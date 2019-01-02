@@ -45,7 +45,9 @@ class PlanTree(object):
     self.index_step = None
     self.sort_step = None
     # element_steps include getting assoc fields, set vars, etc
-    self.element_steps = []
+    self.assoc_pred_steps = []
+    self.assoc_query_steps = []
+    self.setv_steps = []
     # next level key: qf; value: PlanTreeUnion
     self.next_level_pred = {}
     # next level key: qf; value: PlanTreeUnion
@@ -55,32 +57,41 @@ class PlanTree(object):
     pt.index_step = self.index_step.fork()
     pt.sort_step = self.sort_step
     pt.pre_steps = [s for s in self.pre_steps]
-    pt.element_steps = [s.fork() for s in self.element_steps]
+    pt.assoc_pred_steps = [s.fork() for s in self.assoc_pred_steps]
+    pt.assoc_query_steps = [s.fork() for s in self.assoc_query_steps]
+    pt.setv_steps = [s.fork() for s in self.setv_steps]
     pt.next_level_pred = {k:v.fork() for k,v in self.next_level_pred.items()}
     pt.next_level_query = {k:v.fork() for k,v in self.next_level_query.items()}
     return pt
-  def find_retrieve_assoc_step(self, field):
-    for s in self.element_steps:
+  def find_retrieve_assoc_step(self, field, query=False):
+    ary = self.assoc_pred_steps if query else self.assoc_query_steps 
+    for s in ary:
       fields = get_fields_from_assocop(field)
       if len(s.steps) <= len(fields) and all([s.steps[i].field == fields[i] for i in range(0, len(s.steps))]):
         return s
     assert(False)
   def to_steps(self):
     idx_step = self.index_step.fork()
-    ele_ops = []
+    # assoc_pred_steps
+    # nextlevel pred
+    # setv
+    # assoc query steps
+    # nextlevel query
+    ele_ops = [s for s in self.assoc_pred_steps]
     for k,v in self.next_level_pred.items():
       if is_assoc_field(k):
         s = self.find_retrieve_assoc_step(k)
         s.add_steps(v.to_steps())
       else:
         ele_ops += v.to_steps()
+    ele_ops += self.setv_steps
+    ele_ops += self.assoc_query_steps
     for k,v in self.next_level_query.items():
       if is_assoc_field(k):
-        s = self.find_retrieve_assoc_step(k)
+        s = self.find_retrieve_assoc_step(k, True)
         s.add_steps(v.to_steps())
       else:
         ele_ops += v.to_steps()
-    ele_ops += self.element_steps
     idx_step.ele_ops.add_steps(ele_ops)
     if self.sort_step:
       return self.pre_steps + [idx_step, self.sort_step]

@@ -6,9 +6,19 @@ from query import *
 from codegen_sql import *
 from codegen_initialize import *
 from codegen_ir import *
+from codegen_template import *
+from protogen import *
+from constants import *
 from ilp.ilp_manager import *
 
 # ====== test initialize ds ======
+
+def prepare_other_files(tables, associations):
+  os.system('mkdir {}'.format(get_db_name()))
+  generate_proto_files('./{}/'.format(get_db_name()), tables, associations)
+  for f in copy_cpp_files:
+    os.system('cp {}/cpp_utils/{} {}/'.format(get_cpp_file_path(), f, get_db_name()))
+
 
 def test_initialize(tables, associations, read_queries, planid=0):
   rqmanagers, dsmeta_ = get_dsmeta(read_queries)
@@ -56,6 +66,7 @@ def test_query(tables, associations, query, planid=0):
       cnt = cnt + len(plan_for_one_nesting.plans)
       
   header, cpp = cgen_initialize_all(tables, associations, dsmeta)
+  #prepare_other_files(tables, associations)
 
   fp = open('{}/{}.h'.format(get_db_name(), get_db_name()), 'w')
   fp.write(header)
@@ -169,6 +180,8 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
 
   (dsmeta, plans, plan_ds, plan_ids) = ilp_solve(queries, membound_factor=memfactor, read_from_file=read_from_file, read_ilp=read_ilp)
 
+  prepare_other_files(tables, associations)
+
   header, cpp = cgen_initialize_all(tables, associations, dsmeta)
 
   fp = open('{}/{}.h'.format(get_db_name(), get_db_name()), 'w')
@@ -182,6 +195,7 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
   header = ''
   cpp = ''
   for i in range(0, len(plans)):
+    print 'generate file for query {} plan {}'.format(i, plan_ids[i])
     header_, cpp_ = cgen_for_read_query(0, queries[i], plans[i], plan_ds[i], plan_ids[i])
     header += (header_ + '\n')
     cpp += (cpp_ + '\n')

@@ -18,7 +18,7 @@ set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 
-set_cpp_file_path('{}/{}/'.format(os.getcwd(), workload_name))
+set_cpp_file_path('../../')
 
 globalv.tables = [issue, user, member, project, enabled_module, version, news, board, message, tracker, role, issue_status, enumeration]
 globalv.associations = [project_issue, issue_tracker, issue_status_issue, member_user, project_member, member_roles,\

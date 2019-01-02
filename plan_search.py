@@ -39,8 +39,8 @@ def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, id
       for next_level_steps in itertools.product(*nextlevel_tree_combs):
         plan_tree = PlanTree()
         plan_tree.pre_steps = get_initvar_steps([], [variable_to_set[i]])
-        plan_tree.element_steps += assoc_steps
-        plan_tree.element_steps.append(setvar_step)
+        plan_tree.assoc_pred_steps += assoc_steps
+        plan_tree.setv_steps.append(setvar_step)
         plan_tree.index_step = idx_step.fork()
         for i,next_step in enumerate(next_level_steps):
           plan_tree.next_level_pred[nextlevel_fields[i]] = next_step
@@ -109,8 +109,8 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       for next_level_steps in itertools.product(*nextlevel_tree_combs):
         plan_tree = PlanTree()
         plan_tree.pre_steps = get_initvar_steps([v for v,aggr in query.aggrs], [], init_qr_var)
-        plan_tree.element_steps += assoc_steps
-        plan_tree.element_steps += set_steps
+        plan_tree.assoc_pred_steps += assoc_steps
+        plan_tree.setv_steps += set_steps
         plan_tree.index_step = idx_step
         if x > sortedN:
           plan_tree.sort_step = ExecSortStep(query.return_var, query.order)
@@ -165,7 +165,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
     for i,pt in enumerate(ptu.plan_trees):
       for next_plan_comb in itertools.product(*next_level_query):
         new_plan_tree = pt.fork()
-        new_plan_tree.element_steps += assoc_steps
+        new_plan_tree.assoc_query_steps += assoc_steps
         for j,next_plan in enumerate(next_plan_comb):
           new_plan_tree.next_level_query[next_fields[j]] = next_plan
         plan_tree_combs[i].append(new_plan_tree)
@@ -313,6 +313,7 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
   dsmngers = enumerate_nestings_for_query(query)
   compute_mem_bound()
   assert(globalv.memory_bound > 1000)
+  print 'mem bound = {}'.format(globalv.memory_bound)
   print 'all nestings = {} ({})'.format(len(dsmngers), query_id)
   plans = []
   if multiprocess:

@@ -46,8 +46,8 @@ def cgen_for_one_step(step, state, print_result=False):
   s = ''
   if isinstance(step, ExecQueryStep):
     if state.topquery.return_var:
-      state.qr_varmap[state.topquery.return_var] = 'qresult'
-      state.qr_var = 'qresult'
+      #state.qr_varmap[state.topquery.return_var] = 'qresult'
+      state.qr_var = '(&qresult)'
     next_s, temp_state = cgen_for_one_step(step.step, state)
     s += insert_indent(next_s)
     for v,aggr in state.topquery.aggrs:
@@ -74,13 +74,13 @@ def cgen_for_one_step(step, state, print_result=False):
       s += inits
     elif isinstance(step.var, EnvCollectionVariable):
       ele_name = cgen_cxxvar(step.var, True)
-      state.qr_var = '(*{})'.format(ele_name)
+      state.qr_var = ele_name
       if type(step.expr) is str and step.expr == 'init':
         qr_array = state.find_or_create_qr_var(step.var)
         # FIXME
         s += '{} {};\n'.format(cgen_query_result_type(state.topquery), qr_array)
       else:
-        s += '{}* {};\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery), ele_name)
+        s += '{}* {} = nullptr;\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery), ele_name)
         expr_s = cgen_add_to_qresult(step.var, ele_name, step.projections, state)
     if step.cond:
       dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
@@ -168,11 +168,11 @@ def cgen_for_one_step(step, state, print_result=False):
         cmp_func += " || ({} && a.{}() < b.{}())".format(cmp_accu, f.field_name, f.field_name)
         cmp_accu += " && a.{}() == b.{}()".format(f.field_name, f.field_name)
       cmp_func += '; }'
-      s += "std::sort({}.mutable_{}()->begin(),\n".format(state.ir_var, step.var.tipe.name)
-      s += "         {}.mutable_{}()->end(),\n".format(state.ir_var, step.var.tipe.name)
+      s += "std::sort({}->mutable_{}()->begin(),\n".format(state.ir_var, step.var.tipe.name)
+      s += "         {}->mutable_{}()->end(),\n".format(state.ir_var, step.var.tipe.name)
       s += "         {});\n".format(cmp_func)
     else:
-      s += '{}.sort_{}();\n'.format(state.ir_var, step.var.tipe.name)
+      s += '{}->sort_{}();\n'.format(state.qr_var, step.var.tipe.name)
     return s, state
 
   elif isinstance(step, ExecUnionStep):
@@ -195,26 +195,32 @@ def cgen_for_one_step(step, state, print_result=False):
 
 def cgen_add_to_qresult(qr_array, ele_name, fields, state):
   s = ''
-  upper_qrvar = state.upper.find_qr_var(qr_array)
+  if state.upper.exist_qr_var(qr_array):
+    upper_qrvar = state.upper.find_qr_var(qr_array)
+  else:
+    upper_qrvar = state.upper.qr_var
+  assert(upper_qrvar)
+  s += 'if ({} != nullptr) {{\n'.format(upper_qrvar)
   irvar = state.loop_var
   table = qr_array.tipe
   if isinstance(table, NestedTable) and get_main_table(table.upper_table).has_one_or_many_field(table.name) == 1:
-    s += '{} = {}.mutable_{}();\n'.format(ele_name, upper_qrvar, table.name)
+    s += '  {} = {}->mutable_{}();\n'.format(ele_name, upper_qrvar, table.name)
   else:
-    s += '{} = {}.add_{}();\n'.format(ele_name, upper_qrvar, table.name) 
+    s += '  {} = {}->add_{}();\n'.format(ele_name, upper_qrvar, table.name) 
   for f in fields:
     if type(f) is not tuple:
       if is_string(f.field_class):
-        s += '{}->set_{}({}.{}.c_str());\n'.format(ele_name, f.field_name, irvar, cgen_fname(f))
+        s += '  {}->set_{}({}.{}.c_str());\n'.format(ele_name, f.field_name, irvar, cgen_fname(f))
       else:
-        s += '{}->set_{}({}.{});\n'.format(ele_name, f.field_name, irvar, cgen_fname(f))
+        s += '  {}->set_{}({}.{});\n'.format(ele_name, f.field_name, irvar, cgen_fname(f))
     else:
       vpair = f
       cxx_var = state.find_ir_var(vpair[0])
       if not vpair[0].is_temp:
-        s += '{}->set_{}({});\n'.format(ele_name, vpair[0].name, get_aggr_result(vpair, cxx_var, state))
-  if qr_array.limit > 0 and state.order_maintained(qr_array):
-    s += 'if ({}.{}_size() > {}) break;\n'.format(upper_irvar, qr_array.tipe.name, qr_array.limit)
+        s += '  {}->set_{}({});\n'.format(ele_name, vpair[0].name, get_aggr_result(vpair, cxx_var, state))
+  if qr_array.limit > 0 and state.order_maintained(qr_array.order):
+    s += '  if ({}->{}_size() > {}) break;\n'.format(upper_qrvar, qr_array.tipe.name, qr_array.limit)
+  s += '}\n'
   return s
 
 def get_obj_from_value_type(idx, ary_ele_name, dsmnger, cxxobj=None):

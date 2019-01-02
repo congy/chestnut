@@ -354,7 +354,7 @@ def cgen_print_query_result_helper(query, element_var, level=1):
     if v.return_var:
       if k.table.has_one_or_many_field(k.field_name):
         next_element_var = 'element_{}'.format(k.field_name)
-        s += '  auto& {} = {}.{}();\n'.format(next_element_var, element_var, k.field_name)
+        s += '  auto& {} = {}.{};\n'.format(next_element_var, element_var, k.field_name)
         s += insert_indent(cgen_print_query_result_helper(v, next_element_var, level+1))
       else:
         s += '  printf("sz = %u\\n", {}.{}_size());\n'.format(element_var, k.field_name)
@@ -362,7 +362,7 @@ def cgen_print_query_result_helper(query, element_var, level=1):
         s += '  for (size_t {} = 0; {} != {}.{}_size(); {}++) {{\n'.format(next_counter,\
             next_counter, element_var, k.field_name, next_counter)
         next_element_var = 'element_{}'.format(k.field_name)
-        s += '      auto& {} = {}.{}({});\n'.format(next_element_var, element_var, k.field_name, next_counter)
+        s += '      auto& {} = {}.{}[{}];\n'.format(next_element_var, element_var, k.field_name, next_counter)
         s += insert_indent(cgen_print_query_result_helper(v, next_element_var, level+1))
         s += '  }\n'
   return s             
