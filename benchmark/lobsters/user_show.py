@@ -15,7 +15,6 @@ from lobsters_schema import *
 
 q_us_1 = get_all_records(user)
 q_us_1.pfilter(BinOp(f('username'), EQ, Parameter('user_name')))
-q_us_1.project('*')
 q_us_1.complete()
 
 param_user_id = Parameter('user_id')
@@ -24,7 +23,6 @@ q_us_2 = get_all_records(tag)
 q_us_2.pfilter(BinOp(f('inactive'), EQ, AtomValue(False)))
 q_us_2.finclude(f('stories'), pfilter=BinOp(f('user').f('id'), EQ, param_user_id))
 q_us_2.get_include(f('stories')).aggr(UnaryExpr(COUNT), 'story_count')
-q_us_2.project('*')
 q_us_2.orderby([f('story_count')])
 q_us_2.return_limit(1)
 q_us_2.complete()
@@ -34,7 +32,6 @@ q_us_3.pfilter(BinOp(f('comment').f('user').f('id'), NEQ, f('user').f('id')))
 q_us_3.pfilter(BinOp(f('story').f('user').f('id'), NEQ, f('user').f('id')))
 q_us_3.pfilter(BinOp(f('user').f('id'), EQ, param_user_id))
 q_us_3.orderby([f('id')])
-q_us_3.project('*')
 q_us_3.return_limit(10)
 q_us_3.complete()
 

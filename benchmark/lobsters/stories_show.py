@@ -23,12 +23,11 @@ from lobsters_schema import *
 # SELECT  `users`.* FROM `users`  WHERE `users`.`id` = 368 LIMIT 1
 
 q_ss_1 = get_all_records(story)
-q_ss_1.pfilter(BinOp(f('merged_story_id'), EQ, Parameter('story_id')))
-q_ss_1.project([f('id')])
+q_ss_1.pfilter(BinOp(f('id'), EQ, Parameter('story_id')))
 q_ss_1.finclude(f('comments'))
 q_ss_1.get_include(f('comments')).orderby([f('confidence')], ascending=False)
-q_ss_1.finclude(f('votes'))
+q_ss_1.finclude(f('votes'), projection=[f('vote'), f('id')])
 q_ss_1.get_include(f('votes')).orderby([f('id')], ascending=False)
-q_ss_1.finclude(f('tags'))
-q_ss_1.finclude(f('user'))
+q_ss_1.finclude(f('tags'), projection=[f('tag')])
+q_ss_1.finclude(f('user'), projection=[f('username')])
 q_ss_1.complete()

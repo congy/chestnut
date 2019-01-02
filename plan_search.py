@@ -311,6 +311,8 @@ def thread_search_plans_for_one_nesting(query_id, tasks, results, idx):
 import time
 def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan=True):
   dsmngers = enumerate_nestings_for_query(query)
+  compute_mem_bound()
+  assert(globalv.memory_bound > 1000)
   print 'all nestings = {} ({})'.format(len(dsmngers), query_id)
   plans = []
   if multiprocess:

@@ -4,12 +4,15 @@ from query_manager import *
 from util import *
 from cost import *
 from ilp_helper import *
+from constants import *
 from query_manager import *
 from ilp_helper import *
 from prune_plans import *
 from ds_manager import *
-from gurobipy import *
-#from ilp_fake import *
+#from gurobipy import *
+import multiprocessing
+import pickle
+from ilp_fake import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -170,21 +173,24 @@ class ILPVariableManager(object):
     # find result plan for read queries:
     self.result_read_plans = []
     self.result_read_ds = []
+    self.result_read_plan_id = []
     for i in range(0, len(rqmanagers)):
       rqmng = rqmanagers[i]
       cnt = 0
       plan = None
+      planid = 0
       for plan_for_one_nesting in rqmng.plans:
         for j in range(0, len(plan_for_one_nesting.plans)):
           if (self.readq_planv[i][cnt].x > 0.5):
             plan = plan_for_one_nesting.plans[j]
             dsmanager = plan_for_one_nesting.dsmanagers[j]
+            planid = cnt
           cnt = cnt + 1
       assert(plan)
       self.result_read_plans.append(plan)
       self.result_read_ds.append(dsmanager)
+      self.result_read_plan_id.append(cnt)
 
-    
     # find result plan for write queries:
     # TODO
 
@@ -209,46 +215,7 @@ class ILPVariableManager(object):
     ret_obj.nested_objects = self.construct_result_dsmng_helper1(obj.nested_objects, upperds)
 
 
-def test_ilp(read_queries, write_queries=[], membound_factor=2):
-  
-  prune_nestings(read_queries)
-  mem_bound = compute_mem_bound(membound_factor)
-
-  # rqmanagers = []
-  # dsmeta = DSManager()
-  # begin_ds_id = 1
-  # for query in read_queries:
-  #   nesting_plans = search_plans_for_one_query(query, print_plan=False)
-  #   rqmanagers.append(RQManager(query, nesting_plans))
-  #   for i,plan_for_one_nesting in enumerate(nesting_plans):
-  #     #print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
-  #     dsmng = plan_for_one_nesting.nesting
-  #     for j,plan in enumerate(plan_for_one_nesting.plans):
-  #       new_dsmnger = dsmng.copy_tables()
-  #       plan.get_used_ds(None, new_dsmnger)
-  #       rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
-  #       begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
-  #       plan.copy_ds_id(None, new_dsmnger)
-  rqmanagers, dsmeta = get_dsmeta(read_queries)
-
-  print dsmeta
-
-  prune_read_plans(rqmanagers, dsmeta)
-
-  ilp = ILPVariableManager()
-  ilp.mem_bound = mem_bound 
-  print 'MEMORY BOUND = {}'.format(ilp.mem_bound)
-  ilp.add_data_structures(dsmeta)
-  ilp.add_read_queries(rqmanagers)
-
-  ilp.add_constraints()
-  
-  # ilp.model.print_stat()
-  # exit(0)
-
-  ilp.solve()
-  ilp.interpret_result(dsmeta, rqmanagers)
-
+def print_ilp_result(read_queries, ilp):
   print 'result data structures = {}'.format(ilp.ret_dsmng)
   print 'mem cost = {}'.format(to_real_value(ilp.ret_dsmng.compute_mem_cost()))
   print 'cost breakdown: '
@@ -268,5 +235,79 @@ def test_ilp(read_queries, write_queries=[], membound_factor=2):
     print 'actual_ds = {}'.format(ilp.result_read_ds[i])
     print '---------\n'
 
+
+import time
+def test_ilp(read_queries, membound_factor=1):
+  ilp_solve(read_queries, membound_factor=1)
+
+def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False):
+  
+  prune_nestings(read_queries)
+  mem_bound = compute_mem_bound(membound_factor)
+
+  start_time = time.time()
+  if read_from_file:
+    rqmanagers = [None for i in range(0, len(read_queries))]
+    processing_jobs = []
+    def read_pickle_file(ix, rqmanagers):
+      f = open('mem{}_q{}_plan.pickle'.format(membound_factor, ix), 'r')
+      rqmanagers[ix] = pickle.load(f)
+      f.close()
+
+    for i in range(0, len(rqmanagers)):
+      p = multiprocessing.Process(target=read_pickle_file, args=(i, rqmanagers))
+      processing_jobs.append(p)
+      p.start()
+    for p in processing_jobs:
+      p.join()
+
+    f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'r')
+    dsmeta = pickle.load(f)
+    f.close()
+  else:
+    rqmanagers, dsmeta = get_dsmeta(read_queries)
+    prune_read_plans(rqmanagers, dsmeta)
+
+  if save_to_file:
+    for i in range(0, len(rqmanagers)):
+      f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
+      pickle.dump(rqmanagers[i], f)
+      f.close()
+    f = open('mem{}_dsmeta.pickle'.format(membound_factor()), 'r')
+    pickle.dump(dsmeta, f)
+    f.close()
+    
+  print 'load time = {}'.format(time.time()-start_time)
+  print dsmeta
+
+  if read_ilp:
+    f = open('{}_ilp.pickle'.format(get_db_name()), 'w')
+    ilp = pickle.load(f)
+    f.close()
+  else:
+    ilp = ILPVariableManager()
+    ilp.mem_bound = mem_bound 
+    print 'MEMORY BOUND = {}'.format(ilp.mem_bound)
+    ilp.add_data_structures(dsmeta)
+    ilp.add_read_queries(rqmanagers)
+
+    ilp.add_constraints()
+    # ilp.model.print_stat()
+    # exit(0)
+    ilp.solve()
+    ilp.interpret_result(dsmeta, rqmanagers)
+    if save_ilp:
+      f = open('{}_ilp.pickle'.format(get_db_name()), 'w')
+      pickle.dump(ilp, f)
+      f.close
+
+  print_ilp_result(read_queries, ilp)
+
+  dsmeta = ilp.ret_dsmng
+  plans = ilp.result_read_plans
+  plan_ds = ilp.result_read_ds
+  plan_id.result_read_plan_id
+
+  return (dsmeta, plans, plan_ds, plan_id)
 
 

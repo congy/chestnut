@@ -83,9 +83,9 @@ def prune_read_plans(rqmanagers, dsmeta):
         for dsid in dsid_lst:
           used_ds_lst[qi].add(dsid)
         temp_plan_cost[qi][i][j] = (dsid_lst, mem_cost, plan_cost)
-        #if mem_cost > globalv.memory_bound:
+        if mem_cost > globalv.memory_bound:
         #  print 'query {} nesting {} plan {} is removed, mem_cost = {}'.format(qi, i, j, mem_cost)
-        #  pruned_plans[qi][i].append(j)
+         pruned_plans[qi][i].append(j)
     print 'pass 1 query {}: {}'.format(qi, time.time()-start_time)
   print 'finish pass 1'
   # opt 2.1: if planA's shared ds set (with any other query) is the same as planB's shared ds set, and planA is better than planB, just keep planA

@@ -6,6 +6,7 @@ from query import *
 from codegen_sql import *
 from codegen_initialize import *
 from codegen_ir import *
+from ilp.ilp_manager import *
 
 # ====== test initialize ds ======
 
@@ -164,3 +165,40 @@ def test_generate_sql_helper(ds):
       nextqf = get_qf_from_nested_t(nextds.table)
       test_generate_sql_helper(nextds)
 
+def test_read_overall(tables, associations, queries, memfactor=1, read_from_file=False, read_ilp=False):
+
+  (dsmeta, plans, plan_ds, plan_ids) = ilp_solve(queries, membound_factor=memfactor, read_from_file=False, read_ilp=False)
+
+  header, cpp = cgen_initialize_all(tables, associations, dsmeta)
+
+  fp = open('{}/{}.h'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(header)
+  fp.close()
+
+  fp = open('{}/{}.cc'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(cpp)
+  fp.close()
+
+  header = ''
+  cpp = ''
+  for i in range(0, len(plans)):
+    header_, cpp_ = cgen_for_read_query(0, queries[i], plans[i], plan_ds[i], plan_ids[i])
+    header += (header_ + '\n')
+    cpp += (cpp_ + '\n')
+  
+  header = query_includes + '#include "{}.h"\n\n'.format(get_db_name()) + header 
+  cpp = '#include "{}_query.h"'.format(get_db_name()) + '\n' + cpp
+
+  fp = open('{}/{}_query.h'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(header)
+  fp.close()
+
+  fp = open('{}/{}_query.cc'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(cpp)
+  fp.close()
+
+  main_body = 'read_data();\n' + cgen_for_query_in_main([queries], [planids])
+  main = cgen_for_main_test(main_body, ds_def=True, include_query=True)
+  fp = open('{}/main.cc'.format(get_db_name()), 'w')
+  fp.write(main)
+  fp.close()

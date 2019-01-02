@@ -35,8 +35,8 @@ q_hr_1.pfilter(BinOp(f('created_at'), GT, Parameter('some_date')))
 q_hr_1.orderby([f('id'), f('created_at')], ascending=False)
 q_hr_1.project([f('id'), f('upvotes'), f('downvotes'), f('user_id')])
 #q_hr_1.finclude(f('user'))
-q_hr_1.finclude(f('tags'), pfilter=BinOp(f('id'), EQ, Parameter('tag_id')))
-q_hr_1.finclude(f('votes'), pfilter=ConnectOp(BinOp(f('user').f('id'), EQ, param_user_id), AND, BinOp(f('comment').f('id'), EQ, AtomValue(0))))
+q_hr_1.finclude(f('tags'), pfilter=BinOp(f('id'), EQ, Parameter('tag_id')), projection=[f('tag'),f('id')])
+q_hr_1.finclude(f('votes'), pfilter=ConnectOp(BinOp(f('user').f('id'), EQ, param_user_id), AND, BinOp(f('comment').f('id'), EQ, AtomValue(0))), projection=[f('vote'),f('id')])
 #q_hr_1.finclude(f('hidden_users'), pfilter=BinOp(f('id'), EQ, param_user_id))
 q_hr_1.complete()
 
@@ -49,8 +49,8 @@ q_hr_2.orderby([f('id'), f('created_at')], ascending=False)
 q_hr_2.project('*')
 q_hr_2.return_limit(26)
 #q_hr_2.finclude(f('user'))
-q_hr_2.finclude(f('tags'), pfilter=BinOp(f('id'), EQ, Parameter('tag_id')))
-q_hr_2.finclude(f('votes'), pfilter=ConnectOp(BinOp(f('user').f('id'), EQ, param_user_id), AND, BinOp(f('comment').f('id'), EQ, AtomValue(0))))
+q_hr_2.finclude(f('tags'), pfilter=BinOp(f('id'), EQ, Parameter('tag_id')), projection=[f('tag'),f('id')])
+q_hr_2.finclude(f('votes'), pfilter=ConnectOp(BinOp(f('user').f('id'), EQ, param_user_id), AND, BinOp(f('comment').f('id'), EQ, AtomValue(0))), projection=[f('vote'),f('id')])
 #q_hr_2.finclude(f('hidden_users'), pfilter=BinOp(f('id'), EQ, param_user_id))
 q_hr_2.complete()
 
@@ -58,7 +58,6 @@ q_hr_3 = get_all_records(vote)
 q_hr_3.pfilter(ConnectOp(BinOp(f('user').f('id'), EQ, param_user_id), AND, \
 ConnectOp(BinOp(f('comment').f('id'), EQ, AtomValue(0)), AND, \
 BinOp(f('story').f('id'), EQ, Parameter('user_id')))))
-q_hr_3.project('*')
 q_hr_3.complete()
 
 
