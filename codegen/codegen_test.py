@@ -167,7 +167,7 @@ def test_generate_sql_helper(ds):
 
 def test_read_overall(tables, associations, queries, memfactor=1, read_from_file=False, read_ilp=False):
 
-  (dsmeta, plans, plan_ds, plan_ids) = ilp_solve(queries, membound_factor=memfactor, read_from_file=False, read_ilp=False)
+  (dsmeta, plans, plan_ds, plan_ids) = ilp_solve(queries, membound_factor=memfactor, read_from_file=read_from_file, read_ilp=read_ilp)
 
   header, cpp = cgen_initialize_all(tables, associations, dsmeta)
 

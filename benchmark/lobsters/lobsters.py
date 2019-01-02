@@ -90,7 +90,10 @@ globalv.set_qr_type('fastv')
 #test_ilp(read_queries)
 #test_prune_read_plan(read_queries)
 
-test_cost(read_queries[:5])
+#test_cost(read_queries[:5])
+
+
+ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):

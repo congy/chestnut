@@ -9,10 +9,10 @@ from query_manager import *
 from ilp_helper import *
 from prune_plans import *
 from ds_manager import *
-#from gurobipy import *
 import multiprocessing
 import pickle
-from ilp_fake import *
+#from ilp_fake import *
+from gurobipy import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -246,48 +246,49 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
   mem_bound = compute_mem_bound(membound_factor)
 
   start_time = time.time()
-  if read_from_file:
-    rqmanagers = [None for i in range(0, len(read_queries))]
-    processing_jobs = []
-    def read_pickle_file(ix, rqmanagers):
-      f = open('mem{}_q{}_plan.pickle'.format(membound_factor, ix), 'r')
-      rqmanagers[ix] = pickle.load(f)
+  
+  if read_ilp == False:
+    if read_from_file:
+      rqmanagers = [None for i in range(0, len(read_queries))]
+      processing_jobs = []
+      def read_pickle_file(ix, rqmanagers):
+        f = open('mem{}_q{}_plan.pickle'.format(membound_factor, ix), 'r')
+        rqmanagers[ix] = pickle.load(f)
+        print 'read file {}'.format(ix)
+        f.close()
+
+      for i in range(0, len(rqmanagers)):
+        p = multiprocessing.Process(target=read_pickle_file, args=(i, rqmanagers))
+        processing_jobs.append(p)
+        p.start()
+      for p in processing_jobs:
+        p.join()
+
+      f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'r')
+      dsmeta = pickle.load(f)
       f.close()
-
-    for i in range(0, len(rqmanagers)):
-      p = multiprocessing.Process(target=read_pickle_file, args=(i, rqmanagers))
-      processing_jobs.append(p)
-      p.start()
-    for p in processing_jobs:
-      p.join()
-
-    f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'r')
-    dsmeta = pickle.load(f)
-    f.close()
-  else:
-    rqmanagers, dsmeta = get_dsmeta(read_queries)
-    prune_read_plans(rqmanagers, dsmeta)
-
-  if save_to_file:
-    for i in range(0, len(rqmanagers)):
-      f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
-      pickle.dump(rqmanagers[i], f)
-      f.close()
-    f = open('mem{}_dsmeta.pickle'.format(membound_factor()), 'r')
-    pickle.dump(dsmeta, f)
-    f.close()
+    else:
+      rqmanagers, dsmeta = get_dsmeta(read_queries)
+      prune_read_plans(rqmanagers, dsmeta)
+      if save_to_file:
+        for i in range(0, len(rqmanagers)):
+          f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
+          pickle.dump(rqmanagers[i], f)
+          f.close()
+        f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'w')
+        pickle.dump(dsmeta, f)
+        f.close()
     
-  print 'load time = {}'.format(time.time()-start_time)
-  print dsmeta
+    print 'load time = {}'.format(time.time()-start_time)
+    print dsmeta
 
   if read_ilp:
-    f = open('{}_ilp.pickle'.format(get_db_name()), 'w')
+    f = open('mem{}_ilp.pickle'.format(membound_factor), 'r')
     ilp = pickle.load(f)
     f.close()
   else:
     ilp = ILPVariableManager()
     ilp.mem_bound = mem_bound 
-    print 'MEMORY BOUND = {}'.format(ilp.mem_bound)
     ilp.add_data_structures(dsmeta)
     ilp.add_read_queries(rqmanagers)
 
@@ -297,16 +298,24 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     ilp.solve()
     ilp.interpret_result(dsmeta, rqmanagers)
     if save_ilp:
-      f = open('{}_ilp.pickle'.format(get_db_name()), 'w')
-      pickle.dump(ilp, f)
-      f.close
+      f = open('mem{}_ilp.pickle'.format(membound_factor), 'w')
+      new_ilp = ILPVariableManager()
+      new_ilp.model = None
+      new_ilp.ret_dsmng = ilp.ret_dsmng
+      new_ilp.result_read_plans = ilp.result_read_plans 
+      new_ilp.result_read_ds = ilp.result_read_ds
+      new_ilp.result_read_plan_id = ilp.result_read_plan_id
+      new_ilp.mem_bound = ilp.mem_bound
+      pickle.dump(new_ilp, f)
+      f.close()
 
+  print 'MEMORY BOUND = {}'.format(ilp.mem_bound)
   print_ilp_result(read_queries, ilp)
 
   dsmeta = ilp.ret_dsmng
   plans = ilp.result_read_plans
   plan_ds = ilp.result_read_ds
-  plan_id.result_read_plan_id
+  plan_id = ilp.result_read_plan_id
 
   return (dsmeta, plans, plan_ds, plan_id)
 

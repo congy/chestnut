@@ -72,7 +72,8 @@ q_cc_w1, q_cc_w2]
 # test_merge(q)
 #test_cost(read_queries[:1])
 #test_ilp(read_queries, membound_factor=1)
-ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False)
+#ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+test_read_overall(tables, associations, read_queries, memfactor=1, read_from_file=True, read_ilp=True)
 
 data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
