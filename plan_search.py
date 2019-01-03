@@ -334,12 +334,14 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
       res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
       old_count = len(res)
       p = PlansForOneNesting(dsmng, res)
+      plands = []
       for plan in res:
         new_dsmnger = dsmng.copy_tables()
         plan.get_used_ds(None, new_dsmnger)
         new_dsmnger.clear_placeholder()
         set_upperds_helper(new_dsmnger.data_structures)
         plan.copy_ds_id(None, new_dsmnger)
+        plands.append(new_dsmnger)
         if print_plan: 
           print 'PLAN {}'.format(cnt)
           print plan
@@ -348,7 +350,7 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
           print new_dsmnger
           print '=============\n'
           cnt += 1
-      res = clean_lst([None if to_real_value(step.compute_cost()) > globalv.memory_bound else step for step in res])
+      res = clean_lst([None if to_real_value(plands[ix].compute_mem_cost()) > globalv.memory_bound else res[ix] for ix in range(0, len(res))])
       new_count = len(res)
       print 'pruned by memory bound: {} {}'.format(old_count, new_count)
       plans.append(p)

@@ -32,7 +32,7 @@ from lobsters_schema import *
 q_cc_1 = get_all_records(story)
 q_cc_1.pfilter(BinOp(f('short_id'), EQ, Parameter('story_short_id')))
 q_cc_1.project('*')
-q_cc_1.finclude(f('comments'), pfilter=BinOp(f('short_id'), EQ, Parameter('comment_short_id')))
+q_cc_1.finclude(f('comments'), pfilter=BinOp(f('short_id'), EQ, Parameter('comment_short_id')), projection=[f('short_id'), f('id'), f('parent_comment_id')])
 q_cc_1.complete()
 
 q_cc_2 = get_all_records(comment)
@@ -63,8 +63,8 @@ q_cc_9 = ChangeAssociation(QueryField('votes', table=user), INSERT, Parameter('u
 q_cc_10 = get_all_records(story)
 q_cc_10.pfilter(BinOp(f('merged_story_id'), EQ, Parameter('story_id')))
 q_cc_10.project([f('id')])
-q_cc_10.finclude(f('comments'), pfilter=BinOp(f('user').f('id'), NEQ, Parameter('user_id')))
-q_cc_10.finclude(f('tags'))
+q_cc_10.finclude(f('comments'), pfilter=BinOp(f('user').f('id'), NEQ, Parameter('user_id')), projection=[f('short_id'), f('id'), f('parent_comment_id')])
+q_cc_10.finclude(f('tags'), projection=[f('tag'),f('id')])
 q_cc_10.complete()
 
 
