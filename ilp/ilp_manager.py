@@ -11,8 +11,8 @@ from prune_plans import *
 from ds_manager import *
 import multiprocessing
 import pickle
-from ilp_fake import *
-#from gurobipy import *
+#from ilp_fake import *
+from gurobipy import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -33,7 +33,7 @@ class PlanUseDSConstraints(object):
             lst.append(ilpv)
             exists_ref = f1
         assert(exists_ref)
-      return lst
+    return lst
 
 # FOL constraint to ILP:
 # a -> b => a <= b
@@ -154,11 +154,11 @@ class ILPVariableManager(object):
           plan = plan_for_one_nesting.plans[j]
           dsmng = plan_for_one_nesting.dsmanagers[j]
           ds_lst, memobj_map = self.add_ds_list_helper(dsmng.data_structures)
-          # print 'Query {} plan {}:'.format(idx, cnt)
-          # print 'ds: {}'.format(','.join([str(ds.id) for ds in ds_lst]))
-          # for k,v in memobj_map.items():
-          #   print '  ds {} has fields {}'.format(k, ','.join([str(f) for f in v]))
-          # cnt = cnt + 1
+          #print 'Query {} plan {}:'.format(idx, cnt)
+          #print 'ds: {}'.format(','.join([str(ds.id) for ds in ds_lst]))
+          #for k,v in memobj_map.items():
+          #  print '  ds {} has fields {}'.format(k, ','.join([str(f) for f in v]))
+          #cnt = cnt + 1
           plan_constraint.append(PlanUseDSConstraints([ds_.id for ds_ in ds_lst], memobj_map))
           plan_cost.append(to_real_value(plan.compute_cost())) # TODO
       self.readq_plancost.append(plan_cost)
@@ -203,7 +203,7 @@ class ILPVariableManager(object):
       assert(plan)
       self.result_read_plans.append(plan)
       self.result_read_ds.append(dsmanager)
-      self.result_read_plan_id.append(cnt)
+      self.result_read_plan_id.append(planid)
 
     # find result plan for write queries:
     # TODO
@@ -243,7 +243,7 @@ def print_ilp_result(read_queries, ilp):
 
   print 'result query plan:'
   for i in range(0, len(read_queries)):
-    print 'QUERY {}:'.format(i)
+    print 'QUERY {} plan {}:'.format(i, ilp.result_read_plan_id[i])
     print ilp.result_read_plans[i]
     print 'time cost = {}'.format(to_real_value(ilp.result_read_plans[i].compute_cost()))
     print 'actual_ds = {}'.format(ilp.result_read_ds[i])
@@ -307,7 +307,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     ilp.add_read_queries(rqmanagers)
 
     ilp.add_constraints()
-    exit(0)
+    
     # ilp.model.print_stat()
     # exit(0)
     ilp.solve()

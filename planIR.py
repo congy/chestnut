@@ -339,6 +339,7 @@ class ExecGetAssocStep(ExecStepSuper):
     if self.idx.value.is_object():
       next_obj = eq_ds.value.get_object()
     else:
+      self.idx.value.value = eq_ds.value.value
       primary_ary = dsmanager.find_primary_array(get_main_table(self.idx.table))
       next_obj = primary_ary.value.get_object()
     return next_obj
@@ -444,6 +445,7 @@ class ExecScanStep(ExecStepSuper):
     if self.idx.value.is_object():
       next_obj = eq_ds.value.get_object()
     else:
+      self.idx.value.value = eq_ds.value.value
       primary_ary = dsmanager.find_primary_array(get_main_table(self.idx.table))
       next_obj = primary_ary.value.get_object()
     self.ele_ops.copy_ds_id(next_obj, dsmanager)
