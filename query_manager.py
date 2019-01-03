@@ -80,9 +80,9 @@ def get_dsmeta(read_queries):
       for j,plan in enumerate(plan_for_one_nesting.plans):
         new_dsmnger = dsmng.copy_tables()
         plan.get_used_ds(None, new_dsmnger)
-        rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
         begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
         plan.copy_ds_id(None, new_dsmnger)
+        rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
 
   return rqmanagers, dsmeta
 

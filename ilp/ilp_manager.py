@@ -27,9 +27,12 @@ class PlanUseDSConstraints(object):
       for f in fields:
         if f.field_name == 'id':
           continue
+        exists_ref = None
         for f1,ilpv in ref_pairs:
           if f1 == f:
             lst.append(ilpv)
+            exists_ref = f1
+        assert(exists_ref)
       return lst
 
 # FOL constraint to ILP:
@@ -107,12 +110,17 @@ class ILPVariableManager(object):
     for dsid,fields in memobj_map.items():
       newv = self.model.addVars(len(fields), vtype=GRB.BINARY)
       self.memobjv[dsid] = [(fields[i], newv[i]) for i in range(0, len(fields))]
-    for ds in dsmng.data_structures:
+    for ds in ds_lst:
       if ds.value.is_main_ptr():
         #dependent = dsmng.find_primary_array_exact_match(ds.table)
         dependent = ds.value.value
         assert(dependent and dependent.id > 0)
         self.dsv_dependency.append((ds.id, dependent.id))
+        #print 'ds {} pointer depends on {}'.format(ds.id, dependent.id)
+      if isinstance(ds.table, NestedTable):
+        assert(ds.upper)
+        self.dsv_dependency.append((ds.id, ds.upper.id))
+        #print 'ds {} nested depends on {}'.format(ds.id, ds.upper.id)
   # return [ds_id], {ds_id:[field]}
   def add_ds_list_helper(self, lst):
     r_lst = []
@@ -140,11 +148,17 @@ class ILPVariableManager(object):
       self.readq_planv[idx] = self.model.addVars(Nplans, vtype=GRB.BINARY)
       plan_cost = []
       plan_constraint = []
+      cnt = 0
       for i,plan_for_one_nesting in enumerate(rqmng.plans):
         for j in range(0, len(plan_for_one_nesting.plans)):
           plan = plan_for_one_nesting.plans[j]
           dsmng = plan_for_one_nesting.dsmanagers[j]
           ds_lst, memobj_map = self.add_ds_list_helper(dsmng.data_structures)
+          # print 'Query {} plan {}:'.format(idx, cnt)
+          # print 'ds: {}'.format(','.join([str(ds.id) for ds in ds_lst]))
+          # for k,v in memobj_map.items():
+          #   print '  ds {} has fields {}'.format(k, ','.join([str(f) for f in v]))
+          # cnt = cnt + 1
           plan_constraint.append(PlanUseDSConstraints([ds_.id for ds_ in ds_lst], memobj_map))
           plan_cost.append(to_real_value(plan.compute_cost())) # TODO
       self.readq_plancost.append(plan_cost)
@@ -270,14 +284,14 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     else:
       rqmanagers, dsmeta = get_dsmeta(read_queries)
       prune_read_plans(rqmanagers, dsmeta)
-      if save_to_file:
-        for i in range(0, len(rqmanagers)):
-          f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
-          pickle.dump(rqmanagers[i], f)
-          f.close()
-        f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'w')
-        pickle.dump(dsmeta, f)
-        f.close()
+      # if save_to_file:
+      #   for i in range(0, len(rqmanagers)):
+      #     f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
+      #     pickle.dump(rqmanagers[i], f)
+      #     f.close()
+      #   f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'w')
+      #   pickle.dump(dsmeta, f)
+      #   f.close()
     
     print 'load time = {}'.format(time.time()-start_time)
     print dsmeta
@@ -293,6 +307,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     ilp.add_read_queries(rqmanagers)
 
     ilp.add_constraints()
+    exit(0)
     # ilp.model.print_stat()
     # exit(0)
     ilp.solve()
