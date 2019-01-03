@@ -53,7 +53,7 @@ def get_denormalized_tables(pred, path=[]):
     r = []
     if isinstance(pred.lh, AssocOp):
       r += get_denormalized_tables(pred.lh, path)
-    elif isinstance(pred.rh, AssocOp):
+    if isinstance(pred.rh, AssocOp):
       r += get_denormalized_tables(pred.rh, path)
     return r
   else:

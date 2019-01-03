@@ -51,6 +51,7 @@ def get_ds_and_op_on_cond(thread_ctx, qtable, pred, ds_value, order=None, fk_pre
           (ds_t, ds_v) = get_ds_type_value_pair(qtable, op.keys, ds_value, True)
           op_and_rest.append((op.to_ds_ops(ds_t, ds_v, qtable), op.rest_pred))
           all_ops.append(op_and_rest)
+
   return all_ops
     
 def get_ds_type_value_pair(table, keys, ds_value, ptr=False):
