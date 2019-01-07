@@ -114,6 +114,8 @@ class ILPVariableManager(object):
       if ds.value.is_main_ptr():
         #dependent = dsmng.find_primary_array_exact_match(ds.table)
         dependent = ds.value.value
+        if (not dependent and dependent.id > 0):
+          print 'ds fail! {}'.format(ds)
         assert(dependent and dependent.id > 0)
         self.dsv_dependency.append((ds.id, dependent.id))
         #print 'ds {} pointer depends on {}'.format(ds.id, dependent.id)
@@ -284,14 +286,14 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     else:
       rqmanagers, dsmeta = get_dsmeta(read_queries)
       prune_read_plans(rqmanagers, dsmeta)
-      # if save_to_file:
-      #   for i in range(0, len(rqmanagers)):
-      #     f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
-      #     pickle.dump(rqmanagers[i], f)
-      #     f.close()
-      #   f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'w')
-      #   pickle.dump(dsmeta, f)
-      #   f.close()
+      if save_to_file:
+        for i in range(0, len(rqmanagers)):
+          f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
+          pickle.dump(rqmanagers[i], f)
+          f.close()
+        f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'w')
+        pickle.dump(dsmeta, f)
+        f.close()
     
     print 'load time = {}'.format(time.time()-start_time)
     print dsmeta

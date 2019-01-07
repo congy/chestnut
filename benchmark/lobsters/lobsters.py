@@ -84,7 +84,7 @@ globalv.set_qr_type('fastv')
 #generate_plans_for_all_queries(tables, associations, [q_ct_2], [])
 #exit(0)
 
-search_plans_for_one_query(read_queries[22])
+#search_plans_for_one_query(read_queries[22])
 #test_merge(q_us_2)
 #prune_nesting_test(read_queries)
 #test_ilp(read_queries)
@@ -93,7 +93,7 @@ search_plans_for_one_query(read_queries[22])
 #test_cost(read_queries[:5])
 
 
-#ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=False, read_from_file=True, read_ilp=False, save_ilp=True)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):
