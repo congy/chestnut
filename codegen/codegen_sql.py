@@ -198,7 +198,7 @@ def get_join_condition_helper2(qf, joinq):
                                                     qf.field_class.name, connect_table_name, qf.field_class.name)  
 
 def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
-  param1 = ', {}* upper_obj'.format(cgen_obj_fulltype(upper_type)) if upper_type else ''
+  param1 = ', {}* upper_obj'.format(cgen_obj_fulltype(ds.upper)) if ds.upper is not None else ''
   s = 'inline void init_ds_{}_from_sql(MYSQL* conn{}) {{\n'.format(ds.id, param1)
   ds_name = ds.get_ds_name()
   maint = ds.table.get_main_table() if isinstance(ds.table, DenormalizedTable) else get_main_table(ds.table)
@@ -238,7 +238,7 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
     value_str = 'ipos'
   elif ds.value.is_object():
     obj_fields = ['{}(row[{}])'.format(helper_get_row_type_transform(f), helper_field_pos_in_row(fields, f)) for f in ds.value.get_object().fields]
-    s += '    {} value({});\n'.format(cgen_obj_fulltype(ds.table), ','.join(obj_fields))
+    s += '    {} value({});\n'.format(cgen_obj_fulltype(ds), ','.join(obj_fields))
     value_str = 'value'
   else:
     assert(False)
@@ -249,7 +249,7 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
     for i,key in enumerate(ds.key_fields()):
       rpos = helper_field_pos_in_row(fields, key.get_query_field())
       s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(key.get_query_field()), rpos)
-    s +='    {}{} key({});\n'.format(cgen_obj_fulltype(upper_type)+'::' if upper_type else '', ds.get_key_type_name(), \
+    s +='    {}{} key({});\n'.format(cgen_obj_fulltype(ds.upper)+'::' if isinstance(ds.table, NestedTable) else '', ds.get_key_type_name(), \
         ','.join(['key_{}'.format(j) for j in range(0, len(ds.key_fields()))]))
     key_str = 'key,'
   insert_code = '    {}{}insert_{}_by_key({}{});\n'.format('if (pos != nullptr) ' if ds.value.is_main_ptr() else '',\

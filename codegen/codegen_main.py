@@ -31,7 +31,7 @@ def cgen_for_query_in_main(read_queries, read_plan_ids):
     qcnt = 0
     for i,read_query in enumerate(read_queries):
       readp_s += "if (qparam.query_id() == {}) {{\n".format(qcnt)
-      readp_s += "{} qresult;\n".format(cgen_query_result_type(read_query))
+      readp_s += "{} qresult;\n".format(cgen_query_result_type(i))
       param_strs = []
       for p in read_query.get_all_params():
         if is_date_type(p.tipe):
@@ -52,8 +52,8 @@ def cgen_for_query_in_main(read_queries, read_plan_ids):
       param_values = query.get_param_value_pair()
       param_str = get_param_str_for_main(param_values, params)
       param_str += (', ' if len(params) > 0 else '')
-      query_str = '   query_{}_plan_{}({}q_{}_result);\n'.format(i, read_plan_ids[i], param_str, query.id)
-      s += '  {} q_{}_result;\n'.format(cgen_query_result_type(query), query.id)
+      query_str = '   query_{}_plan_{}({}q_{}_result);\n'.format(i, read_plan_ids[i], param_str, i)
+      s += '  {} q_{}_result;\n'.format(cgen_query_result_type(i), i)
       s += query_str
       read_after += query_str
   return s  
