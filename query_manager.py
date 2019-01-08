@@ -76,12 +76,13 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id, topds, upperds=None):
   #     cur_ds_id = new_ds_id
   #     delta_structures += new_delta
 
-  for ds2 in lst2:
+  for i,ds2 in enumerate(lst2):
     if ds2.value.is_main_ptr():
       dependent_ds = ds2.value.value
       for ds1 in topds:
         if ds1.eq_without_memobj(dependent_ds):
           ds2.value.value = ds1
+          pairs[i][0].value.value = ds1
       assert(ds2.value.value.id > 0)
   return cur_ds_id, delta_structures
 
