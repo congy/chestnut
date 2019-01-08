@@ -196,7 +196,8 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
   cpp = ''
   for i in range(0, len(plans)):
     print 'generate file for query {} plan {}'.format(i, plan_ids[i])
-    header_, cpp_ = cgen_for_read_query(0, queries[i], plans[i], plan_ds[i], plan_ids[i])
+    queries[i].id = i
+    header_, cpp_ = cgen_for_read_query(i, queries[i], plans[i], plan_ds[i], plan_ids[i])
     header += (header_ + '\n')
     cpp += (cpp_ + '\n')
   
@@ -211,7 +212,7 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
   fp.write(cpp)
   fp.close()
 
-  main_body = 'read_data();\n' + cgen_for_query_in_main([queries], [planids])
+  main_body = 'read_data();\n' + cgen_for_query_in_main(queries, plan_ids)
   main = cgen_for_main_test(main_body, ds_def=True, include_query=True)
   fp = open('{}/main.cc'.format(get_db_name()), 'w')
   fp.write(main)

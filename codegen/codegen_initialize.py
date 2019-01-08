@@ -26,7 +26,7 @@ def cgen_initialize_all(tables, associations, dsmeta):
 
   for ds in dsmeta.data_structures:
     if ds.is_refered:
-      helperds_def = 'TreeIndex<oid_t, size_t, {}> {}'.format(ds.element_count(), cgen_getpointer_helperds(ds))
+      helperds_def = 'TreeIndex<oid_t, size_t, {}> {}'.format(to_real_value(ds.element_count()), cgen_getpointer_helperds(ds))
       header += 'extern {};\n'.format(helperds_def)
       cpp += '{};\n'.format(helperds_def)
 

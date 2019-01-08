@@ -23,20 +23,22 @@ class WQManager(object):
 
 # return last_ds_id and the set of delta index/array newly added to dsmeta
 
-def collect_all_structures(dsmeta, dsmng, begin_ds_id=1):
-  return data_structures_merge_helper(dsmeta.data_structures, dsmng.data_structures, begin_ds_id)
+def collect_all_structures(dsmeta, dsmng, topds, begin_ds_id=1):
+  return data_structures_merge_helper(dsmeta.data_structures, dsmng.data_structures, begin_ds_id, dsmng.data_structures)
 
-def data_structures_merge_helper(lst1, lst2, begin_ds_id, upperds=None):
+def data_structures_merge_helper(lst1, lst2, begin_ds_id, topds, upperds=None):
   cur_ds_id = begin_ds_id
   delta_structures = []
   temp_lst1 = [ds for ds in lst1]
+
+  # copy id in lst1
+  pairs = []
   for ds2 in lst2:
     exist = False
     for ds1 in temp_lst1:
       if ds1 == ds2:
         ds2.id = ds1.id
-        cur_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id, upperds)
-        delta_structures += new_delta
+        pairs.append((ds1, ds2))
         exist = True
     if not exist:
       tempds = ds2.fork_without_memobj()
@@ -47,25 +49,50 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id, upperds=None):
       ds2.upper = upperds
       delta_structures.append(tempds)
       lst1.append(tempds)
-      new_ds_id, new_delta = collect_structures_helper_index(tempds, ds2, cur_ds_id, upperds)
-      cur_ds_id = new_ds_id
-      delta_structures += new_delta
+      pairs.append((tempds, ds2))
+  
+  for ds1,ds2 in pairs:
+    cur_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id, topds, upperds)
+    delta_structures += new_delta
+
+  # for ds2 in lst2:
+  #   exist = False
+  #   for ds1 in temp_lst1:
+  #     if ds1 == ds2:
+  #       ds2.id = ds1.id
+  #       cur_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id, topds, upperds)
+  #       delta_structures += new_delta
+  #       exist = True
+  #   if not exist:
+  #     tempds = ds2.fork_without_memobj()
+  #     cur_ds_id = cur_ds_id + 1
+  #     tempds.id = cur_ds_id
+  #     ds2.id = cur_ds_id
+  #     tempds.upper = upperds
+  #     ds2.upper = upperds
+  #     delta_structures.append(tempds)
+  #     lst1.append(tempds)
+  #     new_ds_id, new_delta = collect_structures_helper_index(tempds, ds2, cur_ds_id, topds, upperds)
+  #     cur_ds_id = new_ds_id
+  #     delta_structures += new_delta
+
   for ds2 in lst2:
     if ds2.value.is_main_ptr():
       dependent_ds = ds2.value.value
-      for ds1 in lst1:
-        if ds1 == dependent_ds:
+      for ds1 in topds:
+        if ds1.eq_without_memobj(dependent_ds):
           ds2.value.value = ds1
+      assert(ds2.value.value.id > 0)
   return cur_ds_id, delta_structures
 
-def collect_structures_helper_memobj(obj, newobj, begin_ds_id, upperds):
+def collect_structures_helper_memobj(obj, newobj, begin_ds_id, topds, upperds):
   obj.add_fields(newobj.fields)
-  return data_structures_merge_helper(obj.nested_objects, newobj.nested_objects, begin_ds_id, upperds)
+  return data_structures_merge_helper(obj.nested_objects, newobj.nested_objects, begin_ds_id, topds, upperds)
 
-def collect_structures_helper_index(ds, newds, begin_ds_id, upperds):
+def collect_structures_helper_index(ds, newds, begin_ds_id, topds, upperds):
   if ds.value.is_main_ptr() or ds.value.is_aggr():
     return begin_ds_id, []
-  return collect_structures_helper_memobj(ds.value.get_object(), newds.value.get_object(), begin_ds_id, ds)
+  return collect_structures_helper_memobj(ds.value.get_object(), newds.value.get_object(), begin_ds_id, topds, ds)
 
 def get_dsmeta(read_queries):
   rqmanagers = []

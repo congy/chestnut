@@ -24,10 +24,10 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
     param_var_map[p] = "param_{}_{}".format(p.symbol, i)
   state.param_map = param_var_map
 
-  param_str.append('{}& qresult'.format(cgen_query_result_type(query)))
+  param_str.append('{}& qresult'.format(cgen_query_result_type(qid)))
 
   if not globalv.is_qr_type_proto():
-    header += cgen_nonproto_query_result(query)
+    header += cgen_nonproto_query_result(query, qid)
 
   code += ''.join(['// '+l+'\n' for l in str(plan).split('\n')])
   header += "\nvoid query_{}_plan_{}({});\n".format(qid, plan_id, ', '.join(param_str))
@@ -78,10 +78,12 @@ def cgen_for_one_step(step, state, print_result=False):
       if type(step.expr) is str and step.expr == 'init':
         qr_array = state.find_or_create_qr_var(step.var)
         # FIXME
-        s += '{} {};\n'.format(cgen_query_result_type(state.topquery), qr_array)
+        s += '{} {};\n'.format(cgen_query_result_type(state.topquery.id), qr_array)
       else:
-        s += '{}* {} = nullptr;\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery), ele_name)
-        expr_s = cgen_add_to_qresult(step.var, ele_name, step.projections, state)
+        s += '{}* {} = nullptr;\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery.id), ele_name)
+        projections = [f for f in step.projections]
+        insert_no_duplicate(projections, QueryField('id', get_main_table(step.var.tipe)))
+        expr_s = cgen_add_to_qresult(step.var, ele_name, projections, state)
     if step.cond:
       dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
     else:
@@ -185,6 +187,8 @@ def cgen_for_one_step(step, state, print_result=False):
       if globalv.is_qr_type_proto():
         s += 'for(size_t ix=0; ix < {}.{}_size(); ix++) {{\n'.format(addv, memberv)
         s += '  auto* x1 = {}.add_{}();\n'.format(rtv, memberv)
+        projections = [f for f in state.topquery.projections]
+        insert_no_duplicate(projections, QueryField('id', get_main_table(rtv.tipe)))
         for f in state.topquery.projections:
           s += '  x1->set_{}({}.{}(ix).{}());\n'.format(f.field_name, addv, memberv, f.field_name)
         s += '}\n'

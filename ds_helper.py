@@ -88,60 +88,6 @@ def require_basic_ary(idx, relates):
     return True
   return False
 
-def get_loop_define(idx, is_begin=True, is_range=False):
-  range_for = 'RANGE_' if is_range else 'INDEX_'
-  suffix = 'BEGIN' if is_begin else 'END\n'
-  if isinstance(idx, ObjBasicArray):
-    if isinstance(idx.table, NestedTable) and get_main_table(idx.table.upper_table).has_one_or_many_field(idx.table.name) == 1:
-      return 'SINGLE_ELEMENT_FOR_{}'.format(suffix) 
-    sz = to_real_value(idx.compute_single_size())
-    if sz < SMALL_DT_BOUND:
-      return 'SMALLBASICARRAY_FOR_{}'.format(suffix)
-    else:
-      return 'BASICARRAY_FOR_{}'.format(suffix)
-  elif isinstance(idx, IndexBase):
-    if to_real_value(idx.compute_single_size()) < SMALL_DT_BOUND:
-      prefix = 'SMALL'
-    else:
-      prefix = ''
-    if isinstance(idx, ObjTreeIndex):
-      typ = 'TREEINDEX'
-    elif isinstance(idx, ObjSortedArray):
-      typ = 'SORTEDARRAY'
-    elif isinstance(idx, ObjHashIndex):
-      typ = 'HASHINDEX'
-    elif isinstance(idx, ObjArray):
-      typ = 'BASICARRAY'
-      range_for = ''
-    return '{}{}_{}FOR_{}'.format(prefix, typ, range_for, suffix)
-  else:
-    print idx
-    assert(False)
-
-def get_idx_define(idx):
-  if isinstance(idx, ObjBasicArray):
-    if idx.single_element:
-      qf = get_qf_from_nested_t(idx.table)
-      return '{}In{}'.format(get_capitalized_name(qf.field_name), get_capitalized_name(qf.table.name))
-    sz = to_real_value(idx.compute_single_size())
-    if sz < SMALL_DT_BOUND: 
-      return 'SmallBasicArray'
-    else:
-      return 'BasicArray'
-  elif isinstance(idx, IndexBase):
-    prefix = ''
-    if to_real_value(idx.compute_single_size()) < SMALL_DT_BOUND:
-      prefix='Small'
-    if isinstance(idx, ObjTreeIndex):
-      return '{}TreeIndex'.format(prefix)
-    elif isinstance(idx, ObjSortedArray):
-      return '{}SortedArray'.format(prefix)
-    elif isinstance(idx, ObjHashIndex):
-      return '{}HashIndex'.format(prefix)
-    elif isinstance(idx, ObjArray):
-      return '{}BasicArray'.format(prefix)
-  assert(False)
-
 def index_conflict(idx1, idx2):
   if not type(idx1) == type(idx2):
     return False

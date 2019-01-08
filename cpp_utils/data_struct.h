@@ -324,11 +324,11 @@ for (auto prefix##_it=prefix##_it_begin; prefix##_it!=prefix##_it_end; ++prefix#
     }
     else return nullptr;
   }
-  inline const typename std::multimap<KeyType, ValueType>::iterator lowerkey(const KeyType* key) {
+  inline const typename stx::btree_multimap<KeyType, ValueType>::iterator lowerkey(const KeyType* key) {
     if (key != nullptr) return multimap.lower_bound(*key);
     else return multimap.begin();
   }
-  inline const typename std::multimap<KeyType, ValueType>::iterator upperkey(const KeyType* key) {
+  inline const typename stx::btree_multimap<KeyType, ValueType>::iterator upperkey(const KeyType* key) {
     if (key != nullptr) return multimap.upper_bound(*key);
     else return multimap.end();
   }

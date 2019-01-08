@@ -29,8 +29,8 @@ def cgen_ruby_client(read_metas, write_metas):
     s += '  param = {}::QueryParam.new(:query_id => {}, {})\n'.format(get_capitalized_name(get_db_name()), qcnt, param_str)
     s += '  serialized_param = {}::QueryParam.encode(param)\n'.format(get_capitalized_name(get_db_name()))
     s += ruby_template_begin
-    s += '  data = {}::PQuery{}Result.decode(data)\n'.format(get_capitalized_name(get_db_name()), query.id)
-    s += '  puts \"query {} time elapsed = #{{time_diff_milli(t1, t2)}} ms\"\n'.format(query.id)
+    s += '  data = {}::PQuery{}Result.decode(data)\n'.format(get_capitalized_name(get_db_name()), i)
+    s += '  puts \"query {} time elapsed = #{{time_diff_milli(t1, t2)}} ms\"\n'.format(i)
     # print query result
     s += insert_indent(cgen_ruby_client_print(query, 'data'))
     s += ruby_template_end
@@ -93,8 +93,8 @@ def cgen_ruby_client_print_helper(query, element_var, level=0):
       s += 'end\n'
   return s
    
-def cgen_nonproto_query_result(query):
-  s = 'struct Query{}Result {{\n'.format(query.id)
+def cgen_nonproto_query_result(query, qid):
+  s = 'struct Query{}Result {{\n'.format(qid)
   nexts, next_uppers = cgen_nonproto_query_result_element(query, upper_query=None, repeated=True)
   s += insert_indent(nexts)
   s += next_uppers
@@ -126,11 +126,13 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
   if query.return_var:
     s += 'struct {} {{\n'.format(typename)
     s += '  {}() {{}}\n'.format(typename)
-    for f in query.projections:
+    projections = [f for f in query.projections]
+    insert_no_duplicate(projections, QueryField('id', get_main_table(query.table)))
+    for f in projections:
       s += '  {} {}_{};\n'.format(get_cpp_type(f.get_type()), f.field_name, cnt)
       fmap[f] = cnt
       cnt += 1
-    for f in query.projections:
+    for f in projections:
       s += '  inline void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(f.field_name, get_cpp_type(f.get_type()), f.field_name, fmap[f])
       s += '  inline {} {}() const {{ return {}_{}; }}\n'.format(get_cpp_type(f.get_type()), f.field_name, f.field_name, fmap[f])
       if is_string(f.field_class):

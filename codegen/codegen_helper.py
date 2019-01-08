@@ -27,12 +27,12 @@ def cgen_scalar_ftype(f):
   elif isinstance(f, Field):
     return get_cpp_type(f.tipe)
 
-def cgen_obj_fulltype(table):
-  if isinstance(table, NestedTable):
-    return cgen_obj_fulltype(table.upper_table) + \
-      '::{}In{}'.format(get_capitalized_name(table.name), get_capitalized_name(get_main_table(table.upper_table).name))
+def cgen_obj_fulltype(ds):
+  if isinstance(ds.table, NestedTable):
+    return cgen_obj_fulltype(ds.upper) + \
+      '::{}'.format(ds.get_value_type_name())
   else:
-    return '{}'.format(get_capitalized_name(table.name))
+    return '{}'.format(ds.get_value_type_name())
 
 def cgen_proto_type(t):
   if isinstance(t, NestedTable):
@@ -78,18 +78,19 @@ def cgen_fprint(f):
     assert(False)
 
 def cgen_ds_type(idx):
+  sz = to_real_value(idx.compute_single_size())
   if isinstance(idx, ObjBasicArray):
     if idx.is_single_element():
-      qf = get_qf_from_nested_t(idx.table)
-      return '{}In{}'.format(get_capitalized_name(qf.field_name), get_capitalized_name(qf.table.name))
-    sz = to_real_value(idx.element_count())
+      return ''
+      #qf = get_qf_from_nested_t(idx.table)
+      #return '{}In{}'.format(get_capitalized_name(qf.field_name), get_capitalized_name(qf.table.name))
     if sz < SMALL_DT_BOUND: 
       return 'SmallBasicArray'
     else:
       return 'BasicArray'
   elif isinstance(idx, IndexBase):
     prefix = ''
-    if to_real_value(idx.element_count()) < SMALL_DT_BOUND:
+    if sz < SMALL_DT_BOUND:
       prefix='Small'
     if isinstance(idx, ObjTreeIndex):
       return '{}TreeIndex'.format(prefix)
@@ -101,20 +102,51 @@ def cgen_ds_type(idx):
       return '{}BasicArray'.format(prefix)
   assert(False)
 
+def get_loop_define(idx, is_begin=True, is_range=False):
+  range_for = 'RANGE_' if is_range else 'INDEX_'
+  suffix = 'BEGIN' if is_begin else 'END\n'
+  if isinstance(idx, ObjBasicArray):
+    if isinstance(idx.table, NestedTable) and get_main_table(idx.table.upper_table).has_one_or_many_field(idx.table.name) == 1:
+      return 'SINGLE_ELEMENT_FOR_{}'.format(suffix) 
+    sz = to_real_value(idx.compute_single_size())
+    if sz < SMALL_DT_BOUND:
+      return 'SMALLBASICARRAY_FOR_{}'.format(suffix)
+    else:
+      return 'BASICARRAY_FOR_{}'.format(suffix)
+  elif isinstance(idx, IndexBase):
+    if to_real_value(idx.compute_single_size()) < SMALL_DT_BOUND:
+      prefix = 'SMALL'
+    else:
+      prefix = ''
+    if isinstance(idx, ObjTreeIndex):
+      typ = 'TREEINDEX'
+    elif isinstance(idx, ObjSortedArray):
+      typ = 'SORTEDARRAY'
+    elif isinstance(idx, ObjHashIndex):
+      typ = 'HASHINDEX'
+    elif isinstance(idx, ObjArray):
+      typ = 'BASICARRAY'
+      range_for = ''
+    return '{}{}_{}FOR_{}'.format(prefix, typ, range_for, suffix)
+  else:
+    print idx
+    assert(False)
+
+
 def cgen_getpointer_helperds(ds):
   return 'idptr_ds_{}'.format(ds.id)
 
-def cgen_query_result_type(query):
+def cgen_query_result_type(qid):
   if globalv.is_qr_type_proto():
-    return '{}::PQuery{}Result'.format(get_db_name(), query.id)
+    return '{}::PQuery{}Result'.format(get_db_name(), qid)
   else:
-    return 'Query{}Result'.format(query.id)
-def cgen_query_result_var_type(table, query):
+    return 'Query{}Result'.format(qid)
+def cgen_query_result_var_type(table, qid):
   if isinstance(table, NestedTable):
-    return cgen_query_result_var_type(table.upper_table, query)+\
+    return cgen_query_result_var_type(table.upper_table, qid)+\
       '::P{}In{}'.format(get_capitalized_name(table.name), get_capitalized_name(get_main_table(table.upper_table).name))
   else:
-    return cgen_query_result_type(query)+'::P{}'.format(get_capitalized_name(table.name))
+    return cgen_query_result_type(qid)+'::P{}'.format(get_capitalized_name(table.name))
 
 def merge_assoc_qf(assoc, qf):
   if isinstance(assoc, QueryField):
@@ -308,7 +340,7 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
 # deal with avg
 def get_aggr_result(vpair, cxx_var, state):
   if not vpair[1].op == AVG:
-    return cxxv
+    return cxx_var
   sum_v = None
   count_v = None
   for k,v in state.ir_map.items():

@@ -112,11 +112,13 @@ class MemObject(object):
       if get_main_table(o.table.upper_table) == field.table and o.table.name == field.field_name:
         return o
     return None 
-  def get_value_type_name(self):
+  def get_value_type_name(self, dsid=None):
+    if dsid is None:
+      dsid = ''
     if isinstance(self.table, NestedTable):
-      return '{}In{}'.format(get_capitalized_name(self.table.name), get_capitalized_name(get_main_table(self.table.upper_table).name))
+      return '{}In{}{}'.format(get_capitalized_name(self.table.name), get_capitalized_name(get_main_table(self.table.upper_table).name), dsid)
     else:
-      return get_capitalized_name(self.table.name)
+      return '{}{}'.format(get_capitalized_name(self.table.name), dsid)
 
 class IndexValue(object):
   # value: objtype / None / aggrs
@@ -183,7 +185,7 @@ class IndexMeta(object):
     return False
   def get_value_type_name(self):
     if self.value.is_object():
-      return self.value.get_object().get_value_type_name()
+      return self.value.get_object().get_value_type_name(self.id)
     elif self.value.is_main_ptr():
       return 'ItemPointer'
     elif self.value.is_aggr():

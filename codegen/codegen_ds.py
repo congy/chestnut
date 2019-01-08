@@ -22,7 +22,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
   elif ds.value.is_main_ptr():
     pass
   else:
-    nheader, ncpp = cgen_class_def(ds.value.get_object(), upper_table, prefix)
+    nheader, ncpp = cgen_class_def(ds.value.get_object(), ds.get_value_type_name(), upper_table, prefix)
     header += nheader
     cpp += ncpp
 
@@ -203,14 +203,15 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
     header = insert_indent(header)  
   return header,cpp
 
-def cgen_class_def(obj, upper_table=None, prefix=[]): 
+def cgen_class_def(obj, obj_class_name, upper_table=None, prefix=[]): 
   header = ""
   cpp = ""
   t = obj.table
   main_t = get_main_table(t)
   element = ''
-  ele_name = obj.get_value_type_name()
-  element += "struct {} {{\n".format(ele_name)
+  ele_name = obj_class_name 
+  proto_prefix = obj.get_value_type_name()
+  element += "struct {} {{\n".format(obj_class_name)
   element += "public:\n"
   fields = [f for f in obj.fields]
   for f in fields:
@@ -224,22 +225,16 @@ def cgen_class_def(obj, upper_table=None, prefix=[]):
 
   db_name = get_db_name()
   prefix.append(ele_name)
-  idx_type_prefix = '::'.join([p for p in prefix]) # ??
 
   element += "  {}(): {} {{}}\n".format(ele_name, ','.join(['{}(0)'.format(cgen_fname(f)) for f in fields]))
   element += "  {}({}): {} {{}}\n".format(ele_name, \
       ','.join(['{} v{}'.format(get_cpp_type(f.field_class.tipe), i) for i,f in enumerate(fields)]), \
       ','.join(['{}(v{})'.format(cgen_fname(f), i) for i,f in enumerate(fields)]))
-  if isinstance(obj.table, DenormalizedTable):
-    t1 = obj.table.get_main_table()
-    proto_type_prefix = '{}::P{}'.format(db_name, get_capitalized_name(t1.name))
-    element += cgen_init_from_proto(ele_name, t1, proto_type_prefix, fields)
-  else:
-    proto_type_prefix = db_name + ''.join(['::P{}'.format(p) for p in prefix])
-    proto_toptype_prefix = '{}::P{}'.format(db_name, get_capitalized_name(main_t.name))
-    element += cgen_init_from_proto(ele_name, main_t, proto_type_prefix, fields)
-    if upper_table:
-      element += cgen_init_from_proto(ele_name, main_t, proto_toptype_prefix, fields)
+  #proto_type_prefix = db_name + ''.join(['::P{}'.format(p) for p in prefix])
+  proto_toptype_prefix = '{}::P{}'.format(db_name, get_capitalized_name(main_t.name))
+  #element += cgen_init_from_proto(proto_prefix, main_t, proto_type_prefix, fields)
+  #if upper_table:
+  element += cgen_init_from_proto(ele_name, main_t, proto_toptype_prefix, fields)
   
   id_fields = filter(lambda x: x.field_name=='id', fields)
   element += "  inline void clear() {{ {} }}\n".format(' '.join(['{} = 0;'.format(cgen_fname(idf)) for idf in id_fields]))
