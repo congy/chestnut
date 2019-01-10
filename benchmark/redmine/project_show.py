@@ -50,7 +50,6 @@ q_ps_3 = get_all_records(project)
 q_ps_3.pfilter(BinOp(f('status'), NEQ, AtomValue(9)))
 q_ps_3.pfilter(ConnectOp(BinOp(f('lft'), GE, Parameter('pid2')), AND, BinOp(f('rgt'), LE, Parameter('pid3'))))
 q_ps_3.orderby([f('lft')])
-q_ps_3.project('*')
 q_ps_3.complete()
 
 #q_ii_2
