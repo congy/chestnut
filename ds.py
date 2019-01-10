@@ -89,6 +89,8 @@ class MemObject(object):
     for o in other.nested_objects:
       if not any([o==o_ for o_ in self.nested_objects]):
         self.nested_objects.append(o)
+    for o in other.fields:
+      self.add_field(o)
   def __eq__(self, other):
     # TODO
     return self.table == other.table

@@ -33,7 +33,7 @@ class PlanUseDSConstraints(object):
             lst.append(ilpv)
             exists_ref = f1
         if exists_ref is None:
-          print 'ds = {}, check ref f = {}'.format(self.ds, f)
+          print 'ds = {}, check ref f = {}'.format(ds, f)
         assert(exists_ref)
     return lst
 
@@ -134,14 +134,16 @@ class ILPVariableManager(object):
       if not (ds.value.is_main_ptr() or ds.value.is_aggr()):
         temp_lst, next_memobj_map = self.add_memobj_helper(ds)
         r_lst += temp_lst
-        memobj_map = map_union(memobj_map, next_memobj_map)
+        memobj_map = map_union(memobj_map, next_memobj_map, merge_func=(lambda x,y: x.merge(y)))
     return r_lst, memobj_map
   # return [(ds_id,ds_mem_cost)], {ds_id:[field]}
   def add_memobj_helper(self, ds):
     obj = ds.value.get_object()
+    for f in obj.fields:
+      assert(isinstance(f, QueryField) and f.table == get_main_table(obj.table))
     memobj_map = {ds.id:clean_lst([None if f.field_name == 'id' else f for f in obj.fields])}
     r_lst, next_memobj_map = self.add_ds_list_helper(obj.nested_objects)
-    memobj_map = map_union(memobj_map, next_memobj_map)
+    memobj_map = map_union(memobj_map, next_memobj_map, merge_func=(lambda x,y: x.merge(y)))
     return r_lst, memobj_map
   def add_read_queries(self, rqmanagers):
     self.readqv = self.model.addVars(len(rqmanagers), vtype=GRB.BINARY)
