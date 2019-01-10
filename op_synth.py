@@ -381,6 +381,9 @@ def enumerate_all_ops(state, order=None):
   #   print op 
   return ops
 
+def is_valid_index_element(literal):
+  return not isinstance(literal, UnaryOp)
+
 def enumerative_gen(queried_table, thread_ctx, pred, order, fk_pred):
   states = []
   new_pred = dispatch_not(pred)
@@ -395,6 +398,8 @@ def enumerative_gen(queried_table, thread_ctx, pred, order, fk_pred):
   for length in range(0, len(elements) + 1):
     for x in itertools.combinations(elements, length):
       field_cmp_map = {}
+      if any([(is_valid_index_element(literal)==False) for literal in list(x)]):
+        continue 
       for literal in list(x)+fk_elements:
         get_compare_map_by_field(literal, field_cmp_map)
       #print '\nidx pred = {}'.format('; '.join([str(x1) for x1 in list(x)+fk_elements]))
