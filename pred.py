@@ -33,6 +33,10 @@ class EnvAtomicVariable(TempVariable):
     self.init_value = init_value
   def to_json(self, full_dump=False):
     return {"atom":True, "name":self.name, "type":self.tipe, "init":self.init_value} if full_dump else self.name
+  def __hash__(self):
+    return hash(self.name)
+  def __eq__(self, other):
+    return self.name == other.name and self.tipe == other.tipe and self.is_temp == other.is_temp
 
 class EnvCollectionVariable(TempVariable):
   def __init__(self, name, tipe, is_temp=True, updateptr_type=False):

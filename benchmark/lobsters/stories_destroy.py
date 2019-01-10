@@ -28,8 +28,7 @@ from lobsters_schema import *
 # q_mc_6
 q_sd_1 = get_all_records(story)
 q_sd_1.pfilter(BinOp(f('short_id'), EQ, Parameter('story_short_id')))
-q_sd_1.project('*')
-q_sd_1.finclude(f('tags'))
+q_sd_1.finclude(f('tags'), projection=[f('tag'),f('id')])
 q_sd_1.complete()
 
 q_sd_2 = UpdateObject(story, Parameter('story_id'), {f('is_expired'):AtomValue(False), f('is_moderated'):AtomValue(True)})

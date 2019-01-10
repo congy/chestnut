@@ -10,6 +10,8 @@ from plan_search import *
 from ds_manager import *
 from populate_database import *
 from ilp.ilp_manager import *
+from codegen.protogen import *
+from codegen.codegen_test import *
 import globalv
 
 
@@ -72,11 +74,11 @@ write_queries = [q_pn_1, q_pn_2, q_pn_3, q_pn_4, q_pn_5, q_pn_6, q_pn_7]
 #test_prune_read_plan(read_queries)
 #search_plans_for_one_query(q_ii_1)
 
-ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+#ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
 
 data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
 #populate_database(data_dir, tables, associations)
 #test_query(tables, associations, read_queries[0], 13)
-#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
+test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)

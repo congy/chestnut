@@ -31,7 +31,10 @@ def sql_for_ds_query(ds, select_by_id=False):
   if ds.value.is_object():
     fields = [f for f in ds.value.get_object().fields]
   else:
-    fields = [f.get_query_field() for f in ds.key_fields()]
+    fields = []
+  if not isinstance(ds, ObjBasicArray):
+    for f in ds.key_fields():
+      insert_no_duplicate(fields, f.get_query_field())
   if isinstance(table, DenormalizedTable):
     maint = table.get_main_table()
     entry_table = maint.name

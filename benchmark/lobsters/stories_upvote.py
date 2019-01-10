@@ -19,7 +19,7 @@ q_sv_1 = get_all_records(story)
 q_sv_1.pfilter(BinOp(f('short_id'), EQ, Parameter('story_short_id')))
 q_sv_1.project('*')
 q_sv_1.finclude(f('votes'), pfilter=ConnectOp(BinOp(f('user').f('id'), EQ, Parameter('user_id')), AND, BinOp(f('comment_id'), EQ, AtomValue(0))))
-q_sv_1.finclude(f('tags'))
+q_sv_1.finclude(f('tags'), projection=[f('tag'),f('id')])
 q_sv_1.complete()
 
 q_sv_2 = AddObject(vote, {QueryField('vote', table=vote):Parameter('new_vote')})

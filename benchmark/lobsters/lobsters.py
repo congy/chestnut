@@ -98,7 +98,7 @@ globalv.set_qr_type('fastv')
 #test_cost(read_queries[:5])
 
 
-ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+#ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):
@@ -111,4 +111,4 @@ data_dir=datafile_dir
 #generate_db_data_files(data_dir, tables, associations)
 #populate_database(data_dir, tables, associations)
 #test_query(tables, associations, read_queries[0], 13)
-#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
+test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)

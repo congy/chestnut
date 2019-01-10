@@ -51,7 +51,7 @@ def cgen_for_one_step(step, state, print_result=False):
     next_s, temp_state = cgen_for_one_step(step.step, state)
     s += insert_indent(next_s)
     for v,aggr in state.topquery.aggrs:
-      irvar = state.find_ir_var(v)
+      irvar = temp_state.find_ir_var(v)
       s += '  qresult.set_{}({});\n'.format(v.name, irvar)
     s += "  print_time_diff(msg);\n"
     if print_result:

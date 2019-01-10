@@ -91,7 +91,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       cond_expr = next_rest_pred
           
       set_steps = []
-      projections = query.projections + query.aggrs
+      projections = query.projections #+ query.aggrs
       if len(op_rest_pairs) == 1:
         for v,aggr in query.aggrs:
           new_aggr = replace_subexpr_with_var(aggr, placeholder)

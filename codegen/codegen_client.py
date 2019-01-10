@@ -120,7 +120,7 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
     if v.is_temp:
       continue
     upper_s += '  void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(v.name, get_cpp_type(v.get_type()), v.name, fmap[v])
-    upper_s += '  {} {}() {{ return {}_{}; }}'.format(get_cpp_type(v.get_type()), v.name, v.name, fmap[v])
+    upper_s += '  {} {}() {{ return {}_{}; }}\n'.format(get_cpp_type(v.get_type()), v.name, v.name, fmap[v])
   
   s = ''
   if query.return_var:
@@ -128,6 +128,10 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
     s += '  {}() {{}}\n'.format(typename)
     projections = [f for f in query.projections]
     insert_no_duplicate(projections, QueryField('id', get_main_table(query.table)))
+    projections = clean_lst([None if f.field_class.is_temp else f for f in projections])
+    if query.order:
+      for o in query.order:
+        insert_no_duplicate(projections, o)
     for f in projections:
       s += '  {} {}_{};\n'.format(get_cpp_type(f.get_type()), f.field_name, cnt)
       fmap[f] = cnt
