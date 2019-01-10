@@ -27,7 +27,7 @@ from lobsters_schema import *
 
 param_user_id = Parameter('user_id')
 q_hr_1 = get_all_records(story)
-q_hr_1.pfilter(BinOp(f('merged_story_id'), EQ, AtomValue('0')))
+q_hr_1.pfilter(BinOp(f('merged_story_id'), EQ, AtomValue(0)))
 q_hr_1.pfilter(BinOp(f('is_expired'), EQ, AtomValue(False)))
 q_hr_1.pfilter(UnaryOp(SetOp(f('hidden_users'), EXIST, BinOp(f('id'), EQ, param_user_id))))
 q_hr_1.pfilter(UnaryOp(SetOp(f('tags'), EXIST, BinOp(f('id'), EQ, Parameter('tag_id')))))
@@ -41,7 +41,7 @@ q_hr_1.finclude(f('votes'), pfilter=ConnectOp(BinOp(f('user').f('id'), EQ, param
 q_hr_1.complete()
 
 q_hr_2 = get_all_records(story)
-q_hr_2.pfilter(BinOp(f('merged_story_id'), EQ, AtomValue('0')))
+q_hr_2.pfilter(BinOp(f('merged_story_id'), EQ, AtomValue(0)))
 q_hr_2.pfilter(BinOp(f('is_expired'), EQ, AtomValue(False)))
 q_hr_2.pfilter(UnaryOp(SetOp(f('hidden_users'), EXIST, BinOp(f('id'), EQ, param_user_id))))
 q_hr_2.pfilter(UnaryOp(SetOp(f('tags'), EXIST, BinOp(f('id'), EQ, Parameter('tag_id')))))

@@ -21,9 +21,12 @@ set_data_file_dir(datafile_dir)
 
 set_cpp_file_path('../../')
 
-globalv.tables = [story, comment, message, tag, vote, user]
-globalv.associations = [storys_user, storys_tags, storys_hidden, comments_user, comments_story, message_author, message_recipient, \
+tables = [story, comment, message, tag, vote, user]
+associations = [storys_user, storys_tags, storys_hidden, comments_user, comments_story, message_author, message_recipient, \
 votes_comment, votes_story, votes_user]
+
+globalv.tables = tables
+globalv.associations = associations
 
 from comments_create import *
 from comments_index import *
@@ -86,7 +89,7 @@ globalv.set_qr_type('fastv')
 #generate_plans_for_all_queries(tables, associations, [q_ct_2], [])
 #exit(0)
 
-#search_plans_for_one_query(read_queries[22])
+#search_plans_for_one_query(read_queries[4])
 #test_merge(q_us_2)
 #prune_nesting_test(read_queries)
 #test_ilp(read_queries)
@@ -95,10 +98,17 @@ globalv.set_qr_type('fastv')
 #test_cost(read_queries[:5])
 
 
-ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=False, read_from_file=True, read_ilp=False, save_ilp=True)
+ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):
 #   print "Nesting {}:\n".format(i)
 #   print ds
 #   print '--------'
+
+data_dir=datafile_dir
+#generate_proto_files(get_cpp_file_path(), tables, associations)
+#generate_db_data_files(data_dir, tables, associations)
+#populate_database(data_dir, tables, associations)
+#test_query(tables, associations, read_queries[0], 13)
+#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)

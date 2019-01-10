@@ -17,7 +17,6 @@ q_pi_0.complete()
 q_pi_1 = get_all_records(user)
 q_pi_1.pfilter(BinOp(f('id'), EQ, Parameter('uid')))
 q_pi_1.pfilter(BinOp(f('status'), EQ, AtomValue(1)))
-q_pi_1.project('*')
 q_pi_1.complete()
 
 q_pi_2 = get_all_records(project)

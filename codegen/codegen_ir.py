@@ -85,6 +85,7 @@ def cgen_for_one_step(step, state, print_result=False):
         insert_no_duplicate(projections, QueryField('id', get_main_table(step.var.tipe)))
         expr_s = cgen_add_to_qresult(step.var, ele_name, projections, state)
     if step.cond:
+      print 'step.cond = {}'.format(step.cond)
       dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
     else:
       cond_s = 'true'

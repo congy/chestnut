@@ -10,15 +10,13 @@ from redmine_schema import *
   # 
 q_ai_0 = get_all_records(project)
 q_ai_0.pfilter(BinOp(f('id'), EQ, Parameter('pid')))
-q_ai_0.finclude(f('enabled_modules'))
-q_ai_0.project('*')
+q_ai_0.finclude(f('enabled_modules'), projection=[f('name')])
 q_ai_0.complete()
 
 q_ai_1 = get_all_records(project)
 q_ai_1.pfilter(BinOp(f('status'), NEQ, AtomValue(9)))
 q_ai_1.pfilter(ConnectOp(BinOp(f('lft'), GE, Parameter('pid2')), AND, BinOp(f('rgt'), LE, Parameter('pid3'))))
-q_ai_1.finclude(f('enabled_modules'))
-q_ai_1.project('*')
+q_ai_1.finclude(f('enabled_modules'), projection=[f('name')])
 q_ai_1.orderby([f('lft')])
 q_ai_1.complete()
 

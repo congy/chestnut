@@ -17,7 +17,7 @@ from lobsters_schema import *
 param_tag = Parameter('tag_id')
 param_user_id = Parameter('user_id')
 q_ht_1 = get_all_records(story)
-q_ht_1.pfilter(BinOp(f('merged_story_id'), EQ, AtomValue('0')))
+q_ht_1.pfilter(BinOp(f('merged_story_id'), EQ, AtomValue(0)))
 q_ht_1.pfilter(BinOp(f('is_expired'), EQ, AtomValue(False)))
 q_ht_1.pfilter(BinOp(f('upvotes'), GE, AtomValue(-1))) #TODO
 q_ht_1.pfilter(SetOp(f('tags'), EXIST, BinOp(f('id'), EQ, param_tag)))

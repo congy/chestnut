@@ -11,7 +11,7 @@ from lobsters_schema import *
 
 q_ct_1_comment = get_all_records(comment)
 q_ct_1 = q_ct_1_comment.groupby([f('thread_id')], THREAD_NUM)
-q_ct_1.pfilter(SetOp(f('comments'), EXIST, BinOp(f('user').f('id'), EQ, Parameter('user_id'))))
+q_ct_1.finclude(f('comments'), pfilter=BinOp(f('user').f('id'), EQ, Parameter('user_id')))
 q_ct_1.get_include(f('comments')).aggr(UnaryExpr(MAX, f('created_at')), 'max_created')
 q_ct_1.orderby([f('max_created')])
 q_ct_1.return_limit(20)

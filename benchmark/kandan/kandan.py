@@ -73,10 +73,10 @@ q_cc_w1, q_cc_w2]
 #test_cost(read_queries[:1])
 #test_ilp(read_queries, membound_factor=1)
 #ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
-test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
+#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
 
 data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
-#generate_db_data_files(data_dir, tables, associations)
-#populate_database(data_dir, tables, associations)
+generate_db_data_files(data_dir, tables, associations)
+populate_database(data_dir, tables, associations)
 #test_query(tables, associations, read_queries[0], 13)
