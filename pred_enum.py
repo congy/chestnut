@@ -98,6 +98,25 @@ def get_compare_map_by_field(pred, mp, upper_path=[], reverse=False):
         else:
           add_to_list_map(key, (pred.op, pred.rh), mp)
 
-def enumerate_rest_pred(pred_pool):
-  # FIXME
-  pass
+def enumerate_rest_pred(pred_pool, original_pred):
+  if not is_dnf(original_pred):
+    assert(False)
+    # FIXME: rewrite to dnf
+  dnf = original_pred.split_into_dnf()
+  restp_clauses = []
+  for clause in dnf:
+    cmps = []
+    break_pred_into_compares(clause, cmps)
+    resti = []
+    for p in pred_pool:
+      if any([p.query_pred_eq(p1) for p1 in cmps]):
+        resti.append(p)
+    if len(resti) > 0:
+      restp_clauses.append(merge_into_cnf(resti))
+  if len(restp_clauses) == 0:
+    return [None]
+  else:
+    r = restp_clauses[0]
+    for p in restp_clauses[1:]:
+      r = ConnectOp(r, OR, p)
+    return [r]

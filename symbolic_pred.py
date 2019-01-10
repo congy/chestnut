@@ -355,7 +355,7 @@ def generate_condition_for_pred(thread_ctx, symbolic_tuple, pred):
       return z3.And(*exprs)
   elif isinstance(pred, AssocOp):
     fid = get_field_pos_in_tuple(pred.lh.table, '{}_id'.format(pred.lh.field_name))
-    r = INVALID_VALUE
+    r = get_invalid_z3v_by_type(get_query_field(pred).field_class) # INVALID_VALUE 
     for i,next_symbolic_tuple in enumerate(thread_ctx.get_symbs().symbolic_tables[pred.lh.field_class].symbols):
       next_symbol_cond = generate_condition_for_pred(thread_ctx, next_symbolic_tuple, pred.rh)
       r = z3.If((i+1)==symbolic_tuple[fid], next_symbol_cond, r)

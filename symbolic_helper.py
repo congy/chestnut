@@ -20,6 +20,13 @@ def get_field_pos_in_tuple(table, field_name):
       return i
   assert(False)
 
+def get_invalid_z3v_by_type(klass):
+  if isinstance(klass, Field):
+    if klass.tipe == 'bool':
+      return False
+  return INVALID_VALUE
+
+
 def get_id_from_symbolic_tuple(table, symbolic_tuple):
   id_pos = get_field_pos_in_tuple(table, 'id')
   return symbolic_tuple[id_pos]

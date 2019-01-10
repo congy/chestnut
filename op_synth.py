@@ -137,6 +137,7 @@ class SynthHelper(object):
     return False
   def check_equiv(self):
     ds_exprs = [(c.symbolic_result[0], c.rest_pred) for c in self.cur_ops]
+    #print 'target = {}'.format(self.target_pred)
     r = check_dsop_pred_equiv(self.thread_ctx, self.main_table, ds_exprs, self.target_pred)
     # print '\n** ds: {}'.format(self.str_ops(True))
     # print '\n op = {}'.format('\n'.join([str(o.dsop) for o in self.cur_ops]))
@@ -401,7 +402,7 @@ def enumerative_gen(queried_table, thread_ctx, pred, order, fk_pred):
       if Nors == 0:
         rest_preds = [merge_into_cnf(rest_pred_pool)]
       else:
-        rest_preds = enumerate_rest_pred(rest_pred_pool)
+        rest_preds = enumerate_rest_pred(rest_pred_pool, new_pred)
       #print 'rest_pred = {}'.format('&&'.join([str(rp) for rp in rest_preds]))
       state = SynthHelper(queried_table, thread_ctx, field_cmp_map, target_pred, rest_preds)
       if len(state.pred_pool) == 0: # no key
@@ -422,6 +423,7 @@ def enumerative_gen(queried_table, thread_ctx, pred, order, fk_pred):
           break
       if state.result:
         states.append(state)
+  #exit(0)
   return states
 
 def enumerative_gen_by_depth(ops, state, depth, i=0):

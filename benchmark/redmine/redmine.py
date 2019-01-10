@@ -25,6 +25,9 @@ globalv.associations = [project_issue, issue_tracker, issue_status_issue, member
 project_tracker, project_news, project_enabled_module, project_version, project_board, message_board, project_enumeration]
 #issue_version, issue_user, issue_enumeration]
 
+tables = globalv.tables
+associations = globalv.associations
+
 from activity_index import *
 from issue_index import *
 from my_page import *
@@ -36,9 +39,9 @@ from project_new import *
 
 
 #generate_proto_files(get_cpp_file_path(), tables, associations)
-generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+#generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
 #populate_database(data_dir, tables, associations)
-exit(0)
+#exit(0)
 
 read_queries = [q_ai_0, q_ai_1, \
 q_ii_1, q_ii_2, \
@@ -62,9 +65,18 @@ write_queries = [q_pn_1, q_pn_2, q_pn_3, q_pn_4, q_pn_5, q_pn_6, q_pn_7]
 # ])
 
 #test_merge(q_us_2)
-prune_nesting_test(read_queries)
-test_prune_read_plan(read_queries)
+#prune_nesting_test(read_queries)
+#test_prune_read_plan(read_queries)
 
 #test_ilp(read_queries)
 #test_prune_read_plan(read_queries)
-#search_plans_for_one_query(q_ai_1)
+search_plans_for_one_query(q_ps_2)
+
+#ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+
+data_dir=datafile_dir
+#generate_proto_files(get_cpp_file_path(), tables, associations)
+#generate_db_data_files(data_dir, tables, associations)
+#populate_database(data_dir, tables, associations)
+#test_query(tables, associations, read_queries[0], 13)
+#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)

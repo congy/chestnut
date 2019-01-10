@@ -192,16 +192,6 @@ def get_default_z3v_by_type(klass):
   else:
     return INVALID_VALUE
 
-def get_invalid_z3v_by_type(klass):
-  if klass.tipe == 'bool':
-    return None
-  if klass.tipe == 'float':
-    return INVALID_VALUE
-  elif klass.tipe == 'oid':
-    return 0
-  else:
-    return INVALID_VALUE
-
 def get_z3_value(v, tipe):
   if tipe == 'bool':
     return bool(v)
