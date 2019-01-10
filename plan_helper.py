@@ -64,7 +64,7 @@ class PlanTree(object):
     pt.next_level_query = {k:v.fork() for k,v in self.next_level_query.items()}
     return pt
   def find_retrieve_assoc_step(self, field, query=False):
-    ary = self.assoc_pred_steps if query else self.assoc_query_steps 
+    ary = self.assoc_query_steps if query else self.assoc_pred_steps 
     for s in ary:
       fields = get_fields_from_assocop(field)
       if len(s.steps) <= len(fields) and all([s.steps[i].field == fields[i] for i in range(0, len(s.steps))]):

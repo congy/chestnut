@@ -75,7 +75,7 @@ associations = [issue_status_issue, project_issue, project_enabled_module]
 #   print '--------'
 
 # test search plan
-#search_plans_for_one_query(q)
+search_plans_for_one_query(q)
 
 # test_merge(q)
 # test_ilp([q])
@@ -88,4 +88,4 @@ data_dir=datafile_dir
 #test_deserialize([q])
 #test_initialize(tables, associations, [q], 352) #0, 172, 272 
 #test_query(tables, associations, q, 20)
-test_cost([q])
+#test_cost([q])
