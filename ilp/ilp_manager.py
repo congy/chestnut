@@ -32,6 +32,8 @@ class PlanUseDSConstraints(object):
           if f1 == f:
             lst.append(ilpv)
             exists_ref = f1
+        if exists_ref is None:
+          print 'ds = {}, check ref f = {}'.format(self.ds, f)
         assert(exists_ref)
     return lst
 
@@ -265,33 +267,44 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
   
   if read_ilp == False:
     if read_from_file:
-      rqmanagers = [None for i in range(0, len(read_queries))]
+      manager = multiprocessing.Manager()
+      temp_rqmanagers = manager.dict() #[None for i in range(0, len(read_queries))]
       processing_jobs = []
       def read_pickle_file(ix, rqmanagers):
-        f = open('mem{}_q{}_plan.pickle'.format(membound_factor, ix), 'r')
+        f = open('q{}_plan.pickle'.format(ix), 'r')
         rqmanagers[ix] = pickle.load(f)
+        assert(rqmanagers[ix])
         print 'read file {}'.format(ix)
         f.close()
 
-      for i in range(0, len(rqmanagers)):
-        p = multiprocessing.Process(target=read_pickle_file, args=(i, rqmanagers))
+      for i in range(0, len(read_queries)):
+        p = multiprocessing.Process(target=read_pickle_file, args=(i, temp_rqmanagers))
         processing_jobs.append(p)
         p.start()
       for p in processing_jobs:
         p.join()
 
-      f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'r')
+      f = open('dsmeta.pickle', 'r')
       dsmeta = pickle.load(f)
       f.close()
+      assert(len(temp_rqmanagers) == len(read_queries))
+      rqmanagers = [None for i in range(0, len(read_queries))]
+      for i in range(0, len(read_queries)):
+        if i not in temp_rqmanagers:
+          print 'manager {} is None!'.format(i)
+        else:
+          rqmanagers[i] = temp_rqmanagers[i]
+      for i in range(0, len(read_queries)):
+        assert(rqmanagers[i])
     else:
       rqmanagers, dsmeta = get_dsmeta(read_queries)
       prune_read_plans(rqmanagers, dsmeta)
       if save_to_file:
         for i in range(0, len(rqmanagers)):
-          f = open('mem{}_q{}_plan.pickle'.format(membound_factor, i), 'w')
+          f = open('q{}_plan.pickle'.format(i), 'w')
           pickle.dump(rqmanagers[i], f)
           f.close()
-        f = open('mem{}_dsmeta.pickle'.format(membound_factor), 'w')
+        f = open('dsmeta.pickle', 'w')
         pickle.dump(dsmeta, f)
         f.close()
     

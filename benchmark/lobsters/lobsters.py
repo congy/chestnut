@@ -44,8 +44,8 @@ from user_show import *
 read_queries = [q_cc_1, q_cc_2, q_cc_10, \
 q_ci_1, \
 q_ct_1, q_ct_2, \
-q_hi_1,
-q_hr_1, q_hr_2, q_hr_3, \
+q_hi_1, \
+q_hr_1, q_hr_3, \
 q_ht_1,
 q_mc_1, q_mc_2, q_mc_6, \
 q_md_1, \
@@ -55,6 +55,8 @@ q_ss_1, \
 q_su_1, \
 q_sv_1, \
 q_us_1, q_us_2, q_us_3]
+
+# missing: q_hr_2 
 
 
 write_queries = [q_cc_3, q_cc_4, q_cc_5, q_cc_6, q_cc_7, q_cc_8, q_cc_9, \
@@ -93,7 +95,7 @@ globalv.set_qr_type('fastv')
 #test_cost(read_queries[:5])
 
 
-ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=False, read_from_file=True, read_ilp=False, save_ilp=True)
+ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=False, read_from_file=True, read_ilp=False, save_ilp=True)
 
 # dsmanagers = enumerate_nestings_for_query(q_hr_1)
 # for i,ds in enumerate(dsmanagers):

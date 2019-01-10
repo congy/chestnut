@@ -23,7 +23,7 @@ class WQManager(object):
 
 # return last_ds_id and the set of delta index/array newly added to dsmeta
 
-def collect_all_structures(dsmeta, dsmng, topds, begin_ds_id=1):
+def collect_all_structures(dsmeta, dsmng, begin_ds_id=1):
   return data_structures_merge_helper(dsmeta.data_structures, dsmng.data_structures, begin_ds_id, dsmng.data_structures)
 
 def data_structures_merge_helper(lst1, lst2, begin_ds_id, topds, upperds=None):
@@ -40,19 +40,21 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id, topds, upperds=None):
         ds2.id = ds1.id
         pairs.append((ds1, ds2))
         exist = True
+        break
     if not exist:
       tempds = ds2.fork_without_memobj()
-      cur_ds_id = cur_ds_id + 1
       tempds.id = cur_ds_id
       ds2.id = cur_ds_id
+      cur_ds_id = cur_ds_id + 1
       tempds.upper = upperds
       ds2.upper = upperds
       delta_structures.append(tempds)
       lst1.append(tempds)
       pairs.append((tempds, ds2))
-  
+  assert(len(pairs) == len(lst2)) 
   for ds1,ds2 in pairs:
-    cur_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id, topds, upperds)
+    new_ds_id, new_delta = collect_structures_helper_index(ds1, ds2, cur_ds_id, topds, upperds)
+    cur_ds_id = new_ds_id
     delta_structures += new_delta
 
   # for ds2 in lst2:
