@@ -17,6 +17,7 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
   header = ""
   code = ""
   
+  #plan.copy_ds_id(None, dsmnger)
   print '\nread plan:'
   print plan
   for i,p in enumerate(params):
@@ -78,7 +79,8 @@ def cgen_for_one_step(step, state, print_result=False):
       if type(step.expr) is str and step.expr == 'init':
         qr_array = state.find_or_create_qr_var(step.var)
         # FIXME
-        s += '{} {};\n'.format(cgen_query_result_type(state.topquery.id), qr_array)
+        s += '{} {}_;\n'.format(cgen_query_result_type(state.topquery.id), qr_array)
+        s += '{}* {} = &{}_;\n'.format(cgen_query_result_type(state.topquery.id), qr_array, qr_array)
       else:
         s += '{}* {} = nullptr;\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery.id), ele_name)
         projections = [f for f in step.projections]
@@ -106,7 +108,8 @@ def cgen_for_one_step(step, state, print_result=False):
       # TODO
       assert(False)
     ds_name = step.idx.get_ds_name()
-    type_prefix = '{}::'.format(step.idx.table.upper_table.get_full_type()) if isinstance(step.idx.table, NestedTable) else ''
+    #type_prefix = '{}::'.format(step.idx.table.upper_table.get_full_type()) if isinstance(step.idx.table, NestedTable) else ''
+    type_prefix = get_ds_type_prefix(step.idx)
     idx_prefix = '{}.'.format(state.loop_var) if isinstance(step.idx.table, NestedTable) else ''
     ary_name = '{}{}'.format(idx_prefix, ds_name)
     ary_ele_name = cgen_cxxvar(step.idx.table)

@@ -17,9 +17,6 @@ def cgen_initialize_all(tables, associations, dsmeta):
   cpp = "#include \"{}.h\"\n".format(db_name)
   header += "#include \"proto_{}.pb.h\"\n".format(db_name)
 
-  for t in tables:
-    header += "struct {};\n".format(get_capitalized_name(t.name))
-
   set_ds_is_refered(dsmeta.data_structures, dsmeta.data_structures)
   dsmeta_str = str(dsmeta)
   header += ''.join(['//'+l+'\n' for l in dsmeta_str.split('\n')])

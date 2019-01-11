@@ -94,6 +94,7 @@ def cgen_ruby_client_print_helper(query, element_var, level=0):
   return s
    
 def cgen_nonproto_query_result(query, qid):
+  print "projections1 = {}".format(','.join([str(f) for f in query.projections]))
   s = 'struct Query{}Result {{\n'.format(qid)
   nexts, next_uppers = cgen_nonproto_query_result_element(query, upper_query=None, repeated=True)
   s += insert_indent(nexts)
@@ -107,41 +108,35 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
           get_capitalized_name(get_main_table(upper_query.table).name))
   else:
     typename = 'P{}'.format(get_capitalized_name(query.table.name))
-  fmap = {}
   cnt = 0
   upper_s = ''
   for v,aggr in query.aggrs:
     if v.is_temp:
       continue
     upper_s += '  {} {}_{};\n'.format(get_cpp_type(v.get_type()), v.name, cnt)
-    fmap[v] = cnt
+    upper_s += '  inline {} {}() const {{ return {}_{}; }}\n'.format(get_cpp_type(v.get_type()), v.name, v.name, cnt)
+    upper_s += '  inline void set_{}({} fv_) {{  {}_{} = fv_; }}\n'.format(v.name, get_cpp_type(v.get_type()), v.name, cnt)
     cnt += 1
-  for v,aggr in query.aggrs:
-    if v.is_temp:
-      continue
-    upper_s += '  void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(v.name, get_cpp_type(v.get_type()), v.name, fmap[v])
-    upper_s += '  {} {}() {{ return {}_{}; }}\n'.format(get_cpp_type(v.get_type()), v.name, v.name, fmap[v])
   
   s = ''
   if query.return_var:
+    cnt = 0
     s += 'struct {} {{\n'.format(typename)
     s += '  {}() {{}}\n'.format(typename)
     projections = [f for f in query.projections]
     insert_no_duplicate(projections, QueryField('id', get_main_table(query.table)))
-    projections = clean_lst([None if f.field_class.is_temp else f for f in projections])
     if query.order:
       for o in query.order:
-        insert_no_duplicate(projections, o)
+        if o.field_class.is_temp == False:
+          insert_no_duplicate(projections, o)
     for f in projections:
       s += '  {} {}_{};\n'.format(get_cpp_type(f.get_type()), f.field_name, cnt)
-      fmap[f] = cnt
-      cnt += 1
-    for f in projections:
-      s += '  inline void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(f.field_name, get_cpp_type(f.get_type()), f.field_name, fmap[f])
-      s += '  inline {} {}() const {{ return {}_{}; }}\n'.format(get_cpp_type(f.get_type()), f.field_name, f.field_name, fmap[f])
+      s += '  inline void set_{}({} fv_) {{ {}_{} = fv_; }}\n'.format(f.field_name, get_cpp_type(f.get_type()), f.field_name, cnt)
+      s += '  inline {} {}() const {{ return {}_{}; }}\n'.format(get_cpp_type(f.get_type()), f.field_name, f.field_name, cnt)
       if is_string(f.field_class):
-        s += '  inline void set_{}(const char* v_) {{ {}_{} = v_; }}\n'.format(f.field_name, f.field_name, fmap[f])
-    
+        s += '  inline void set_{}(const char* v_) {{ {}_{} = v_; }}\n'.format(f.field_name, f.field_name, cnt)
+      cnt += 1
+
     rs_var = query.table.name
     retv = query.return_var
     if repeated:
@@ -163,7 +158,7 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
         cmp_expr += ' || ({} && this->{}() < other.{}())'.format(cmp_accu, o.field_name, o.field_name)
         cmp_accu += '&& this->{}() == other.{}()'.format(o.field_name, o.field_name)
       s += '{}; }}\n'.format(cmp_expr)
-      upper_s += '  inline void sort() {{ std::sort({}.begin(), {}.end()); }}\n'.format(rs_var, rs_var)
+      upper_s += '  inline void sort_{}() {{ std::sort({}.begin(), {}.end()); }}\n'.format(retv.tipe.name, rs_var, rs_var)
     
     for k,q in query.includes.items():
       repeated = (k.table.has_one_or_many_field(k.field_name) == 0)
