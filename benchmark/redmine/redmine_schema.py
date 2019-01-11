@@ -9,20 +9,20 @@ from faker import Faker
 fake = Faker()
 
 scale=1000
-issue = Table('issue', scale*2000)
-user = Table('user', scale*200)
-member = Table('member', scale*400)
-project = Table('project', scale*80)
-enabled_module = Table('enabled_module', project.sz*6)
-enumeration = Table('enumeration', project.sz*4)
-version = Table('version', project.sz*2)
+issue = Table('issues', scale*2000)
+user = Table('users', scale*200)
+member = Table('members', scale*400)
+project = Table('projects', scale*80)
+enabled_module = Table('enabled_modules', project.sz*6)
+enumeration = Table('enumerations', project.sz*4)
+version = Table('versions', project.sz*2)
 news = Table('news', project.sz*8)
-board = Table('board', project.sz*2)
-message = Table('message', board.sz*2)
+board = Table('boards', project.sz*2)
+message = Table('messages', board.sz*2)
 
-tracker = Table('tracker', 10)
-role = Table('role', 20)
-issue_status = Table('issue_status', 10)
+tracker = Table('trackers', 10)
+role = Table('roles', 20)
+issue_status = Table('issue_statuses', 10)
 
 
   # create_table "issues", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|

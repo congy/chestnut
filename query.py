@@ -42,9 +42,8 @@ class ReadQuery(object):
     return s
   def project(self, fields):
     if type(fields) is str and fields == '*':
-      for f in get_main_table(self.table).get_fields():
-        self.projections = clean_lst(\
-          [QueryField(f.name, get_main_table(self.table)) for f in get_main_table(self.table).get_fields()])
+      self.projections = clean_lst([None if f.is_temp else QueryField(f.name, get_main_table(self.table)) \
+        for f in get_main_table(self.table).get_fields()])
       return
     for f in fields:
       f.complete_field(get_main_table(self.table))
@@ -61,7 +60,7 @@ class ReadQuery(object):
       assert(aggr_name != f.name)
     newv = EnvAtomicVariable('{}'.format(aggr_name), tipe, is_temp=False)
     if isinstance(self.table, NestedTable):
-      new_field = Field(aggr_name, tipe, is_temp=True)
+      new_field = Field(aggr_name, aggr_func.get_type(), is_temp=True)
       get_main_table(self.table.upper_table).add_field(new_field)
     self.aggrs.append((newv, aggr_func))
   def finclude(self, field, pfilter=None, projection='*'):

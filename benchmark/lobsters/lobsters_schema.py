@@ -8,8 +8,8 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-scale = 10000
-#scale = 10
+#scale = 10000
+scale = 10
 story = Table('story', scale*100)
 comment = Table('comment', scale*500)
 message = Table('message', scale*100)

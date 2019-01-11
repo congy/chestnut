@@ -220,7 +220,7 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
 
   s += """
   if (mysql_query(conn, query_str.c_str())) {
-    fprintf(stderr, "mysql query failed\\n");
+    fprintf(stderr, "mysql query failed: %s\\n", query_str.c_str());
     exit(1);
   }
   MYSQL_RES *result = mysql_store_result(conn);

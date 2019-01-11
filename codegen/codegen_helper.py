@@ -12,12 +12,16 @@ def cgen_fname(f):
   elif isinstance(f, AssocOp):
     lst = get_assoc_field_list(f)
     s = '_'.join([f1.field_name for f1 in lst])
+    return s
   elif isinstance(f, KeyPath):
     return cgen_fname(f.key)
   elif isinstance(f, Field):
     return '{}_{}'.format(f.table.name, f.name)
   elif isinstance(f, EnvAtomicVariable):
     return f.name
+  else:
+    print f
+    assert(False)
 
 def cgen_scalar_ftype(f):
   if isinstance(f, QueryField):
@@ -77,6 +81,12 @@ def cgen_fprint(f):
   else:
     assert(False)
 
+def get_ds_type_prefix(idx):
+  if isinstance(idx.table, NestedTable):
+    assert(idx.upper)
+    return get_ds_type_prefix(idx.upper) + '{}::'.format(idx.upper.get_value_type_name())
+  else:
+    return ''
 def cgen_ds_type(idx):
   sz = to_real_value(idx.compute_single_size())
   if isinstance(idx, ObjBasicArray):
@@ -378,7 +388,8 @@ def cgen_print_query_result_helper(query, element_var, level=1):
     for v,f in q.aggrs:
       if v.is_temp == False:
         fields.append(v)
-  s += "  printf(\"{}{}\\n\", {});\n".format(''.join(['\t' for i in range(0, level)]), ', '.join(['{} = {}'.format(f.name, get_type_to_print_symbol(f.tipe)) for f in fields]),\
+  if len(fields) > 0:
+    s += "  printf(\"{}{}\\n\", {});\n".format(''.join(['\t' for i in range(0, level)]), ', '.join(['{} = {}'.format(f.name, get_type_to_print_symbol(f.tipe)) for f in fields]),\
                         ','.join(['{}.{}().c_str()'.format(element_var, f.name) if is_string_type(f.tipe) \
                               else '{}.{}()'.format(element_var, f.name) for f in fields]))
   # FIXME

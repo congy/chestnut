@@ -385,7 +385,7 @@ def get_new_assoc(assoc_name, assoc_type, lft, rgt, lft_name, rgt_name, lft_rati
   rgt.add_assoc(rgt_name, assoc)
   if assoc_type == "one_to_many":
     field_name = assoc.rgt_field_name + "_id"
-    new_field = Field(field_name, 'oid', vrange=[1, assoc.lft.sz], is_temp=True)
+    new_field = Field(field_name, 'oid', vrange=[1, assoc.lft.sz])
     rgt.add_field(new_field) 
   return assoc
 
