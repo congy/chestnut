@@ -155,7 +155,7 @@ def cgen_for_one_step(step, state, print_result=False):
       s += 'if (ptr_{} == nullptr) continue;\n'.format(irvar)
       s += 'auto& {} = *ptr_{};\n'.format(irvar, irvar)
     else:
-      curobj = '{}.{}'.format(state.loop_var, step.field.field_name)
+      curobj = '{}.{}'.format(state.loop_var, step.idx.get_ds_name())#step.field.field_name)
       if step.idx.value.is_object():
         s += 'auto& {} = {};\n'.format(irvar, curobj)
       else:
