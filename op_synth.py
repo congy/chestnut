@@ -29,11 +29,12 @@ def get_ds_and_op_on_cond(thread_ctx, qtable, pred, ds_value, order=None, fk_pre
     states = cache
   else:
     states = enumerative_gen(qtable, thread_ctx, pred, order, fk_pred)
+    for state in states:
+      for op in state.result:
+        op.set_pred()
     globalv.add_to_synth_cache(pred, order, fk_pred, states)
   all_ops = []
   for state in states:
-    for op in state.result:
-      op.set_pred()
     if len(nonexternal) > 0:
       for op in state.result:
         op.replace_param_with_qf(nonexternal)

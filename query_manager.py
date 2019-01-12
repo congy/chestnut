@@ -86,8 +86,8 @@ def data_structures_merge_helper(lst1, lst2, begin_ds_id, topds, upperds=None):
           ds2.value.value = ds1
           pairs[i][0].value.value = ds1
       assert(ds2.value.value.id > 0)
-    if ds2.upper:
-      pairs[i][0].upper = ds2.upper
+    #if ds2.upper:
+    #  pairs[i][0].upper = ds2.upper
   return cur_ds_id, delta_structures
 
 def collect_structures_helper_memobj(obj, newobj, begin_ds_id, topds, upperds):

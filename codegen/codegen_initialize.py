@@ -76,6 +76,7 @@ def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
   cpp = ''
   # s = 'inline void init_ds_from_sql(MYSQL* conn{}{}) {{\n'.format(param1, param2)
   for ds in dslst:
+    print 'ds = {}'.format(ds)
     query_str, nesting, fields = sql_for_ds_query(ds)
     header += '//ds {}: {}\n'.format(ds.id, ds.__str__(True))
     header += cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type)

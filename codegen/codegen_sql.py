@@ -15,44 +15,61 @@ from query_manager import *
 
 def clean_sql_query(s):
   return s.replace('"', "'")
+def get_path_prefix_helper(qf):
+  if isinstance(qf, AssocOp):
+    return [pred.lh] + get_path_prefix_helper(qf.rh)
+  else:
+    return [qf]
+def get_path_prefix(path, name):
+  fullpath = []
+  for p in path:
+    fullpath += get_path_prefix_helper(p)
+  fullname = [x.table.name for x in fullpath]
+  fullname.append(name)
+  return '_'.join(fullname)
+def get_field_with_prefix(f):
+  path = [f1 for f1 in f.path]
+  if isinstance(f.key, AssocOp):
+    path += get_fields_from_assocop(f.key)[:-1]
+  return get_path_prefix(path, get_query_field(f.key).table.name) + '.' + get_query_field(f.key).field_name
 
 def sql_for_ds_query(ds, select_by_id=False):
   table = ds.table
   join_strs = []
   if isinstance(table, NestedTable):
-    upper_qf = get_qf_from_nested_t(table)
-    join_strs.append(get_join_condition(upper_qf, 'INNER JOIN'))
-    pred_strs = ['{}.id = %u'.format(upper_qf.table.name)]
-    #pred_strs = ['{}.id = {}'.format(upper_qf.table.name, random.randint(1, upper_qf.table.sz-2))]
-    entry_table = upper_qf.table.name
+    upper_table = get_main_table(table.upper_table)
+    upper_qf = get_reversed_assoc_qf(get_qf_from_nested_t(table))
+    join_strs.append(get_join_condition([], upper_qf, 'INNER JOIN'))
+    #pred_strs = ['{}.id = %u'.format(get_path_prefix([upper_qf], upper_qf.field_class.name))]
+    pred_strs = ['{}.id = {}'.format(get_path_prefix([upper_qf], upper_qf.field_class.name), random.randint(1, upper_table.sz-2))]
   else:
     pred_strs = []
-    entry_table = table.name
+  entry_table = get_main_table(table).name
   if ds.value.is_object():
-    fields = [f for f in ds.value.get_object().fields]
+    fields = [KeyPath(f) for f in ds.value.get_object().fields] #[f for f in ds.value.get_object().fields]
   else:
     fields = []
   if not isinstance(ds, ObjBasicArray):
     for f in ds.key_fields():
-      insert_no_duplicate(fields, f.get_query_field())
+      insert_no_duplicate(fields, f)
   if isinstance(table, DenormalizedTable):
     maint = table.get_main_table()
     entry_table = maint.name
     nesting = ObjNesting(maint)
     nesting_map = {maint:nesting} # key: table; value: nesting
     for qf in table.join_fields:
-      join_strs.append(get_join_condition(qf, 'INNER JOIN'))
+      insert_no_duplicate(join_strs, get_join_condition(qf, 'INNER JOIN'))
       if qf.field_class not in nesting_map:
         qfn = nesting_map[qf.table].get_or_add_assoc(qf)
         nesting_map[qf.field_class] = qfn
     for t in table.tables:
-      insert_no_duplicate(fields, QueryField('id', t))
+      insert_no_duplicate(fields, KeyPath(QueryField('id', t)))
     if select_by_id:
       pred_strs += ['{}.id = %u'.format(t.name) for t in table.tables]
   else:
     maint = get_main_table(table)
     nesting = ObjNesting(maint)
-    insert_no_duplicate(fields, QueryField('id', maint))
+    insert_no_duplicate(fields, KeyPath(QueryField('id', maint)))
     if select_by_id:
       pred_strs.append('{}.id = %u'.format(maint.name))
   if isinstance(ds, ObjBasicArray):
@@ -60,17 +77,20 @@ def sql_for_ds_query(ds, select_by_id=False):
   else:
     pred = ds.condition
   if pred:
-    sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs)
-    field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
-    group_str = ','.join(['{}.{}'.format(f.table.name, f.field_name) for f in fields])
-    tables = []
+    sql_for_ds_pred([], pred, fields, nesting, join_strs, pred_strs)
+    #field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
+    field_str = ','.join([get_field_with_prefix(f) for f in fields])
+    group_str = ','.join([get_field_with_prefix(f) for f in fields])
+    tableids = []
     for f in fields:
-      insert_no_duplicate(tables, f.table)
-    order_str = ','.join(['{}.id'.format(t.name) for t in tables])
+      if get_query_field(f.key).field_name == 'id':
+        insert_no_duplicate(tableids, f)
+    order_str = ','.join([get_field_with_prefix(f) for f in tableids])
     s = 'select {} from {} {} {} group by {} order by {}'.format(field_str, entry_table, ' '.join(join_strs), \
                     ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '', group_str, order_str)
   else:
-    field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
+    #field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
+    field_str = ','.join([get_field_with_prefix(f) for f in fields])
     s = 'select {} from {} {} {}'.format(field_str, entry_table, \
                     ' '.join(join_strs), ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
   return clean_sql_query(s), nesting, fields
@@ -95,18 +115,22 @@ def find_nesting_by_qf(nesting, qf):
         return nesting.get_or_add_assoc(qf)
     else:
       return find_nesting_until_match(nesting, qf.table)
-def sql_get_element_str(pred, fields, nesting, join_strs):
+def sql_get_element_str(path, pred, fields, nesting, join_strs):
   if isinstance(pred, QueryField):
-    insert_no_duplicate(fields, QueryField('id', pred.table))
-    insert_no_duplicate(fields, pred)
-    return '{}.{}'.format(pred.table.name, pred.field_name)
+    if is_atomic_field(pred):
+      insert_no_duplicate(fields, KeyPath(QueryField('id', pred.table), path))
+      insert_no_duplicate(fields, KeyPath(pred, path))
+      return get_path_prefix(path, pred.table.name) + '.' + pred.field_name
+    else:
+      insert_no_duplicate(join_strs, get_join_condition(path, pred, 'INNER JOIN'))
+      return ''
   elif isinstance(pred, AssocOp):
-    join_strs.append(get_join_condition(pred, 'INNER JOIN'))
+    insert_no_duplicate(join_strs, get_join_condition(path, pred, 'INNER JOIN'))
     f = get_query_field(pred)
     next_nesting = find_nesting_by_qf(nesting, pred.lh)
-    return sql_get_element_str(f, fields, next_nesting, join_strs)
+    return sql_get_element_str(path+[pred.lh], f, fields, next_nesting, join_strs)
   elif isinstance(pred, MultiParam):
-    return '({})'.format(','.join([sql_get_element_str(p, join_strs) for p in pred.params]))
+    return '({})'.format(','.join([sql_get_element_str(path, p, fields, nesting, join_strs) for p in pred.params]))
   elif isinstance(pred, AtomValue):
     return pred.to_var_or_value()
   else:
@@ -114,33 +138,35 @@ def sql_get_element_str(pred, fields, nesting, join_strs):
 
 # if has parameter --- select that field
 # if no parameter --- just predicate
-def sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs):
+def sql_for_ds_pred(path, pred, fields, nesting, join_strs, pred_strs):
   if isinstance(pred, ConnectOp):
-    sql_for_ds_pred(pred.lh, fields, nesting, join_strs, pred_strs)
-    sql_for_ds_pred(pred.rh, fields, nesting, join_strs, pred_strs)
+    sql_for_ds_pred(path, pred.lh, fields, nesting, join_strs, pred_strs)
+    sql_for_ds_pred(path, pred.rh, fields, nesting, join_strs, pred_strs)
   elif isinstance(pred, BinOp):
     if len(pred.get_all_params()) == 0:
       fork_nesting = nesting.fork()
-      lft_str = sql_get_element_str(pred.lh, [], fork_nesting, join_strs)
-      rgt_str = sql_get_element_str(pred.rh, [], fork_nesting, join_strs)
+      lft_str = sql_get_element_str(path, pred.lh, [], fork_nesting, join_strs)
+      rgt_str = sql_get_element_str(path, pred.rh, [], fork_nesting, join_strs)
       if pred.op == SUBSTR:
         rgt_str = '%{}'.format(rgt_str[1:-1])
       else:
         pred_strs.append('{} {} {}'.format(lft_str, pred_op_to_sql_map[pred.op], rgt_str))
     else:
       assert(isinstance(pred.rh, Parameter))
-      sql_get_element_str(pred.lh, fields, nesting, join_strs)
+      sql_get_element_str(path, pred.lh, fields, nesting, join_strs)
   elif isinstance(pred, SetOp):
     if len(pred.get_all_params()) == 0:
       new_pred_strs = []
       new_join_strs = []
-      lqf = get_leftmost_qf(pred.lh)
+      newpath = path
       if pred.op == EXIST:
         if isinstance(pred.lh, QueryField):
           new_pred = pred.rh
         else:
-          sql_get_element_str(pred.lh, fields, nesting, join_strs)
-          new_pred = SetOp(pred.lh.rh, pred.op, pred.rh)
+          lqf = reconstruct_assocop_from_lst(get_fields_from_assocop(pred.lh)[:-1])
+          newpath = path + [lqf]
+          sql_get_element_str(path, lqf, fields, nesting, join_strs)
+          new_pred = pred.rh #SetOp(pred.lh.rh, pred.op, pred.rh)
         joinp = 'INNER JOIN'
       else:
         if isinstance(pred.lh, QueryField):
@@ -148,57 +174,70 @@ def sql_for_ds_pred(pred, fields, nesting, join_strs, pred_strs):
         else: # FIXME
           new_pred = SetOp(pred.lh.rh, pred.op, UnaryOp(pred.rh))
         joinp = 'LEFT OUTER JOIN'
-      table_name, outer_pred = get_join_condition_helper2(lqf, joinp)
-      subq_prefix = 'select 1 from {} '.format(table_name)
+      outer_pred = get_exists_condition_helper(newpath, get_query_field(pred.lh), 'INNER JOIN', new_join_strs)
+      subq_prefix = 'select 1 from {} '.format(get_query_field(pred.lh).field_class.name)
       new_pred_strs.append(outer_pred)
       fork_nesting = nesting.fork()
-      next_nesting = find_nesting_by_qf(fork_nesting, lqf)
-      sql_for_ds_pred(new_pred, [], next_nesting, new_join_strs, new_pred_strs)
+      next_nesting = find_nesting_by_qf(fork_nesting, pred.lh) #find_nesting_by_qf(fork_nesting, lqf)
+      sql_for_ds_pred([], new_pred, [], next_nesting, new_join_strs, new_pred_strs)
       if pred.op == EXIST:
         pred_strs.append('exists ({} {} where {})'.format(subq_prefix, ' '.join(new_join_strs), ' and '.join(new_pred_strs)))
       else:
         pred_strs.append('not exists ({} {} where {})'.format(subq_prefix, ' '.join(new_join_strs), ' and '.join(new_pred_strs)))
     else:
       next_nesting = find_nesting_by_qf(nesting, pred.lh)
-      join_strs.append(get_join_condition(pred.lh, 'INNER JOIN'))
-      sql_for_ds_pred(pred.rh, fields, next_nesting, join_strs, pred_strs)
+      insert_no_duplicate(join_strs, get_join_condition(path, pred.lh, 'INNER JOIN'))
+      newpath = [p for p in path] + [pred.lh]
+      sql_for_ds_pred(newpath, pred.rh, fields, next_nesting, join_strs, pred_strs)
   elif isinstance(pred, UnaryOp):
     if len(pred.operand.get_all_params()) == 0:
-      return 'not ({})'.format(sql_for_ds_pred(pred.operand, fields, nesting, join_strs, pred_strs))
+      return 'not ({})'.format(sql_for_ds_pred(path, pred.operand, fields, nesting, join_strs, pred_strs))
     else:
-      return sql_for_ds_pred(pred.operand, fields, nesting, join_strs, pred_strs)
+      return sql_for_ds_pred(path, pred.operand, fields, nesting, join_strs, pred_strs)
 
 # TODO:
 #def sql_for_ds_expr(pred, fields, nesting, join_strs, pred_strs):
 
-def get_join_condition(qf, joinq):
+def get_join_condition(path, qf, joinq):
   if isinstance(qf, AssocOp):
-    return get_join_condition_helper(qf.lh, joinq) + get_join_condition(qf.rh, joinq)
+    return get_join_condition_helper(path, qf.lh, joinq) + get_join_condition(path+[qf.lh], qf.rh, joinq)
   else:
     if is_atomic_field(qf):
       return ''
-    return get_join_condition_helper(qf, joinq)
-def get_join_condition_helper(qf, joinq):
-  table, pred = get_join_condition_helper2(qf, joinq)
-  return '{} {} ON {}'.format(joinq, table, pred)
+    return get_join_condition_helper(path, qf, joinq)
   
-# return a pair: table_name, outer_pred
+# return a pair: table_name, join_pred
 # used for:
 #   -> exists (select 1 from table_name .... where ... and outer_pred)
-#   -> left outer join table_name on outer_pred
-def get_join_condition_helper2(qf, joinq):
+#   -> inner join table_name on join_pred
+def get_join_condition_helper(path, qf, joinq):
+  assoc_renamed = get_path_prefix(path+[qf], qf.field_class.name)
   if qf.table.has_one_or_many_field(qf.field_name) == 1:
-    return qf.field_class.name, '{}.{}_id = {}.id '.format(\
-                      qf.table.name, qf.field_name, qf.field_class.name)
+    return '{} {} as {} ON {}.{}_id = {}.id '.format(\
+                  joinq, qf.field_class.name, assoc_renamed, \
+                  get_path_prefix(path, qf.table.name), qf.field_name, assoc_renamed)
   elif qf.field_class.has_one_or_many_field(get_reversed_assoc_qf(qf).field_name) == 1:
-    return qf.field_class.name, '{}.id = {}.{}_id '.format(\
-                      qf.table.name, qf.field_class.name, get_reversed_assoc_qf(qf).field_name)
+    return '{} {} as {} ON {}.id = {}.{}_id '.format(\
+                  joinq, qf.field_class.name, assoc_renamed, \
+                  get_path_prefix(path, qf.table.name), assoc_renamed, get_reversed_assoc_qf(qf).field_name)
   else:
     connect_table_name = qf.table.get_assoc_by_name(qf.field_name).name
-    return connect_table_name, '{}.id = {}.{}_id {} {} ON {}.id = {}.{}_id '.format(\
-                                                    qf.table.name, connect_table_name, qf.table.name, \
-                                                    joinq, qf.field_class.name,
-                                                    qf.field_class.name, connect_table_name, qf.field_class.name)  
+    connect_table_renamed = get_path_prefix(path+[qf], connect_table_name)
+    return '{} {} as {} ON {}.id = {}.{}_id {} {} as {} ON {}.id = {}.{}_id '.format(\
+                  joinq, connect_table_name, connect_table_renamed, \
+                  get_path_prefix(path, qf.table.name), connect_table_renamed, qf.table.name, \
+                  joinq, qf.field_class.name, get_path_prefix(path+[qf], qf.field_class.name),
+                  get_path_prefix(path+[qf], qf.field_class.name), connect_table_renamed, qf.field_class.name)  
+
+def get_exists_condition_helper(outer_path, qf, joinq, join_strs):
+  outerid = get_path_prefix(outer_path, qf.table.name)+'.id'
+  if qf.field_class.has_one_or_many_field(get_reversed_assoc_qf(qf).field_name) == 1:
+    return '{} = {}.{}_id'.format(outerid, qf.field_class.name, get_reversed_assoc_qf(qf).field_name)
+  else:
+    connect_table_name = qf.table.get_assoc_by_name(qf.field_name).name
+    join_str = '{} {} ON {}.id = {}.{}_id '.format(joinq, connect_table_name, qf.field_class.name, connect_table_name, qf.field_class.name)
+    join_strs.append(join_str)
+    return '{} = {}.{}_id'.format(outerid, connect_table_name, qf.table.name)
 
 def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
   param1 = ', {}* upper_obj'.format(cgen_obj_fulltype(ds.upper)) if ds.upper is not None else ''
@@ -250,7 +289,7 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
     key_str = ''
   else:
     for i,key in enumerate(ds.key_fields()):
-      rpos = helper_field_pos_in_row(fields, key.get_query_field())
+      rpos = helper_field_pos_in_row(fields, key)
       s += '    key_{} = {}(row[{}]);\n'.format(i, helper_get_row_type_transform(key.get_query_field()), rpos)
     s +='    {}{} key({});\n'.format(cgen_obj_fulltype(ds.upper)+'::' if isinstance(ds.table, NestedTable) else '', ds.get_key_type_name(), \
         ','.join(['key_{}'.format(j) for j in range(0, len(ds.key_fields()))]))
@@ -363,6 +402,8 @@ def codegen_deserialize_helper(table, nesting, fields, upper_var, level=1):
 
 
 def helper_field_pos_in_row(fields, field):
+  if isinstance(field, QueryField):
+    field = KeyPath(field)
   for i,f in enumerate(fields):
     if f == field:
       return i
@@ -370,11 +411,14 @@ def helper_field_pos_in_row(fields, field):
 def helper_get_table_fields_in_row(fields, table):
   r = []
   for i,f in enumerate(fields):
-    if f.table == table:
+    if f.key.table == table:
       r.append((f, i))
   return r
 def helper_get_row_type_transform(f):
-  f = f.field_class
+  if isinstance(f, QueryField):
+    f = f.field_class
+  else:
+    f = f.key.field_class
   if is_varchar(f) or is_long_string(f):
     return ''
   elif is_date(f):

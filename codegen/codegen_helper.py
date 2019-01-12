@@ -100,8 +100,8 @@ def cgen_ds_type(idx):
       return 'BasicArray'
   elif isinstance(idx, IndexBase):
     prefix = ''
-    if sz < SMALL_DT_BOUND:
-      prefix='Small'
+    # if sz < SMALL_DT_BOUND:
+    #   prefix='Small'
     if isinstance(idx, ObjTreeIndex):
       return '{}TreeIndex'.format(prefix)
     elif isinstance(idx, ObjSortedArray):
@@ -124,10 +124,10 @@ def get_loop_define(idx, is_begin=True, is_range=False):
     else:
       return 'BASICARRAY_FOR_{}'.format(suffix)
   elif isinstance(idx, IndexBase):
-    if to_real_value(idx.compute_single_size()) < SMALL_DT_BOUND:
-      prefix = 'SMALL'
-    else:
-      prefix = ''
+    # if to_real_value(idx.compute_single_size()) < SMALL_DT_BOUND:
+    #   prefix = 'SMALL'
+    # else:
+    prefix = ''
     if isinstance(idx, ObjTreeIndex):
       typ = 'TREEINDEX'
     elif isinstance(idx, ObjSortedArray):
