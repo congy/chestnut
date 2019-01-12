@@ -673,6 +673,11 @@ def get_fields_from_assocop(f):
   if isinstance(f, QueryField):
     return [f]
   return [f.lh] + get_fields_from_assocop(f.rh)
+def reconstruct_assocop_from_lst(lst):
+  assoc = lst[-1]
+  for f in lst[:-1]:
+    assoc = AssocOp(f, assoc)
+  return assoc
 def get_query_table(f):
   if isinstance(f, QueryField):
     return f.table

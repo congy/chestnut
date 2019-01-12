@@ -38,7 +38,7 @@ enabled_module.add_fields([name])
 is_closed = Field('is_closed', 'bool')
 issue_status.add_field(is_closed)
 
-issue_status_issue = get_new_assoc('issue_to_status', 'one_to_many', issue_status, issue, 'issues', 'status')
+issue_status_issue = get_new_assoc('issue_to_status', 'many_to_many', issue_status, issue, 'issues', 'status', 0, 2)
 project_issue = get_new_assoc("project_to_issue", "one_to_many", project, issue, "issues", "project")
 project_enabled_module = get_new_assoc("project_to_enabled_module", "one_to_many", project, enabled_module, "enabled_modules", "project")
 
@@ -75,7 +75,7 @@ associations = [issue_status_issue, project_issue, project_enabled_module]
 #   print '--------'
 
 # test search plan
-search_plans_for_one_query(q)
+#search_plans_for_one_query(q)
 
 # test_merge(q)
 # test_ilp([q])
@@ -84,8 +84,8 @@ data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
 #populate_database(data_dir, tables, associations)
-#test_generate_sql([q])
+test_generate_sql([q_mp_2])
 #test_deserialize([q])
-#test_initialize(tables, associations, [q], 352) #0, 172, 272 
+#test_initialize(tables, associations, [q], 15) #0, 172, 272 , 352
 #test_query(tables, associations, q, 20)
 #test_cost([q])

@@ -21,6 +21,14 @@ inline uint32_t str_to_uint(const string& s){
         return (uint32_t)atoi(s.c_str());
     }
 }
+
+inline uint32_t str_to_uint(const char* s){
+    if (s) {
+      return (uint32_t)atoi(s);
+    }else{
+      return 0;
+    }
+}
 inline uint32_t char_to_uint(const char* s) {
   if (s == nullptr || strlen(s) == 0) return 0;
   else return (uint32_t)atoi(s);
@@ -33,19 +41,34 @@ inline int str_to_int(const string& s){
         return atoi(s.c_str());
     }
 }
+inline uint32_t str_to_int(const char* s){
+    if (s) {
+      return (uint32_t)atoi(s);
+    }else{
+      return 0;
+    }
+}
 
 inline uint32_t time_to_uint(const string& s){
-    string nullp("NULL");
-    if (s.compare(nullp) == 0) return 1;
-    int year = str_to_int(s.substr(0, 4));
-    int month = str_to_int(s.substr(5, 2));
-    int day = str_to_int(s.substr(8, 2));
-    int hour = str_to_int(s.substr(11, 2));
-    int minute = str_to_int(s.substr(14, 2));
-    int second = str_to_int(s.substr(17, 2));
-    int lap_day = (year-2010)*365 + month*30 + day;
-    //return (uint32_t)(second + minute*60 + hour*3600 + lap_day*86400);
-    return (uint32_t)(minute + hour*60 + lap_day*1440);
+    if (s.compare(null_str) == 0) return 1;
+    return time_to_uint(s.c_str());
+}
+
+inline uint32_t time_to_uint(const char* s1){
+    if (s1) {
+      std::string s(s1);
+      int year = str_to_int(s.substr(0, 4));
+      int month = str_to_int(s.substr(5, 2));
+      int day = str_to_int(s.substr(8, 2));
+      int hour = str_to_int(s.substr(11, 2));
+      int minute = str_to_int(s.substr(14, 2));
+      int second = str_to_int(s.substr(17, 2));
+      int lap_day = (year-2010)*365 + month*30 + day;
+      //return (uint32_t)(second + minute*60 + hour*3600 + lap_day*86400);
+      return (uint32_t)(minute + hour*60 + lap_day*1440);
+    } else {
+      return 1;
+    }
 }
 
 inline float str_to_float(const string& s){

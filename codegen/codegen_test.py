@@ -9,6 +9,7 @@ from codegen_ir import *
 from codegen_template import *
 from protogen import *
 from constants import *
+import mysql.connector
 from ilp.ilp_manager import *
 
 # ====== test initialize ds ======
@@ -163,18 +164,23 @@ int main() {
 
 def test_generate_sql(read_queries):
   rqmanagers, dsmeta = get_dsmeta(read_queries)
+  mydb = mysql.connector.connect(host="localhost", user="root", passwd="", database=get_db_name())
+  mycursor = mydb.cursor()
   for ds in dsmeta.data_structures:
-    test_generate_sql_helper(ds)
+    test_generate_sql_helper(ds, mycursor)
 
-def test_generate_sql_helper(ds):
+def test_generate_sql_helper(ds, mycursor):
   query_str, nesting, fields = sql_for_ds_query(ds)
   print 'ds = {}, query = {}'.format(ds.__str__(short=True), query_str)
-  print codegen_deserialize(ds, nesting, fields, query_str)
-  print '----\n'
+  print ''
+  mycursor.execute(query_str+' limit 1')
+  myresult = mycursor.fetchall()
+  #print codegen_deserialize(ds, nesting, fields, query_str)
+  #print '----\n'
   if ds.value.is_object():
     for nextds in ds.value.get_object().nested_objects:
       nextqf = get_qf_from_nested_t(nextds.table)
-      test_generate_sql_helper(nextds)
+      test_generate_sql_helper(nextds, mycursor)
 
 def test_read_overall(tables, associations, queries, memfactor=1, read_from_file=False, read_ilp=False):
 
