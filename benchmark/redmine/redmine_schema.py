@@ -81,7 +81,7 @@ done_ratio, estimated_hours, parent_id, root_id, lft, rgt, is_private, closed_on
 
 project_issue = get_new_assoc("project_to_issue", "one_to_many", project, issue, "issues", "project")
 issue_tracker = get_new_assoc("issue_to_tracker", "one_to_many", tracker, issue, 'issues', 'tracker')
-issue_status_issue = get_new_assoc('issue_statuses', 'many_to_many', issue, issue_status, 'status', 'issues',  2, 0)
+issue_status_issue = get_new_assoc('issue_to_statuses', 'one_to_many', issue, issue_status, 'status', 'issue')
 #issue_user = get_new_assoc('issue_user', 'one_to_many', user, issue, 'issues', 'user')
 
   # create_table "trackers", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
