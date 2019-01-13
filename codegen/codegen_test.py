@@ -9,7 +9,7 @@ from codegen_ir import *
 from codegen_template import *
 from protogen import *
 from constants import *
-import mysql.connector
+#import mysql.connector
 from ilp.ilp_manager import *
 
 # ====== test initialize ds ======

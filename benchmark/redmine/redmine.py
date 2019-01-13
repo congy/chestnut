@@ -81,10 +81,5 @@ data_dir=datafile_dir
 #generate_db_data_files(data_dir, tables, associations)
 #populate_database(data_dir, tables, associations)
 #test_query(tables, associations, read_queries[0], 13)
-<<<<<<< HEAD
-#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
-=======
-
 #test_generate_sql([q_ii_2])
-test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
->>>>>>> 3d714082ada267dde5e25d83a23eda0a2a6a2a12
+#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
