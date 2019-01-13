@@ -8,8 +8,8 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-scale=1000
-#scale=10
+#scale=1000
+scale=10
 issue = Table('issue', scale*2000)
 user = Table('user', scale*200)
 member = Table('member', scale*400)
@@ -151,7 +151,7 @@ role.add_fields([position, builtin, assignable, permissions, settings])
 
 member_user = get_new_assoc('member_to_user', 'one_to_many', user, member, 'members', 'user')
 project_member = get_new_assoc("project_to_member", "one_to_many", project, member, "members", "project")
-member_roles = get_new_assoc("member_roles", 'many_to_many', member, role, 'roles', 'members', 3, 0)
+member_roles = get_new_assoc("member_roles", 'many_to_many', member, role, 'roles', 'members', 3, 0, "member_id", "role_id")
 
   # create_table "projects", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.string "name", default: "", null: false
@@ -194,7 +194,7 @@ default_version_id = Field('default_version_id', 'oid')
 default_assigned_to_id = Field('default_assigned_to_id', 'oid')
 project.add_fields([name, description, homepage, is_public, parent_id, created_on, updated_on, status, lft, rgt, inherit_members, default_version_id, default_assigned_to_id])
 
-project_tracker = get_new_assoc("projects_trackers", "many_to_many", project, tracker, "trackers", "projects", 3)
+project_tracker = get_new_assoc("projects_trackers", "many_to_many", project, tracker, "trackers", "projects", 3, 0, "project_id", "tracker_id")
 
   # create_table "news", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.integer "project_id"

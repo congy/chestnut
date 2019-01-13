@@ -8,6 +8,7 @@ from codegen_helper import *
 from codegen_ds import *
 from codegen_sql import *
 from codegen_main import *
+import globalv
 
 def cgen_initialize_all(tables, associations, dsmeta):
   db_name = get_db_name()
@@ -52,7 +53,10 @@ def cgen_read_data_general(tables, associations, dsmeta):
     exit(1);
   }
 """
-  code += '  if (mysql_real_connect(conn, "localhost", "root", "", "{}", 0, NULL, 0) == NULL){{\n'.format(get_db_name())
+  if globalv.mysql_socket == "":
+    code += '  if (mysql_real_connect(conn, "localhost", "root", "", "{}", 0, NULL, 0) == NULL){{\n'.format(get_db_name())
+  else:
+    code += '  if (mysql_real_connect(conn, "localhost", "root", "", "{}", 0, "{}", 0) == NULL){{\n'.format(get_db_name(), globalv.mysql_socket)
   code += """
     fprintf(stderr, "mysql connect failed\\n");
     exit(1);

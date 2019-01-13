@@ -67,8 +67,8 @@ is_moderated, hotness, description, markeddown_description, story_cache, \
 merged_story_id, unavailable_at, twitter_id, user_is_author])
 
 storys_user = get_new_assoc("stories_user", "one_to_many", user, story, "stories", "user")
-storys_tags = get_new_assoc("stories_tags", "many_to_many", story, tag, "tags", "stories", 2, 0)
-storys_hidden = get_new_assoc('stories_hidden', 'many_to_many', story, user, "hidden_users", "hidden_stories", 10, 0)
+storys_tags = get_new_assoc("taggings", "many_to_many", story, tag, "tags", "stories", 2, 0, "story_id", "tag_id")
+storys_hidden = get_new_assoc('hidden_stories', 'many_to_many', story, user, "hidden_users", "stories", 10, 0, "story_id", "user_id")
 
 # create_table "comments", force: :cascade do |t|
 #     t.datetime "created_at",                                                                    null: false
@@ -144,8 +144,8 @@ hat_id.range = [1, 100]
 message.add_fields([created_at, has_been_read, subject, body, short_id, \
 deleted_by_author, deleted_by_recipient, hat_id])
 
-message_author = get_new_assoc("messages_author", "one_to_many", user, message, "sent_msgs", "author")
-message_recipient = get_new_assoc("messages_recipient", "one_to_many", user, message, "received_msgs", "recipient")
+message_author = get_new_assoc("messages_author", "one_to_many", user, message, "sent_msgs", "author_user")
+message_recipient = get_new_assoc("messages_recipient", "one_to_many", user, message, "received_msgs", "recipient_user")
 
 
 # create_table "tags", force: :cascade do |t|

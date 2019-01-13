@@ -24,11 +24,11 @@ q_mc_3 = AddObject(message, {QueryField('body', table=message):Parameter('new_bo
 QueryField('created_at', table=message):Parameter('new_created_at'), \
 QueryField('short_id', table=message):Parameter('new_short_id'), \
 QueryField('subject', table=message):Parameter('new_subject'),})
-q_mc_4 = ChangeAssociation(QueryField('author', table=message), INSERT, Parameter('message_id'), Parameter('user_id'))
-q_mc_5 = ChangeAssociation(QueryField('recipient', table=message), INSERT, Parameter('message_id'), Parameter('user_id'))
+q_mc_4 = ChangeAssociation(QueryField('author_user', table=message), INSERT, Parameter('message_id'), Parameter('user_id'))
+q_mc_5 = ChangeAssociation(QueryField('recipient_user', table=message), INSERT, Parameter('message_id'), Parameter('user_id'))
 
 q_mc_6 = get_all_records(message)
-q_mc_6.pfilter(BinOp(f('recipient').f('id'), EQ, Parameter('recipient_id')))
+q_mc_6.pfilter(BinOp(f('recipient_user').f('id'), EQ, Parameter('recipient_id')))
 q_mc_6.pfilter(BinOp(f('has_been_read'), EQ, AtomValue(False)))
 q_mc_6.pfilter(BinOp(f('deleted_by_recipient'), EQ, AtomValue(False)))
 q_mc_6.aggr(UnaryExpr(COUNT), 'count')

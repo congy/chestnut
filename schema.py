@@ -336,7 +336,7 @@ class DenormalizedTable(object):
     return CostTableUnit(self)
 
 class Association:
-  def __init__(self, assoc_name, tp, tablea, tableb, lft_field_name, rgt_field_name):
+  def __init__(self, assoc_name, tp, tablea, tableb, lft_field_name, rgt_field_name, assoc_f1, assoc_f2):
     self.assoc_type = tp
     self.lft = tablea
     self.rgt = tableb
@@ -344,6 +344,8 @@ class Association:
     self.rgt_ratio = 0
     self.lft_field_name = lft_field_name
     self.rgt_field_name = rgt_field_name
+    self.assoc_f1 = '{}_id'.format(lft_field_name) if assoc_f1 == "" else assoc_f1
+    self.assoc_f2 = '{}_id'.format(rgt_field_name) if assoc_f2 == "" else assoc_f2
     #optional to many_to_many assoc
     if assoc_name == "":
       self.name = "{}_and_{}".format(tablea.name, tableb.name)
@@ -362,8 +364,8 @@ class Association:
     if self.assoc_type == "many_to_many":
       assoc.lft_ratio = rgt_ratio * self.rgt.sz / self.lft.sz
 
-def get_new_assoc(assoc_name, assoc_type, lft, rgt, lft_name, rgt_name, lft_ratio=0, rgt_ratio=0):
-  assoc = Association(assoc_name, assoc_type, lft, rgt, lft_name, rgt_name)
+def get_new_assoc(assoc_name, assoc_type, lft, rgt, lft_name, rgt_name, lft_ratio=0, rgt_ratio=0, assoc_f1="", assoc_f2=""):
+  assoc = Association(assoc_name, assoc_type, lft, rgt, lft_name, rgt_name, assoc_f1, assoc_f2)
   if lft_ratio > 0:
     assoc.lft_ratio = lft_ratio
   if rgt_ratio > 0:

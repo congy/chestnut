@@ -13,8 +13,8 @@ from lobsters_schema import *
 q_md_1 = get_all_records(message)
 q_md_1.pfilter(BinOp(f('short_id'), EQ, Parameter('msg_short_id')))
 q_md_1.project('*')
-q_md_1.finclude(f('author'))
-q_md_1.finclude(f('recipient'))
+q_md_1.finclude(f('author_user'))
+q_md_1.finclude(f('recipient_user'))
 q_md_1.complete()
 
 q_md_2 = UpdateObject(message, Parameter('message_id'), {f('deleted_by_recipient'):AtomValue(True)})

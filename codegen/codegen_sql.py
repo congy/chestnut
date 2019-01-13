@@ -86,12 +86,12 @@ def sql_for_ds_query(ds, select_by_id=False):
       if get_query_field(f.key).field_name == 'id':
         insert_no_duplicate(tableids, f)
     order_str = ','.join([get_field_with_prefix(f) for f in tableids])
-    s = 'select {} from {} {} {} group by {} order by {}'.format(field_str, to_plural(entry_table), ' '.join(join_strs), \
+    s = 'select {} from {} as {} {} {} group by {} order by {}'.format(field_str, to_plural(entry_table), entry_table, ' '.join(join_strs), \
                     ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '', group_str, order_str)
   else:
     #field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
     field_str = ','.join([get_field_with_prefix(f) for f in fields])
-    s = 'select {} from {} {} {}'.format(field_str, to_plural(entry_table), \
+    s = 'select {} from {} as {} {} {}'.format(field_str, to_plural(entry_table), entry_table, \
                     ' '.join(join_strs), ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
   return clean_sql_query(s), nesting, fields
 
@@ -175,7 +175,8 @@ def sql_for_ds_pred(path, pred, fields, nesting, join_strs, pred_strs):
           new_pred = SetOp(pred.lh.rh, pred.op, UnaryOp(pred.rh))
         joinp = 'LEFT OUTER JOIN'
       outer_pred = get_exists_condition_helper(newpath, get_query_field(pred.lh), 'INNER JOIN', new_join_strs)
-      subq_prefix = 'select 1 from {} '.format(to_plural(get_query_field(pred.lh).field_class.name))
+      inner_table = get_query_field(pred.lh).field_class.name
+      subq_prefix = 'select 1 from {} as {}'.format(to_plural(inner_table), inner_table)
       new_pred_strs.append(outer_pred)
       fork_nesting = nesting.fork()
       next_nesting = find_nesting_by_qf(fork_nesting, pred.lh) #find_nesting_by_qf(fork_nesting, lqf)
@@ -221,23 +222,29 @@ def get_join_condition_helper(path, qf, joinq):
                   joinq, to_plural(qf.field_class.name), assoc_renamed, \
                   get_path_prefix(path, qf.table.name), assoc_renamed, get_reversed_assoc_qf(qf).field_name)
   else:
-    connect_table_name = qf.table.get_assoc_by_name(qf.field_name).name
+    assoc = qf.table.get_assoc_by_name(qf.field_name)
+    connect_table_name = assoc.name
     connect_table_renamed = get_path_prefix(path+[qf], connect_table_name)
-    return '{} {} as {} ON {}.id = {}.{}_id {} {} as {} ON {}.id = {}.{}_id '.format(\
+    lft_field = assoc.assoc_f1 if assoc.lft == qf.table else assoc.assoc_f2
+    rgt_field = assoc.assoc_f2 if assoc.lft == qf.table else assoc.assoc_f1
+    return '{} {} as {} ON {}.id = {}.{} {} {} as {} ON {}.id = {}.{} '.format(\
                   joinq, connect_table_name, connect_table_renamed, \
-                  get_path_prefix(path, qf.table.name), connect_table_renamed, qf.table.name, \
+                  get_path_prefix(path, qf.table.name), connect_table_renamed, lft_field, \
                   joinq, to_plural(qf.field_class.name), get_path_prefix(path+[qf], qf.field_class.name),
-                  get_path_prefix(path+[qf], qf.field_class.name), connect_table_renamed, qf.field_class.name)  
+                  get_path_prefix(path+[qf], qf.field_class.name), connect_table_renamed, rgt_field)  
 
 def get_exists_condition_helper(outer_path, qf, joinq, join_strs):
   outerid = get_path_prefix(outer_path, qf.table.name)+'.id'
   if qf.field_class.has_one_or_many_field(get_reversed_assoc_qf(qf).field_name) == 1:
     return '{} = {}.{}_id'.format(outerid, qf.field_class.name, get_reversed_assoc_qf(qf).field_name)
   else:
-    connect_table_name = qf.table.get_assoc_by_name(qf.field_name).name
-    join_str = '{} {} ON {}.id = {}.{}_id '.format(joinq, connect_table_name, qf.field_class.name, connect_table_name, qf.field_class.name)
+    assoc = qf.table.get_assoc_by_name(qf.field_name)
+    connect_table_name = assoc.name
+    lft_field = assoc.assoc_f1 if assoc.lft == qf.table else assoc.assoc_f2
+    rgt_field = assoc.assoc_f2 if assoc.lft == qf.table else assoc.assoc_f1
+    join_str = '{} {} ON {}.id = {}.{} '.format(joinq, connect_table_name, qf.field_class.name, connect_table_name, rgt_field)
     join_strs.append(join_str)
-    return '{} = {}.{}_id'.format(outerid, connect_table_name, qf.table.name)
+    return '{} = {}.{}'.format(outerid, connect_table_name, lft_field)
 
 def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
   param1 = ', {}* upper_obj'.format(cgen_obj_fulltype(ds.upper)) if ds.upper is not None else ''

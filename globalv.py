@@ -2,6 +2,7 @@ tables = []
 associations = []
 
 assertions = []
+mysql_socket="/home/congy/mysqld/mysqld.sock"
 
 memory_bound = 4294967295
 
