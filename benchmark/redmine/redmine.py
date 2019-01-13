@@ -55,6 +55,8 @@ q_wi_0, q_wi_1, q_wi_2, q_wi_3, q_wi_4]
 
 write_queries = [q_pn_1, q_pn_2, q_pn_3, q_pn_4, q_pn_5, q_pn_6, q_pn_7]
 
+test_schema(tables)
+exit(0)
 
 # globalv.set_use_template()
 # globalv.set_always_nested([QueryField('enabled_modules', table=project), QueryField('status', table=issue), \

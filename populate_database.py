@@ -1,6 +1,7 @@
 import os
 from schema import *
 from constants import *
+import mysql.connector
 
 def sys_cmd(cmd):
   print cmd
@@ -48,11 +49,12 @@ def generate_db_data_files(data_dir, tables, associations):
         print "finish {} lft".format(j)
     fp.close()
 
-def populate_database(data_dir, tables, associations):
-  remove_db()
-  create_db()
-  create_tables(tables, associations)
-  populate_tables(data_dir, tables, associations)
+def populate_database(data_dir, tables, associations, recreate_db=False):
+  if recreate_db:
+    remove_db()
+    create_db()
+    create_tables(tables, associations)
+  populate_tables(data_dir, tables, associations, recreate_db)
 
 def remove_db():
   db_name = get_db_name()
@@ -71,12 +73,12 @@ def create_tables(tables, associations):
       sql_type = get_sql_type(f.tipe)
       ft += "{} DEFAULT NULL".format(sql_type)
       field_list.append(ft)
-    sys_cmd("mysql -u root {} -e \"CREATE TABLE {} ({});\"".format(db_name, t.name, ", ".join(field_list)))
+    sys_cmd("mysql -u root {} -e \"CREATE TABLE {} ({});\"".format(db_name, get_db_table_name(t.name), ", ".join(field_list)))
   
   for a in get_assoc_tables(associations):
     sys_cmd("mysql -u root {} -e \"CREATE TABLE {} (id INTEGER, {}_id INTEGER, {}_id INTEGER);\"".format(db_name, a.name, a.lft.name, a.rgt.name))
 
-def populate_tables(data_dir, tables, associations):
+def populate_tables(data_dir, tables, associations, recreate_db=False):
   db_name = get_db_name()
   fpath = "{}/".format(data_dir)
   for t in tables:
@@ -85,13 +87,17 @@ def populate_tables(data_dir, tables, associations):
     for assoc in t.get_assocs():
       if assoc.rgt == t and assoc.lft.is_temp:
         temp_fields.append('{}_id'.format(assoc.rgt_field_name))
-    field_names = ','.join(filter(lambda x: x != None, [None if f.name in temp_fields else f.name for f in t.get_fields()]))
-    field_names = 'id,{}'.format(field_names)
+    field_names = filter(lambda x: x != None, [None if f.name in temp_fields or f.is_temp else f.name for f in t.get_fields()])
+    field_names = 'id,{}'.format(','.join(field_names))
+    for f in temp_fields:
+      if not recreate_db:
+        sys_cmd("mysql -u root -e \"ALTER TABLE {} ADD COLUMN {} int(11) DEFAULT 0\"".format(to_plural(t.name), f))
     sys_cmd("mysql -u root --local-infile {} -e \"LOAD DATA LOCAL INFILE '{}' INTO TABLE {} FIELDS TERMINATED BY '|' LINES TERMINATED BY '\\n' IGNORE 1 LINES  ({})\"".format(db_name, fname, t.name, field_names))
     #sys_cmd('mysql {} -e "select * from {}" -B > {}/{}.tsv'.format(db_name, t.name, file_dir, t.name)) 
 
     #create index
-    sys_cmd("mysql -u root {} -e \"CREATE INDEX index_{}_id ON {} (id) USING BTREE;\"".format(db_name, t.name, t.name))
+    if recreate_db:
+      sys_cmd("mysql -u root {} -e \"CREATE INDEX index_{}_id ON {} (id) USING BTREE;\"".format(db_name, t.name, t.name))
     
   for a in get_assoc_tables(associations):
     fname = "{}/{}.tsv".format(fpath, a.name)
@@ -101,5 +107,42 @@ def populate_tables(data_dir, tables, associations):
 
     #create index
     #sys_cmd('mysql -u root {} -e "CREATE INDEX index_{}_id ON {} (id) USING BTREE;"'.format(db_name, table_name, table_name))
-    sys_cmd('mysql -u root {} -e "CREATE INDEX index_{}_{}_id ON {} ({}_id) USING BTREE;"'.format(db_name, a.name, a.lft.name, a.name, a.lft.name))
-    sys_cmd('mysql -u root {} -e "CREATE INDEX index_{}_{}_id ON {} ({}_id) USING BTREE;"'.format(db_name, a.name, a.rgt.name, a.name, a.rgt.name))
+    if recreate_db:
+      sys_cmd('mysql -u root {} -e "CREATE INDEX index_{}_{}_id ON {} ({}_id) USING BTREE;"'.format(db_name, a.name, a.lft.name, a.name, a.lft.name))
+      sys_cmd('mysql -u root {} -e "CREATE INDEX index_{}_{}_id ON {} ({}_id) USING BTREE;"'.format(db_name, a.name, a.rgt.name, a.name, a.rgt.name))
+
+
+def test_schema(tables, assertion=False):
+  mysql_tables = []
+  mysql_fields = {}
+  mydb = mysql.connector.connect(host="localhost", user="root", passwd="", database=get_db_name())
+  mycursor = mydb.cursor()
+  mycursor.execute('show tables')
+  myresult = mycursor.fetchall()
+  for t in myresult:
+    mysql_tables.append(str(t[0]))
+    mycursor.execute('describe {}'.format(t[0]))
+    fields = mycursor.fetchall()
+    mysql_fields[t[0]] = [str(f[0]) for f in fields]
+
+  for t in tables:
+    db_table_name = get_db_table_name(t.name)
+    if assertion:
+      assert(db_table_name in mysql_tables, 'table {} not in mysql tables!'.format(db_table_name))
+    else:
+      if db_table_name not in mysql_tables:
+        print 'table {} not in mysql tables!'.format(db_table_name)
+        continue
+    temp_fields = ['id']
+    for assoc in t.get_assocs():
+      if assoc.rgt == t and assoc.lft.is_temp:
+        temp_fields.append('{}_id'.format(assoc.rgt_field_name))
+    field_names = filter(lambda x: x != None, [None if f.name in temp_fields or f.is_temp else f.name for f in t.get_fields()])
+    field_names.append('id')
+    for f in field_names:
+      if assertion:
+        assert(f in mysql_fields[db_table_name], '  field {} not in mysql fields!'.format(f))
+      else:
+        if f not in mysql_fields[db_table_name]:
+          print '  field {} not in mysql fields of table {}!'.format(f, db_table_name)
+  

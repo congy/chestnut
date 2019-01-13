@@ -57,6 +57,8 @@ q_dt_1, \
 q_tc_w1, q_tc_w2, q_tc_w3, \
 q_cc_w1, q_cc_w2]
 
+test_schema(tables)
+exit(0)
 
 #q_ai_1.assigned_param_values = {Parameter('channel_id'):'47', Parameter('oldest'):'183'}
 #q_ai_2.assigned_param_values = {Parameter('channel_id'):'47'}
