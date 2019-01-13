@@ -10,20 +10,20 @@ fake = Faker()
 
 scale=1000
 #scale=10
-issue = Table('issues', scale*2000)
-user = Table('users', scale*200)
-member = Table('members', scale*400)
-project = Table('projects', scale*80)
-enabled_module = Table('enabled_modules', project.sz*6)
-enumeration = Table('enumerations', project.sz*4)
-version = Table('versions', project.sz*2)
+issue = Table('issue', scale*2000)
+user = Table('user', scale*200)
+member = Table('member', scale*400)
+project = Table('project', scale*80)
+enabled_module = Table('enabled_module', project.sz*6)
+enumeration = Table('enumeration', project.sz*4)
+version = Table('version', project.sz*2)
 news = Table('news', project.sz*8)
-board = Table('boards', project.sz*2)
-message = Table('messages', board.sz*2)
+board = Table('board', project.sz*2)
+message = Table('message', board.sz*2)
 
-tracker = Table('trackers', 10)
-role = Table('roles', 20)
-issue_status = Table('issue_statuses', 10)
+tracker = Table('tracker', 10)
+role = Table('role', 20)
+issue_status = Table('issue_status', 10)
 
 
   # create_table "issues", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
@@ -81,7 +81,7 @@ done_ratio, estimated_hours, parent_id, root_id, lft, rgt, is_private, closed_on
 
 project_issue = get_new_assoc("project_to_issue", "one_to_many", project, issue, "issues", "project")
 issue_tracker = get_new_assoc("issue_to_tracker", "one_to_many", tracker, issue, 'issues', 'tracker')
-issue_status_issue = get_new_assoc('issue_to_statuses', 'one_to_many', issue, issue_status, 'status', 'issue')
+issue_status_issue = get_new_assoc('issue_to_statuses', 'one_to_many', issue_status, issue, 'issues', 'status')
 #issue_user = get_new_assoc('issue_user', 'one_to_many', user, issue, 'issues', 'user')
 
   # create_table "trackers", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
@@ -257,7 +257,6 @@ last_login_on = Field('last_login_on', 'date')
 language = Field('language', 'varchar(5)')
 auth_source_id = Field('auth_source_id', 'oid')
 created_on = Field('created_on', 'date')
-updated_on = Field('udpated_on','date')
 utype = Field('type', 'varchar(16)')
 utype.value_with_prob = [('GroupAnonymous',20), ('User',20), ('AnonymousUser',20), ('Other',20), ('Other2',20)]
 identity_url = Field('identity_url', 'varchar(64)')
@@ -268,7 +267,7 @@ salt = Field('salt', 'varchar(64)')
 must_change_passwd = Field('must_change_passwd', 'bool')
 passwd_changed_on = Field('passwd_changed_on', 'date')
 user.add_fields([login, hashed_password, firstname, lastname, admin, status, last_login_on, language, auth_source_id,\
-created_on, updated_on, utype, identity_url, mail_notification, salt, must_change_passwd, passwd_changed_on])
+created_on, utype, identity_url, mail_notification, salt, must_change_passwd, passwd_changed_on])
 
   # create_table "issue_statuses", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.string "name", limit: 30, default: "", null: false

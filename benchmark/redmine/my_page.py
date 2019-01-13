@@ -20,7 +20,7 @@ q_mp_2 = get_all_records(issue)
 q_mp_2.pfilter(BinOp(f('project').f('status'), NEQ, AtomValue(9)))
 q_mp_2.pfilter(SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, AtomValue('issue_tracking'))))
 q_mp_2.pfilter(ConnectOp(BinOp(f('assigned_to_id'), EQ, Parameter('assigned_to')), AND, 
-SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False)))))
+BinOp(f('status').f('is_closed'), EQ, AtomValue(False))))
 q_mp_2.aggr(UnaryExpr(COUNT), 'count_issue')
 q_mp_2.project('*')
 q_mp_2.complete()
@@ -29,7 +29,7 @@ q_mp_3 = get_all_records(issue)
 q_mp_3.pfilter(BinOp(f('project').f('status'), NEQ, AtomValue(9)))
 q_mp_3.pfilter(SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, AtomValue('issue_tracking'))))
 q_mp_3.pfilter(ConnectOp(BinOp(f('author_id'), EQ, Parameter('author_id')), AND, 
-SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False)))))
+BinOp(f('status').f('is_closed'), EQ, AtomValue(False))))
 q_mp_3.aggr(UnaryExpr(COUNT), 'count')
 
 # q_mp_2 = get_all_records(project)

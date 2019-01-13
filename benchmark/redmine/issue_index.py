@@ -21,7 +21,7 @@ from redmine_schema import *
 q_ii_1 = get_all_records(issue)
 q_ii_1.pfilter(BinOp(f('project').f('status'), NEQ, AtomValue(9)))
 q_ii_1.pfilter(SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, AtomValue('issue_tracking'))))
-q_ii_1.pfilter(SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(True))))
+q_ii_1.pfilter(BinOp(f('status').f('is_closed'), EQ, AtomValue(True)))
 q_ii_1.aggr(UnaryExpr(COUNT), 'count')
 q_ii_1.orderby([f('id')])
 q_ii_1.project('*')

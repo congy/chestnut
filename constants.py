@@ -25,6 +25,25 @@ def get_data_file_dir():
   global _data_file_dir
   return _data_file_dir
 
+words_map = {'status':'statuses', 'news':'news'}
+def to_plural(word):
+  global words_map
+  for k,v in words_map.items():
+    if word.endswith(k):
+      return word.replace(k, v)
+  if word[-2:] in ['ss', 'sh', 'ch'] or word[-1] in ['x', 'z', 'o']:
+    return word+'es'
+  if word[-2:] in ['fe']:
+    return word[:-2]+'ves'
+  if word[-1] in ['f']:
+    return word[:-1]+'ves'
+  if word[-1] in ['y']:
+    return word[:-1]+'ies'
+  return word+'s'
+  
+def get_db_table_name(name):
+  return to_plural(name)
+
 
 MAXINT = 23451 #4294967295
 INVALID_VALUE = 4294967295+1

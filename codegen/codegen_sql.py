@@ -86,12 +86,12 @@ def sql_for_ds_query(ds, select_by_id=False):
       if get_query_field(f.key).field_name == 'id':
         insert_no_duplicate(tableids, f)
     order_str = ','.join([get_field_with_prefix(f) for f in tableids])
-    s = 'select {} from {} {} {} group by {} order by {}'.format(field_str, entry_table, ' '.join(join_strs), \
+    s = 'select {} from {} {} {} group by {} order by {}'.format(field_str, to_plural(entry_table), ' '.join(join_strs), \
                     ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '', group_str, order_str)
   else:
     #field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
     field_str = ','.join([get_field_with_prefix(f) for f in fields])
-    s = 'select {} from {} {} {}'.format(field_str, entry_table, \
+    s = 'select {} from {} {} {}'.format(field_str, to_plural(entry_table), \
                     ' '.join(join_strs), ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
   return clean_sql_query(s), nesting, fields
 
@@ -175,7 +175,7 @@ def sql_for_ds_pred(path, pred, fields, nesting, join_strs, pred_strs):
           new_pred = SetOp(pred.lh.rh, pred.op, UnaryOp(pred.rh))
         joinp = 'LEFT OUTER JOIN'
       outer_pred = get_exists_condition_helper(newpath, get_query_field(pred.lh), 'INNER JOIN', new_join_strs)
-      subq_prefix = 'select 1 from {} '.format(get_query_field(pred.lh).field_class.name)
+      subq_prefix = 'select 1 from {} '.format(to_plural(get_query_field(pred.lh).field_class.name))
       new_pred_strs.append(outer_pred)
       fork_nesting = nesting.fork()
       next_nesting = find_nesting_by_qf(fork_nesting, pred.lh) #find_nesting_by_qf(fork_nesting, lqf)
@@ -214,11 +214,11 @@ def get_join_condition_helper(path, qf, joinq):
   assoc_renamed = get_path_prefix(path+[qf], qf.field_class.name)
   if qf.table.has_one_or_many_field(qf.field_name) == 1:
     return '{} {} as {} ON {}.{}_id = {}.id '.format(\
-                  joinq, qf.field_class.name, assoc_renamed, \
+                  joinq, to_plural(qf.field_class.name), assoc_renamed, \
                   get_path_prefix(path, qf.table.name), qf.field_name, assoc_renamed)
   elif qf.field_class.has_one_or_many_field(get_reversed_assoc_qf(qf).field_name) == 1:
     return '{} {} as {} ON {}.id = {}.{}_id '.format(\
-                  joinq, qf.field_class.name, assoc_renamed, \
+                  joinq, to_plural(qf.field_class.name), assoc_renamed, \
                   get_path_prefix(path, qf.table.name), assoc_renamed, get_reversed_assoc_qf(qf).field_name)
   else:
     connect_table_name = qf.table.get_assoc_by_name(qf.field_name).name
@@ -226,7 +226,7 @@ def get_join_condition_helper(path, qf, joinq):
     return '{} {} as {} ON {}.id = {}.{}_id {} {} as {} ON {}.id = {}.{}_id '.format(\
                   joinq, connect_table_name, connect_table_renamed, \
                   get_path_prefix(path, qf.table.name), connect_table_renamed, qf.table.name, \
-                  joinq, qf.field_class.name, get_path_prefix(path+[qf], qf.field_class.name),
+                  joinq, to_plural(qf.field_class.name), get_path_prefix(path+[qf], qf.field_class.name),
                   get_path_prefix(path+[qf], qf.field_class.name), connect_table_renamed, qf.field_class.name)  
 
 def get_exists_condition_helper(outer_path, qf, joinq, join_strs):

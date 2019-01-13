@@ -69,6 +69,8 @@ q_sd_2, \
 q_su_2, \
 q_sv_2, q_sv_3, q_sv_4, q_sv_5, q_sv_6]
 
+test_schema(tables)
+exit(0)
 
 # globalv.set_use_template()
 # globalv.set_always_nested([QueryField('hidden_users', table=story), QueryField('user', table=vote)])
