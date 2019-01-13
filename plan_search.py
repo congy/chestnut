@@ -66,10 +66,16 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       if is_assoc_field(f):
         aggr_assoc_fields.append(f)
 
-  all_steps = helper_get_idx_step_by_pred(thread_ctx, queried_table, query.pred, query.order, idx_placeholder, dsmng, upper_assoc_qf)
-  sortedN = len(all_steps)
-  if query.order:
+  if query.order and (not any([o.field_class.is_temp for o in query.order])):
+    all_steps = helper_get_idx_step_by_pred(thread_ctx, queried_table, query.pred, query.order, idx_placeholder, dsmng, upper_assoc_qf)
+    sortedN = len(all_steps)
     all_steps += helper_get_idx_step_by_pred(thread_ctx, queried_table, query.pred, None, idx_placeholder, dsmng, upper_assoc_qf)
+  else:
+    all_steps = helper_get_idx_step_by_pred(thread_ctx, queried_table, query.pred, None, idx_placeholder, dsmng, upper_assoc_qf)
+    if query.order:
+      sortedN = 0
+    else:
+      sortedN = len(all_steps)
   total_comb_length = len(all_steps)
 
   for x,op_rest_pairs in enumerate(all_steps):
@@ -112,7 +118,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
         plan_tree.assoc_pred_steps += assoc_steps
         plan_tree.setv_steps += set_steps
         plan_tree.index_step = idx_step
-        if x > sortedN:
+        if x >= sortedN:
           plan_tree.sort_step = ExecSortStep(query.return_var, query.order)
         for i2,next_step in enumerate(next_level_steps):
           plan_tree.next_level_pred[nextlevel_fields[i2]] = next_step

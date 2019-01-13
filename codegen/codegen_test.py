@@ -203,6 +203,7 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
   for i in range(0, len(plans)):
     print 'generate file for query {} plan {}'.format(i, plan_ids[i])
     queries[i].id = i
+    print plans[i]
     plans[i].copy_ds_id(None, dsmeta)
     header_, cpp_ = cgen_for_read_query(i, queries[i], plans[i], plan_ds[i], plan_ids[i])
     header += (header_ + '\n')

@@ -8,8 +8,8 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-#scale=1000
-scale=10
+scale=1000
+#scale=10
 issue = Table('issue', scale*2000)
 user = Table('user', scale*200)
 member = Table('member', scale*400)

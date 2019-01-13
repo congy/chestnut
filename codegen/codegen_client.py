@@ -94,7 +94,6 @@ def cgen_ruby_client_print_helper(query, element_var, level=0):
   return s
    
 def cgen_nonproto_query_result(query, qid):
-  print "projections1 = {}".format(','.join([str(f) for f in query.projections]))
   s = 'struct Query{}Result {{\n'.format(qid)
   nexts, next_uppers = cgen_nonproto_query_result_element(query, upper_query=None, repeated=True)
   s += insert_indent(nexts)

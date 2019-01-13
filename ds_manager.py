@@ -31,7 +31,11 @@ class DSManager(object):
     for i,ds_ in enumerate(self.data_structures):
       if ds == ds_:
         self.data_structures.pop(i)
-        return
+        return  
+  def find_ds(self, ds_):
+    for ds in self.data_structures:
+      if ds.eq_without_memobj(ds_):
+        return ds
   def find_primary_array(self, table, create_new=False):
     # return the vertically partitioned primary array
     # or return the table arry if not partitioned

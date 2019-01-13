@@ -41,7 +41,7 @@ p5 = BinOp(f('rgt'), LE, Parameter('pid3')) #project
 pred_id = ConnectOp(ConnectOp(p1, AND, p2), AND, p3)
 pred_lft_rgt = ConnectOp(ConnectOp(p1, AND, p2), AND, ConnectOp(p4, AND, p5))
 q_ps_2.finclude(f('projects'), pfilter=ConnectOp(pred_id, OR, pred_lft_rgt))
-q_ps_2.finclude(f('issues'), pfilter=SetOp(f('status'), EXIST, BinOp(f('is_closed'), EQ, AtomValue(False))))
+q_ps_2.finclude(f('issues'), pfilter=BinOp(f('status').f('is_closed'), EQ, AtomValue(False)))
 q_ps_2.get_include(f('issues')).aggr(UnaryExpr(COUNT), 'counti')
 q_ps_2.get_include(f('projects')).aggr(UnaryExpr(COUNT), 'countp')
 q_ps_2.complete()
