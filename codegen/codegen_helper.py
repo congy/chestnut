@@ -414,7 +414,7 @@ def get_param_str_for_main(param_values, params):
   param_str = []
   for p in params:
     if p.tipe == 'date':
-      param_str.append('time_to_uint(std::string("{}"))'.format(param_values[p]))
+      param_str.append('time_to_uint("{}")'.format(param_values[p]))
     elif is_string_type(p.tipe):
       param_str.append('\"{}\"'.format(param_values[p]))
     else:

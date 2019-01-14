@@ -27,11 +27,11 @@ def get_path_prefix(path, name):
   fullname = [x.table.name for x in fullpath]
   fullname.append(name)
   return '_'.join(fullname)
-def get_field_with_prefix(f):
+def get_field_with_prefix(f, connect='.'):
   path = [f1 for f1 in f.path]
   if isinstance(f.key, AssocOp):
     path += get_fields_from_assocop(f.key)[:-1]
-  return get_path_prefix(path, get_query_field(f.key).table.name) + '.' + get_query_field(f.key).field_name
+  return get_path_prefix(path, get_query_field(f.key).table.name) + connect + get_query_field(f.key).field_name
 
 def sql_for_ds_query(ds, select_by_id=False):
   table = ds.table
@@ -79,13 +79,13 @@ def sql_for_ds_query(ds, select_by_id=False):
   if pred:
     sql_for_ds_pred([], pred, fields, nesting, join_strs, pred_strs)
     #field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
-    field_str = ','.join([get_field_with_prefix(f) for f in fields])
-    group_str = ','.join([get_field_with_prefix(f) for f in fields])
+    field_str = ','.join(['{} as {}'.format(get_field_with_prefix(f), get_field_with_prefix(f,'_')) for f in fields])
+    group_str = ','.join([get_field_with_prefix(f, '_') for f in fields])
     tableids = []
     for f in fields:
       if get_query_field(f.key).field_name == 'id':
         insert_no_duplicate(tableids, f)
-    order_str = ','.join([get_field_with_prefix(f) for f in tableids])
+    order_str = ','.join([get_field_with_prefix(f, '_') for f in tableids])
     s = 'select {} from {} as {} {} {} group by {} order by {}'.format(field_str, to_plural(entry_table), entry_table, ' '.join(join_strs), \
                     ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '', group_str, order_str)
   else:
@@ -93,6 +93,8 @@ def sql_for_ds_query(ds, select_by_id=False):
     field_str = ','.join([get_field_with_prefix(f) for f in fields])
     s = 'select {} from {} as {} {} {}'.format(field_str, to_plural(entry_table), entry_table, \
                     ' '.join(join_strs), ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
+
+  print "ds = {}, fields = {}".format(ds, ','.join(['{}({})'.format(str(f), f.__class__.__name__) for f in fields]))
   return clean_sql_query(s), nesting, fields
 
 def find_nesting_until_match(nesting, table):
@@ -125,10 +127,10 @@ def sql_get_element_str(path, pred, fields, nesting, join_strs):
       insert_no_duplicate(join_strs, get_join_condition(path, pred, 'INNER JOIN'))
       return ''
   elif isinstance(pred, AssocOp):
-    insert_no_duplicate(join_strs, get_join_condition(path, pred, 'INNER JOIN'))
-    f = get_query_field(pred)
+    insert_no_duplicate(join_strs, get_join_condition(path, pred.lh, 'INNER JOIN'))
+    #f = get_query_field(pred)
     next_nesting = find_nesting_by_qf(nesting, pred.lh)
-    return sql_get_element_str(path+[pred.lh], f, fields, next_nesting, join_strs)
+    return sql_get_element_str(path+[pred.lh], pred.rh, fields, next_nesting, join_strs)
   elif isinstance(pred, MultiParam):
     return '({})'.format(','.join([sql_get_element_str(path, p, fields, nesting, join_strs) for p in pred.params]))
   elif isinstance(pred, AtomValue):
@@ -280,7 +282,7 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
   ds_name = ds.get_ds_name()
   if ds.value.is_main_ptr():
     dependent_ds = ds.value.value
-    id_pos = helper_field_pos_in_row(fields, QueryField('id', ds.table))
+    id_pos = helper_field_pos_in_row(fields, QueryField('id', get_main_table(ds.table)))
     s += '    size_t* pos = {}.find_by_key(str_to_uint(row[{}]));\n'.format(cgen_getpointer_helperds(dependent_ds), id_pos)
     s += '    ItemPointer ipos(INVALID_POS);\n'
     s += '    if (pos != nullptr) ipos.pos = *pos;\n'
@@ -306,6 +308,8 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
   s += insert_code
   s += '    row = mysql_fetch_row(result);\n'
   s += '  }\n'
+  s += '  printf("finish initialize ds {}\\n");\n'.format(ds.id)
+  s += '  mysql_free_result(result);\n'
   s += '}\n'
   return s
 

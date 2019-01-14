@@ -49,10 +49,6 @@ inline uint32_t str_to_int(const char* s){
     }
 }
 
-inline uint32_t time_to_uint(const string& s){
-    if (s.compare(null_str) == 0) return 1;
-    return time_to_uint(s.c_str());
-}
 
 inline uint32_t time_to_uint(const char* s1){
     if (s1) {
@@ -73,6 +69,11 @@ inline uint32_t time_to_uint(const char* s1){
     } else {
       return 1;
     }
+}
+
+inline uint32_t time_to_uint(const string& s){
+    if (s.compare(null_str) == 0) return 1;
+    return time_to_uint(s.c_str());
 }
 
 inline float str_to_float(const string& s){

@@ -225,12 +225,31 @@ class KeyPath(object):
   def __init__(self, key, path=[]):
     self.path = path
     self.key = key
-    self.hashstr = '-'.join([str(x) for x in self.path])+'-'+str(self.key)
+    self.hashstr = ""
+    self.compute_hash()
   def __eq__(self, other):
-    return len(self.path) == len(other.path) and all([self.path[i]==other.path[i] for i in range(0, len(self.path))]) and self.key == other.key
+    #return len(self.path) == len(other.path) and all([self.path[i]==other.path[i] for i in range(0, len(self.path))]) and self.key == other.key
+    return self.hashstr == other.hashstr
   def __str__(self):
     return self.hashstr
+  def compute_hash(self):
+    path = []
+    for p in self.path:
+      if isinstance(p, AssocOp):
+        path += get_fields_from_assocop(p)
+      else:
+        path.append(p)
+    if isinstance(self.key, AssocOp):
+      path = path + get_fields_from_assocop(self.key)[:-1]
+      key = get_query_field(self.key)
+    else:
+      key = self.key
+    for p in path:
+      assert(isinstance(p, QueryField))
+    #self.hashstr = '-'.join([str(x) for x in self.path])+'-'+str(self.key)
+    self.hashstr = '-'.join([str(x) for x in path])+'-'+str(key)
   def __hash__(self):
+    self.compute_hash()
     return hash(self.hashstr)
   def get_query_field(self):
     return get_query_field(self.key)

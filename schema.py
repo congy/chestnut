@@ -34,7 +34,7 @@ class Field(object):
     if is_varchar_type(self.tipe):
       return get_varchar_length(self.tipe) / 4 if get_varchar_length(self.tipe) > 4 else 1
     elif is_string_type(self.tipe):
-      return 256
+      return 32
     else:
       return type_size[self.tipe]
   def get_min_value(self, for_z3=False):
