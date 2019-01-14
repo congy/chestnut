@@ -89,8 +89,8 @@ def compatible_ds_pairs(ds1, step, ds2, thread_ctx):
     return None
   if not ds1.table == ds2.table:
     return None
-  if not ds1.value.eq_without_memobj(ds2.value):
-    return None
+  # if not ds1.value.eq_without_memobj(ds2.value):
+  #   return None
   if not set_include(ds2.key_fields(), ds1.key_fields()):
     return None
   if ds1 == ds2:
