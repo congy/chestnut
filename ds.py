@@ -24,6 +24,11 @@ class IndexParam(object):
     new_i.fields = [i for i in self.fields]
     new_i.params = [i for i in self.params]
     return new_i
+  def find_param_by_field(self, f):
+    for i in range(0, len(self.fields)):
+      if self.fields[i] == f:
+        return self.params[i]
+    assert(False)
   def merge(self, other):
     for i,f in enumerate(other.fields):
       if not any([f1==f for f1 in self.fields]):
