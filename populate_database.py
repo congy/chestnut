@@ -83,7 +83,7 @@ def create_tables(tables, associations, recreate):
       for assoc in t.get_assocs():
         if assoc.rgt == t and assoc.lft.is_temp:
           f = '{}_id'.format(assoc.rgt_field_name)
-          sys_cmd("mysql -u root -e \"ALTER TABLE {} ADD COLUMN {} int(11) DEFAULT 0\"".format(to_plural(t.name), f))
+          sys_cmd("mysql -u root {} -e \"ALTER TABLE {} ADD COLUMN {} int(11) DEFAULT 0\"".format(db_name, to_plural(t.name), f))
   
   if recreate:
     for a in get_assoc_tables(associations):
@@ -100,6 +100,7 @@ def populate_tables(data_dir, tables, associations, recreate_db=False):
         temp_fields.append('{}_id'.format(assoc.rgt_field_name))
     field_names = filter(lambda x: x != None, [None if f.name in temp_fields or f.is_temp else f.name for f in t.get_fields()])
     field_names = 'id,{}'.format(','.join(field_names))
+    sys_cmd("mysql -u root {} -e \"delete from {}\"".format(db_name, to_plural(t.name)))
     sys_cmd("mysql -u root --local-infile {} -e \"LOAD DATA LOCAL INFILE '{}' INTO TABLE {} FIELDS TERMINATED BY '|' LINES TERMINATED BY '\\n' IGNORE 1 LINES  ({})\"".format(db_name, fname, to_plural(t.name), field_names))
     #sys_cmd('mysql {} -e "select * from {}" -B > {}/{}.tsv'.format(db_name, t.name, file_dir, t.name)) 
 
@@ -110,6 +111,7 @@ def populate_tables(data_dir, tables, associations, recreate_db=False):
   for a in get_assoc_tables(associations):
     fname = "{}/{}.tsv".format(fpath, a.name)
     field_names = ','.join(['id', a.assoc_f1, a.assoc_f2])
+    sys_cmd("mysql -u root {} -e \"delete from {}\"".format(db_name, a.name))
     sys_cmd("mysql -u root --local-infile {} -e \"LOAD DATA LOCAL INFILE '{}' INTO TABLE {} FIELDS TERMINATED BY '|' LINES TERMINATED BY '\\n' IGNORE 1 LINES ({})\"".format(db_name, fname, a.name, field_names))
     #sys_cmd('mysql {} -e "select * from {}" -B > {}/{}.tsv'.format(db_name, table_name, file_dir, a.name))
 

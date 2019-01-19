@@ -10,7 +10,7 @@ from redmine_schema import *
   # [1m[36mNews Load (56183.2ms)[0m  [1m[34mSELECT  `news`.* FROM `news` INNER JOIN `projects` ON `projects`.`id` = `news`.`project_id` WHERE (projects.status <> 9 AND EXISTS (SELECT 1 AS one FROM enabled_modules em WHERE em.project_id = projects.id AND em.name='news')) ORDER BY news.created_on DESC LIMIT 5[0m
 
 q_wi_0 = get_all_records(user)
-q_wi_0.pfilter(BinOp(f('type'), EQ, Parameter('GroupAnonymous')))
+q_wi_0.pfilter(BinOp(f('type'), EQ, AtomValue('GroupAnonymous')))
 q_wi_0.project([f('id')])
 q_wi_0.complete()
 

@@ -40,8 +40,8 @@ def sql_for_ds_query(ds, select_by_id=False):
     upper_table = get_main_table(table.upper_table)
     upper_qf = get_reversed_assoc_qf(get_qf_from_nested_t(table))
     join_strs.append(get_join_condition([], upper_qf, 'INNER JOIN'))
-    #pred_strs = ['{}.id = %u'.format(get_path_prefix([upper_qf], upper_qf.field_class.name))]
-    pred_strs = ['{}.id = {}'.format(get_path_prefix([upper_qf], upper_qf.field_class.name), random.randint(1, upper_table.sz-2))]
+    pred_strs = ['{}.id = %u'.format(get_path_prefix([upper_qf], upper_qf.field_class.name))]
+    #pred_strs = ['{}.id = {}'.format(get_path_prefix([upper_qf], upper_qf.field_class.name), random.randint(1, upper_table.sz-2))]
   else:
     pred_strs = []
   entry_table = get_main_table(table).name
@@ -79,10 +79,17 @@ def sql_for_ds_query(ds, select_by_id=False):
   if pred:
     sql_for_ds_pred([], pred, fields, nesting, join_strs, pred_strs)
     #field_str = ','.join(['{}.{} as {}_{}'.format(f.table.name, f.field_name, f.table.name, f.field_name) for f in fields])
-    field_str = ','.join(['{} as {}'.format(get_field_with_prefix(f), get_field_with_prefix(f,'_')) for f in fields])
-    group_str = ','.join([get_field_with_prefix(f, '_') for f in fields])
-    tableids = []
+    renamed = []
+    filtered_fields = []
     for f in fields:
+      rename = get_field_with_prefix(f,'_')
+      if rename not in renamed:
+        renamed.append(rename)
+        filtered_fields.append(f)
+    field_str = ','.join(['{} as {}'.format(get_field_with_prefix(f), get_field_with_prefix(f,'_')) for f in filtered_fields])
+    group_str = ','.join([get_field_with_prefix(f, '_') for f in filtered_fields])
+    tableids = []
+    for f in filtered_fields:
       if get_query_field(f.key).field_name == 'id':
         insert_no_duplicate(tableids, f)
     order_str = ','.join([get_field_with_prefix(f, '_') for f in tableids])
@@ -248,8 +255,13 @@ def get_exists_condition_helper(outer_path, qf, joinq, join_strs):
     join_strs.append(join_str)
     return '{} = {}.{}'.format(outerid, connect_table_name, lft_field)
 
-def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
-  param1 = ', {}* upper_obj'.format(cgen_obj_fulltype(ds.upper)) if ds.upper is not None else ''
+def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None, select_by_id=False):
+  if ds.upper:
+    param1 = ', {}* upper_obj'.format(cgen_obj_fulltype(ds.upper)) 
+  elif select_by_id:
+    param1 = ', size_t oid'
+  else:
+    param1 = ''
   s = 'inline void init_ds_{}_from_sql(MYSQL* conn{}) {{\n'.format(ds.id, param1)
   ds_name = ds.get_ds_name()
   maint = ds.table.get_main_table() if isinstance(ds.table, DenormalizedTable) else get_main_table(ds.table)
@@ -262,6 +274,10 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
   if upper_type:
     s += '  char qs[2000];\n'
     s += '  sprintf(qs, \"{}\", upper_obj->{});\n'.format(query_str, cgen_fname(QueryField('id', get_main_table(upper_type))))
+    s += '  std::string query_str(qs);\n'
+  elif select_by_id:
+    s += '  char qs[2000];\n'
+    s += '  sprintf(qs, \"{}\", oid);\n'.format(query_str)
     s += '  std::string query_str(qs);\n'
   else:
     s += '  std::string query_str("{}");\n'.format(query_str)
@@ -308,7 +324,6 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None):
   s += insert_code
   s += '    row = mysql_fetch_row(result);\n'
   s += '  }\n'
-  s += '  printf("finish initialize ds {}\\n");\n'.format(ds.id)
   s += '  mysql_free_result(result);\n'
   s += '}\n'
   return s
