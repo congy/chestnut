@@ -79,10 +79,12 @@ def collect_structures_helper_index(ds, newds, begin_ds_id, topds, upperds):
   return collect_structures_helper_memobj(ds.value.get_object(), newds.value.get_object(), begin_ds_id, topds, ds)
 
 compatible_ds_list = []
+not_compatible_ds_list = []
 # check ds1 can be replaced with ds2
 # if yes, return (newop, newparams)
 def compatible_ds_pairs(ds1, step, ds2, thread_ctx):
   global compatible_ds_list
+  global not_compatible_ds_list
   if len(step.params) > 1:
     return None
   if isinstance(ds1, ObjBasicArray) or isinstance(ds2, ObjBasicArray):
@@ -93,7 +95,7 @@ def compatible_ds_pairs(ds1, step, ds2, thread_ctx):
   #   return None
   if not set_include(ds2.key_fields(), ds1.key_fields()):
     return None
-  if ds1 == ds2:
+  if ds1.condition.idx_pred_eq(ds2.condition):
     return None
   ds1_param = step.params[0]
   if len(ds2.key_fields()) > len(ds1.key_fields()):
@@ -113,14 +115,19 @@ def compatible_ds_pairs(ds1, step, ds2, thread_ctx):
     q2_op = step.op
   if '{}-{}'.format(ds1.id, ds2.id) in compatible_ds_list:
     r = True
+  if '{}-{}'.format(ds1.id, ds2.id) in not_compatible_ds_list:
+    return None
   else:
     symbolic_ds1 = SymbolicIndex(ds1, None, thread_ctx)
     symbolic_result1 = symbolic_ds1.get_symbolic_tuple_with_cond(step.op, step.params)[0]
     symbolic_ds2 = SymbolicIndex(ds2, None, thread_ctx)
+    #print 'ds2 = {}, op = {}, param = {}'.format(ds2.__str__(short=True), q2_op, q2_params)
     symbolic_result2 = symbolic_ds2.get_symbolic_tuple_with_cond(q2_op, q2_params)[0]
     r = check_dsop_equiv(thread_ctx, ds1.table, symbolic_result1, symbolic_result2)
     if r:
       compatible_ds_list.append('{}-{}'.format(ds1.id, ds2.id))
+    else:
+      not_compatible_ds_list.append('{}-{}'.format(ds1.id, ds2.id))
   #print 'compare {} and {}'.format(ds1, ds2)
   if r:
     news = step.fork()
@@ -194,6 +201,7 @@ def get_dsmeta(read_queries):
   for qi, query in enumerate(read_queries):
     create_param_map_for_query(thread_ctx, query)
     nesting_plans = rqmanagers[qi].plans
+    total_new_plans = 0
     for i,plan_for_one_nesting in enumerate(nesting_plans):
       dsmng = plan_for_one_nesting.nesting
       add_plans = []
@@ -206,8 +214,10 @@ def get_dsmeta(read_queries):
           begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
           add_plans.append(newplan)
           add_dsmngers.append(new_dsmnger)
-      rqmanagers[qi].plans[i].plans.append(add_plans)
-      rqmanagers[qi].plans[i].dsmanagers.append(add_dsmngers)
+      total_new_plans += len(add_plans)
+      rqmanagers[qi].plans[i].plans += add_plans
+      rqmanagers[qi].plans[i].dsmanagers += add_dsmngers
+    print "finish find compatible ds for query {}, total new plan len = {}".format(qi, total_new_plans)
           
   return rqmanagers, dsmeta
 

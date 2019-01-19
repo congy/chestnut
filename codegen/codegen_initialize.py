@@ -83,22 +83,33 @@ def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
     print 'ds = {}'.format(ds)
     query_str, nesting, fields = sql_for_ds_query(ds)
     header += '//ds {}: {}\n'.format(ds.id, ds.__str__(True))
-    header += cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type)
+    select_by_id = to_real_value(ds.compute_single_size()) > 100000
+    header += cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type, select_by_id)
   
   s = ''
   if upper_type is None:
     # reorganize ds and generate code to get pointer
     pointed = {}
     for ds in dslst:
+      ds_sz = to_real_value(ds.compute_single_size())
+      select_by_id = ds_sz > 100000
       if not ds.value.is_main_ptr():
-        s += 'init_ds_{}_from_sql(conn);\n'.format(ds.id)
+        if select_by_id:
+          s += 'for (size_t i=0; i<{}; i++)\n'.format(int(ds_sz))
+        s += 'init_ds_{}_from_sql(conn{});\n'.format(ds.id, ', i' if select_by_id else '')
     for ds in dslst:
+      ds_sz = to_real_value(ds.compute_single_size())
+      select_by_id = ds_sz > 100000
       if ds.value.is_main_ptr():
+        if select_by_id:
+          s += 'for (size_t i=0; i<{}; i++)\n'.format(int(ds_sz))
         s += 'init_ds_{}_from_sql(conn);\n'.format(ds.id)
     s += 'oid_t obj_pos = 0;\n'
   else:
     s += 'init_ds_{}_from_sql(conn, &{});\n'.format(ds.id, upper_v)
 
+  if not isinstance(ds.table, NestedTable):
+    s += '  printf("finish initialize ds {}\\n");\n'.format(ds.id)
   for ds in dslst:
     if ds.value.is_object() and len(ds.value.get_object().nested_objects) > 0:
       array_ele = cgen_cxxvar(ds.table)
@@ -112,6 +123,8 @@ def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
       header += next_header
       s += insert_indent(next_cpp)
       s += get_loop_define(ds, is_begin=False, is_range=True)
+      if not isinstance(ds.table, NestedTable):
+        s += '  printf("finish initialize ds\'s object {}\\n");\n'.format(ds.id)
   cpp += s
   return header, cpp
 
