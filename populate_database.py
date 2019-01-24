@@ -55,6 +55,38 @@ def populate_database(data_dir, tables, associations, recreate=False):
   create_tables(tables, associations, recreate)
   populate_tables(data_dir, tables, associations, recreate)
 
+def create_psql_tables_script(data_dir, tables, associations, indexes={}):
+  s = ''
+  for t in tables:
+    temp_fields = ['id']
+    for assoc in t.get_assocs():
+      if assoc.rgt == t and assoc.lft.is_temp:
+        temp_fields.append('{}_id'.format(assoc.rgt_field_name))
+    fields = filter(lambda x: x != None, [None if f.name in temp_fields or f.is_temp else f for f in t.get_fields()])
+    fields.insert(0, t.get_field_by_name('id'))
+    table_name = to_plural(t.name)
+    s += 'DROP TABLE {};\n'.format(table_name)
+    s += 'CREATE TABLE {} (\n'.format(table_name)
+    s += ',\n'.join(['  {} {}'.format(f.name, get_psql_type(f.tipe)) for f in fields])
+    s += ');\n'
+    s += "COPY {} FROM '{}/{}.tsv' DELIMITER '|' CSV HEADER;\n\n".format(table_name, data_dir, t.name)
+
+  for a in get_assoc_tables(associations):
+    field_names = ['id', a.assoc_f1, a.assoc_f2]
+    table_name = a.name
+    s += 'DROP TABLE {};\n'.format(table_name)
+    s += 'CREATE TABLE {} (\n'.format(table_name)
+    s += ',\n'.join([' {} INTEGER NOT NULL'.format(f) for f in field_names])
+    s += ');\n'
+    s += "COPY {} FROM '{}/{}.tsv' DELIMITER '|' CSV HEADER;\n\n".format(table_name, data_dir, a.name)
+
+  for k,v in indexes:
+    for idx_fields in v:
+      table_name = to_plural(k.name) if isinstance(k, Table) else k.name
+      index_name = 'idx_on_{}_{}'.format(table_name, '_'.join(idx_fields))
+      s += 'CREATE INDEX {} ON {} ({});\n'.format(index_name, table_name, ','.join(idx_fields))
+  return s
+
 def remove_db(recreate):
   if recreate == False:
     return
