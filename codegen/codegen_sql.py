@@ -325,6 +325,9 @@ def cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type=None, selec
   s += '    row = mysql_fetch_row(result);\n'
   s += '  }\n'
   s += '  mysql_free_result(result);\n'
+  if upper_type is None and select_by_id:
+    ds_sz_100 = int(ds.table.sz / 100)
+    s += '  if(oid%{}==0) printf("----ds {} finish %u\\n", oid/{});\n'.format(ds_sz_100, ds.id, ds_sz_100)
   s += '}\n'
   return s
 

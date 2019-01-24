@@ -65,7 +65,7 @@ def cgen_read_data_general(tables, associations, dsmeta):
 
   next_header, next_cpp = cgen_init_ds_lst(dsmeta.data_structures)
   header += next_header
-  code += insert_indent(next_cpp)
+  code += ('  size_t cnt;\n' + insert_indent(next_cpp))
   
   code += "  print_time_diff(msg);\n"
   for ds in dsmeta.data_structures:
@@ -81,7 +81,7 @@ def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
   # s = 'inline void init_ds_from_sql(MYSQL* conn{}{}) {{\n'.format(param1, param2)
   for ds in dslst:
     print 'ds = {}'.format(ds)
-    select_by_id = to_real_value(ds.compute_single_size()) > 100000
+    select_by_id = (not isinstance(ds.table, NestedTable)) and to_real_value(ds.table.sz) > 100000
     query_str, nesting, fields = sql_for_ds_query(ds, select_by_id)
     header += '//ds {}: {}\n'.format(ds.id, ds.__str__(True))
     header += cgen_init_ds_from_sql(ds, nesting, fields, query_str, upper_type, select_by_id)
@@ -91,29 +91,29 @@ def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
     # reorganize ds and generate code to get pointer
     pointed = {}
     for ds in dslst:
-      ds_sz = to_real_value(ds.compute_single_size())
+      ds_sz = ds.table.sz
       select_by_id = ds_sz > 100000
       if not ds.value.is_main_ptr():
         if select_by_id:
           s += 'for (size_t i=0; i<{}; i++)\n'.format(int(ds_sz))
         s += 'init_ds_{}_from_sql(conn{});\n'.format(ds.id, ', i' if select_by_id else '')
-        s += '  printf("finish initialize ds {}\\n");\n'.format(ds.id)
+        s += 'printf("finish initialize ds {}\\n");\n'.format(ds.id)
     for ds in dslst:
-      ds_sz = to_real_value(ds.compute_single_size())
+      ds_sz = ds.table.sz
       select_by_id = ds_sz > 100000
       if ds.value.is_main_ptr():
         if select_by_id:
           s += 'for (size_t i=0; i<{}; i++)\n'.format(int(ds_sz))
         s += 'init_ds_{}_from_sql(conn{});\n'.format(ds.id, ', i' if select_by_id else '')
-        s += '  printf("finish initialize ds {}\\n");\n'.format(ds.id)
+        s += 'printf("finish initialize ds {}\\n");\n'.format(ds.id)
     s += 'oid_t obj_pos = 0;\n'
   else:
     s += 'init_ds_{}_from_sql(conn, &{});\n'.format(ds.id, upper_v)
 
-  
   for ds in dslst:
     if ds.value.is_object() and len(ds.value.get_object().nested_objects) > 0:
       array_ele = cgen_cxxvar(ds.table)
+      s += 'cnt = 0;\n'
       s += get_loop_define(ds, is_begin=True, is_range=True)
       ds_prefix = '{}.'.format(upper_v) if upper_v else ''
       if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
@@ -123,6 +123,10 @@ def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
       next_header, next_cpp = cgen_init_ds_lst(ds.value.get_object().nested_objects, ds.table, array_ele)
       header += next_header
       s += insert_indent(next_cpp)
+      ds_sz = ds.table.sz/100
+      if not isinstance(ds.table, NestedTable) and ds_sz>100000:
+        s += '  cnt++;\n'
+        s += '  if (cnt % {} == 0) printf("----ds {} inner finish %u\\n", cnt/{});\n'.format(int(ds_sz/100), ds.id, int(ds_sz)/100)
       s += get_loop_define(ds, is_begin=False, is_range=True)
       if not isinstance(ds.table, NestedTable):
         s += '  printf("finish initialize ds\'s object {}\\n");\n\n'.format(ds.id)

@@ -94,7 +94,7 @@ def get_div_ratio(pred, keys):
     #   if len(k.path) > 0 and k.path[0] == pred.lh:
     #     newk.append(KeyPath(k.key, k.path[1:]))
     # return get_div_ratio(pred.rh, newk)
-    return 2
+    return 1
   elif isinstance(pred, UnaryOp):
     return 1
   else:
