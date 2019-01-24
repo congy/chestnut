@@ -184,6 +184,25 @@ def get_symbol_by_field(f, vname):
     assert(False)
   return v
 
+def get_psql_type(tipe):
+  if is_date_type(tipe):
+    return 'TIMESTAMP'
+  elif is_int_type(tipe):
+    return 'INTEGER'
+  elif is_unsigned_int_type(tipe):
+    return 'BIGINT'
+  elif is_bool_type(tipe):
+    return 'INTEGER'
+  elif is_float_type(tipe):
+    return 'FLOAT'
+  elif is_varchar_type(tipe):
+    return 'VARCHAR({})'.format(get_varchar_length(tipe))
+  elif is_long_string_type(tipe):
+    return 'VARCHAR(256)'
+  else:
+    assert(False)
+
+
 def get_symbol_by_field_type(tipe, vname):
   if is_int_type(tipe):
     v = z3.Int(vname)

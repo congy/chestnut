@@ -85,4 +85,22 @@ data_dir=datafile_dir
 #populate_database(data_dir, tables, associations)
 #test_query(tables, associations, read_queries[0], 13)
 #test_generate_sql([q_ii_2])
-test_read_overall(tables, associations, read_queries, memfactor=1.1, read_from_file=True, read_ilp=True)
+#test_read_overall(tables, associations, read_queries, memfactor=1.1, read_from_file=True, read_ilp=True)
+
+#[issue, user, member, project, enabled_module, version, news, board, message, tracker, role, issue_status, enumeration]
+
+indexes = {issue:[],\
+user:[],\
+member:[],\
+project:[],\
+enabled_module:[],\
+news:[],\
+tracker:[],\
+issue_status:[],\
+project_tracker:[],\
+enumeration:[]}
+
+s = create_psql_tables_script(data_dir, tables, associations)
+f = open('load_postgres_tables.sql', 'w')
+f.write(s)
+f.close()
