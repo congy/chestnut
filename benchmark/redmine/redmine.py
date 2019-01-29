@@ -88,19 +88,31 @@ data_dir=datafile_dir
 #test_read_overall(tables, associations, read_queries, memfactor=1.1, read_from_file=True, read_ilp=True)
 
 #[issue, user, member, project, enabled_module, version, news, board, message, tracker, role, issue_status, enumeration]
+#exit(0)
+indexes = {issue:[['assigned_to_id'], ['author_id'],['created_on'],['project_id'],['status_id'],['tracker_id']],\
+user:[['type'], ['id'], ['id', 'type']],\
+member:[['project_id'], ['user_id'], ['user_id','project_id']],\
+project:[['id'], ['lft'], ['rgt']],\
+enabled_module:[['project_id']],\
+news:[['author_id'], ['created_on'], ['project_id']],\
+tracker:[],\
+issue_status:[],\
+project_tracker:[['project_id'], ['project_id', 'tracker_id']],\
+enumeration:[['project_id']]}
 
-indexes = {issue:[],\
+indexes = {issue:[['assigned_to_id'], ['author_id'], ['project_id']],\
 user:[],\
-member:[],\
-project:[],\
-enabled_module:[],\
-news:[],\
+member:[['project-id']],\
+project:[['id'], ['parent_id']],\
+enabled_module:[['project_id']],\
+news:[['created_on']],\
 tracker:[],\
 issue_status:[],\
 project_tracker:[],\
-enumeration:[]}
+enumeration:[['project_id']]}
 
-s = create_psql_tables_script(data_dir, tables, associations)
+
+s = create_psql_tables_script(data_dir, tables, associations, indexes)
 f = open('load_postgres_tables.sql', 'w')
 f.write(s)
 f.close()

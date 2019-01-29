@@ -80,7 +80,7 @@ def create_psql_tables_script(data_dir, tables, associations, indexes={}):
     s += ');\n'
     s += "COPY {} FROM '{}/{}.tsv' DELIMITER '|' CSV HEADER;\n\n".format(table_name, data_dir, a.name)
 
-  for k,v in indexes:
+  for k,v in indexes.items():
     for idx_fields in v:
       table_name = to_plural(k.name) if isinstance(k, Table) else k.name
       index_name = 'idx_on_{}_{}'.format(table_name, '_'.join(idx_fields))
