@@ -114,4 +114,9 @@ data_dir=datafile_dir
 #generate_db_data_files(data_dir, tables, associations)
 #populate_database(data_dir, tables, associations)
 #test_query(tables, associations, read_queries[0], 13)
-test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
+#test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
+
+s = create_psql_tables_script(data_dir, tables, associations)
+f = open('load_postgres_tables.sql', 'w')
+f.write(s)
+f.close()

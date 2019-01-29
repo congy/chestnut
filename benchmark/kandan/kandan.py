@@ -76,11 +76,16 @@ q_cc_w1, q_cc_w2]
 # test_merge(q)
 #test_cost(read_queries[:1])
 #test_ilp(read_queries, membound_factor=1)
-#ilp_solve(read_queries, write_queries=[], membound_factor=1.3, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
-test_read_overall(tables, associations, read_queries, memfactor=1.3, read_from_file=True, read_ilp=True)
+ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
 
 data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
-#populate_database(data_dir, tables, associations, True)
+#populate_database(data_dir, tables, associations, False)
 #test_query(tables, associations, read_queries[0], 13)
+
+#s = create_psql_tables_script(data_dir, tables, associations)
+#f = open('load_postgres_tables.sql', 'w')
+#f.write(s)
+#f.close()

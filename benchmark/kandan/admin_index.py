@@ -12,5 +12,6 @@ from kandan_schema import *
 
 q_di_1 = get_all_records(user)
 q_di_1.pfilter(BinOp(f('id'), NEQ, Parameter('uid')))
-q_di_1.project([f('id'),f('username')])
+#q_di_1.project([f('id'),f('username')])
+q_di_1.project('*')
 q_di_1.complete()
