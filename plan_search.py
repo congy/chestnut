@@ -177,6 +177,8 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
         plan_tree_combs[i].append(new_plan_tree)
     for plan_trees in itertools.product(*plan_tree_combs):
       new_ptu = PlanTreeUnion(plan_trees)
+      if len(plan_trees) > 1 and query.return_var:
+        new_ptu.after_steps.append(ExecUnionStep(query.return_var, query.aggrs, variable_to_set, order=query.order))
       full_plans.append(new_ptu)
 
   return full_plans

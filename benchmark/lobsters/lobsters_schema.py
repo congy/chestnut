@@ -10,6 +10,7 @@ fake = Faker()
 
 scale = 15000
 #scale = 10
+#scale = 3000
 story = Table('story', scale*100)
 comment = Table('comment', scale*500)
 message = Table('message', scale*100)

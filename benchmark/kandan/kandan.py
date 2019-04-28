@@ -89,3 +89,11 @@ data_dir=datafile_dir
 #f = open('load_postgres_tables.sql', 'w')
 #f.write(s)
 #f.close()
+indexes = {user:[['id']],\
+channel:[],\
+activity:[['id'], ['channel_id', 'id'], ['user_id']],\
+attachment:[['channel_id', 'created_at']]}
+s = create_psql_tables_script(data_dir, tables, associations, indexes)
+f = open('load_postgres_tables.sql', 'w')
+f.write(s)
+f.close()

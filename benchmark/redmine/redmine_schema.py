@@ -10,6 +10,7 @@ fake = Faker()
 
 scale=4000
 #scale=40
+#scale=400
 issue = Table('issue', scale*2000)
 user = Table('user', scale*200)
 member = Table('member', scale*400)

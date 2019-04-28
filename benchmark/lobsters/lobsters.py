@@ -116,7 +116,17 @@ data_dir=datafile_dir
 #test_query(tables, associations, read_queries[0], 13)
 #test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
 
-s = create_psql_tables_script(data_dir, tables, associations)
+#s = create_psql_tables_script(data_dir, tables, associations)
+indexes = {story:[['id'], ['hotness'], ['short_id'], ['user_id'], ['merged_story_id'], ['is_expired', 'is_moderated']],\
+comment:[['created_at'], ['user_id'], ['short_id'], ['confidence'], ['thread_id']],\
+message:[['recipient_user_id'], ['author_user_id']], \
+tag:[], \
+vote:[['user_id'], ['comment_id'], ['story_id']], \
+user:[['username']], \
+storys_hidden:[['story_id']], \
+storys_tags:[['story_id'], ['tag_id']]}
+
+s = create_psql_tables_script(data_dir, tables, associations, indexes)
 f = open('load_postgres_tables.sql', 'w')
 f.write(s)
 f.close()

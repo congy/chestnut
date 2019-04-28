@@ -258,6 +258,7 @@ class ExecUnionStep(ExecStepSuper):
       self.cost = self.union_vars[0].get_sz()
       for v in self.union_vars[1:]:
         self.cost = cost_add(self.cost, v.get_sz())
+    self.cost = cost_mul(self.cost, 1000)
     return self.cost
   def get_used_ds(self, cur_obj, ds_manager):
     return cur_obj

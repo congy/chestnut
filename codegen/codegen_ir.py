@@ -47,8 +47,9 @@ def cgen_for_one_step(step, state, print_result=False):
   s = ''
   if isinstance(step, ExecQueryStep):
     if state.topquery.return_var:
-      #state.qr_varmap[state.topquery.return_var] = 'qresult'
+      state.qr_varmap[state.topquery.return_var] = '(&qresult)'
       state.qr_var = '(&qresult)'
+    print 'state = {}, qr_var = {}'.format(hash(state), state.qr_var)
     next_s, temp_state = cgen_for_one_step(step.step, state)
     s += insert_indent(next_s)
     for v,aggr in state.topquery.aggrs:
