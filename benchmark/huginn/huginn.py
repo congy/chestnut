@@ -12,9 +12,11 @@ from codegen.protogen import *
 from codegen.codegen_test import *
 import globalv
 
+from huginn_schema import *
 from agents_index import *
 from agents_show import *
 from events_index import *
+from dryruns_index import *
 from home_index import *
 from job_index import *
 

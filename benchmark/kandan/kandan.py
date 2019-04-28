@@ -83,13 +83,13 @@ data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
 #populate_database(data_dir, tables, associations, True)
-#test_query(tables, associations, read_queries[0], 13)
+test_query(tables, associations, read_queries[0], 13)
 
-indexes = {user:[['id']],\
-channel:[],\
-activity:[['id'], ['channel_id', 'id'], ['user_id']],\
-attachment:[['channel_id', 'created_at']]}
-s = create_psql_tables_script(data_dir, tables, associations, indexes)
-f = open('load_postgres_tables.sql', 'w')
-f.write(s)
-f.close()
+# indexes = {user:[['id']],\
+# channel:[],\
+# activity:[['id'], ['channel_id', 'id'], ['user_id']],\
+# attachment:[['channel_id', 'created_at']]}
+# s = create_psql_tables_script(data_dir, tables, associations, indexes)
+# f = open('load_postgres_tables.sql', 'w')
+# f.write(s)
+# f.close()

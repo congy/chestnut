@@ -1,3 +1,4 @@
+from huginn_schema import *
 
 # SELECT  `agents`.* FROM `agents` WHERE `agents`.`user_id` = 1 ORDER BY `agents`.`created_at` DESC LIMIT 25 OFFSET 0
 # SELECT `links`.`receiver_id`, count(receiver_id) as id FROM `links` WHERE `links`.`receiver_id` IN (8, 1, 2, 3, 4, 5, 6, 7) GROUP BY `links`.`receiver_id`
