@@ -32,9 +32,11 @@ q_ji_3.complete()
 
 q_ji_4 = get_all_records(delayed_job)
 q_ji_4.pfilter(BinOp(f('run_at'), LT, Parameter('run_at')))
-q_ji_4.pfilter(ConnectOp(ConnectOp(BinOp(f('locked_at'), EQ, AtomValue('0000-00-00 00:00:00')), OR, \
-    BinOp(f('locked_at'), LT, Parameter('time2'))), OR,
-    BinOp(f('locked_by'), EQ, Parameter('lockedby'))))
+# q_ji_4.pfilter(ConnectOp(ConnectOp(BinOp(f('locked_at'), EQ, AtomValue('0000-00-00 00:00:00')), OR, \
+#     BinOp(f('locked_at'), LT, Parameter('time2'))), OR,
+#     BinOp(f('locked_by'), EQ, Parameter('lockedby'))))
+q_ji_4.pfilter(ConnectOp(BinOp(f('locked_at'), LT, Parameter('time2')), OR, BinOp(f('locked_by'), EQ, Parameter('lockedby'))))
+q_ji_4.pfilter(BinOp(f('failed_at'), EQ, AtomValue('0000-00-00 00:00:00')))
 q_ji_4.orderby([f('priority'), f('run_at')])
 q_ji_4.return_limit(5)
 q_ji_4.project('*')
