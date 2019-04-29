@@ -30,6 +30,8 @@ globalv.associations = associations
 
 
 # SELECT  comments.* FROM comments  WHERE comments.is_deleted = 0 AND comments.is_moderated = 0 AND (story_id NOT IN (SELECT story_id FROM hidden_stories WHERE user_id = 1))  ORDER BY created_at DESC LIMIT 20 OFFSET 0
+# SELECT comments.*, hidden_stories.user_id as hu_user_id into table q_ci_1 FROM comments INNER JOIN hidden_stories on hidden_stories.story_id = comments.story_id ORDER BY hu_user_id;
+# SELECT * FROM q_ci_1 WHERE hu_user_id = 1 ORDER BY created_at DESC LIMIT 20 OFFSET 0
 param_user_id = Parameter('user_id')
 q_ci_1 = get_all_records(comment)
 q_ci_1.pfilter(BinOp(f('is_deleted'), EQ, AtomValue(False)))
@@ -64,6 +66,8 @@ q_ct_2.complete()
 
 
 #SELECT stories.id, stories.upvotes, stories.downvotes, stories.user_id FROM stories  WHERE stories.merged_story_id = 0 AND stories.is_expired = 0  AND (stories.id NOT IN (SELECT hidden_stories.story_id FROM hidden_stories WHERE hidden_stories.user_id = 1)) AND (stories.id NOT IN (SELECT taggings.story_id FROM taggings  WHERE taggings.tag_id IN (23))) AND (stories.created_at > '2016-10-23 22:34:39')  ORDER BY stories.id DESC, stories.created_at DESC;
+# SELECT stories.id, stories.upvotes, stories.downvotes, stories.user_id, stories.created_at, hidden_stories.user_id as hu_user_id, taggings.tag_id as tag_id into table q_hr_1 FROM stories inner join hidden_stories on hidden_stories.story_id = stories.id inner join taggings on taggings.story_id = stories.id WHERE stories.merged_story_id = 0 AND stories.is_expired = 0 order by stories.id;
+# SELECT id, upvotes, downvotes, user_id from q_hr_1 where hu_user_id != 32 and tag_id != 3 and created_at > '2016-10-23 22:34:39' group by id, upvotes, downvotes, user_id order by id;
 param_user_id = Parameter('user_id')
 q_hr_1 = get_all_records(story)
 q_hr_1.pfilter(BinOp(f('merged_story_id'), EQ, AtomValue(0)))

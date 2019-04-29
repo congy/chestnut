@@ -82,6 +82,7 @@ test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_f
 data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
+<<<<<<< HEAD
 #populate_database(data_dir, tables, associations, False)
 #test_query(tables, associations, read_queries[0], 13)
 
@@ -97,3 +98,16 @@ s = create_psql_tables_script(data_dir, tables, associations, indexes)
 f = open('load_postgres_tables.sql', 'w')
 f.write(s)
 f.close()
+=======
+#populate_database(data_dir, tables, associations, True)
+test_query(tables, associations, read_queries[0], 13)
+
+# indexes = {user:[['id']],\
+# channel:[],\
+# activity:[['id'], ['channel_id', 'id'], ['user_id']],\
+# attachment:[['channel_id', 'created_at']]}
+# s = create_psql_tables_script(data_dir, tables, associations, indexes)
+# f = open('load_postgres_tables.sql', 'w')
+# f.write(s)
+# f.close()
+>>>>>>> ee5c3f8968d3372ab17f929bba50610cdd8c1f90

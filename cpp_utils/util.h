@@ -56,6 +56,7 @@ inline uint32_t time_to_uint(const char* s1){
       int year = str_to_int(s.substr(0, 4));
       int month = str_to_int(s.substr(5, 2));
       int day = str_to_int(s.substr(8, 2));
+      if (year==0 and month==0 and day==0) return 0;
       int lap_day = (year-2010)*365 + month*30 + day;
       if (s.length() > 10) {
         int hour = str_to_int(s.substr(11, 2));

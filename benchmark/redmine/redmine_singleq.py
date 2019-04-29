@@ -33,6 +33,8 @@ associations = globalv.associations
 
 
 #SELECT projects.* FROM projects WHERE projects.status!=9 AND (projects.lft >= 1 AND projects.rgt <= 77927) ORDER BY projects.lft ASC
+# SELECT projects.* into table q_ai_1 FROM projects WHERE projects.status!=9 ORDER BY projects.lft;
+# SELECT * FROM q_ai_1 as projects where (projects.lft >= 1 AND projects.rgt <= 77927);
 q_ai_1 = get_all_records(project)
 q_ai_1.pfilter(BinOp(f('status'), NEQ, AtomValue(9)))
 q_ai_1.pfilter(ConnectOp(BinOp(f('lft'), GE, Parameter('pid2')), AND, BinOp(f('rgt'), LE, Parameter('pid3'))))
@@ -41,6 +43,8 @@ q_ai_1.complete()
 
 
 #select projects.id, projects.lft, projects.rgt from projects where (projects.status = 1) ORDER BY projects.lft ASC;
+# select projects.id, projects.lft, projects.rgt into table q_pi_0 from projects where (projects.status = 1) ORDER BY projects.lft ASC;
+# select * from q_pi_0;
 q_pi_0 = get_all_records(project)
 q_pi_0.pfilter(BinOp(f('status'), EQ, AtomValue(1)))
 q_pi_0.orderby([f('lft')])
@@ -51,6 +55,8 @@ q_pi_0.complete()
 #SELECT  news.* FROM news INNER JOIN projects ON projects.id = news.project_id WHERE 
 # (projects.status <> 9 AND EXISTS (SELECT 1 AS one FROM enabled_modules em WHERE em.project_id = projects.id AND em.name='news')) 
 # ORDER BY news.created_on DESC LIMIT 5
+## SELECT  news.* FROM news INNER JOIN projects ON projects.id = news.project_id WHERE (projects.status <> 9 AND EXISTS (SELECT 1 AS one FROM enabled_modules em WHERE em.project_id = projects.id AND em.name='news')) ORDER BY news.created_on DESC LIMIT 5
+## SELECT * FROM 
 q_wi_4 = get_all_records(news)
 q_wi_4.pfilter(BinOp(f('project').f('status'), NEQ, AtomValue(9)))
 q_wi_4.pfilter(SetOp(f('project').f('enabled_modules'), EXIST, BinOp(f('name'), EQ, AtomValue('news'))))
@@ -63,6 +69,9 @@ q_wi_4.complete()
 # inner join news ON projects.id = news.project_id WHERE 
 # (projects.status <> 9 AND EXISTS 
 # (SELECT 1 AS one FROM enabled_modules em WHERE em.project_id = projects.id AND em.name='news'));
+
+# select projects.*, news.id as newsid, news.title as newstitle, news.author_id as newsauthor into table q_wi_2 from projects inner join news ON projects.id = news.project_id WHERE (projects.status <> 9 AND EXISTS (SELECT 1 AS one FROM enabled_modules em WHERE em.project_id = projects.id AND em.name='news'));
+# SELECT * FROM q_wi_2;
 q_wi_2 = get_all_records(project)
 q_wi_2.pfilter(BinOp(f('status'), NEQ, AtomValue(9)))
 q_wi_2.pfilter(SetOp(f('enabled_modules'), EXIST, BinOp(f('name'), EQ, AtomValue('news'))))

@@ -184,6 +184,7 @@ def get_dsmeta(read_queries):
   dsmeta = DSManager()
   begin_ds_id = 1
   for query in read_queries:
+    print("query {}".format(query))
     nesting_plans = search_plans_for_one_query(query, print_plan=False)
     rqmanagers.append(RQManager(query, nesting_plans))
     for i,plan_for_one_nesting in enumerate(nesting_plans):
