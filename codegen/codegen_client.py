@@ -7,10 +7,10 @@ from codegen_helper import *
 from codegen_state import *
 import globalv
 
-def cgen_ruby_client(read_metas, write_metas):
+def cgen_ruby_client(read_queries, ruby_file_dir):
   ruby_t_f = {'1':'true', 1:'true', '0':'false', 0:'false'}
   s = ''
-  path = '{}/{}/ruby/'.format(get_cxx_file_dir(), get_db_name())
+  path = ruby_file_dir
   os.system('mkdir {}'.format(path))
   s += 'require \"./proto_{}_pb.rb\"\n'.format(get_db_name())
   s += 'require \"ffi-rzmq.rb\"\n'
@@ -19,8 +19,7 @@ def cgen_ruby_client(read_metas, write_metas):
   s += 'end\n\n'
 
   qcnt = 0 
-  for i,read_meta in enumerate(read_metas): 
-    query = read_meta.read_query
+  for i,query in enumerate(read_queries): 
     s += 'def run_rq_{}\n'.format(i)
     param_values = query.get_param_value_pair()
     param_str = ', '.join([':rq_{}_{} => {}'.format(i, p.symbol, \
@@ -38,10 +37,8 @@ def cgen_ruby_client(read_metas, write_metas):
     s += 'end\n'
 
   s += 'def run_queries\n'
-  for i,read_meta in enumerate(read_metas): 
+  for i,query in enumerate(read_queries): 
     s += '  run_rq_{}\n'.format(i)
-  for i,write_meta in enumerate(write_metas): 
-    s += '  run_wq_{}\n'.format(i)
   s += 'end\n'
 
   s += 'run_queries\n'
