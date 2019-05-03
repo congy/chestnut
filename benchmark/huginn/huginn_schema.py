@@ -115,6 +115,7 @@ d_locked_at.set_value_generator(lambda: get_random_date() if random.randint(1, 1
 d_failed_at = Field('failed_at','date')
 d_failed_at.value_with_prob = [('0000-00-00 00:00:00',80),('2019-01-01 00:00:00',20)]
 d_locked_by = Field('locked_by','varchar(32)')
+d_locked_by.value_with_prob = [('host:dragon',40),('host:vega',30),('host:star',30)]
 d_queue = Field('queue','varchar(16)')
 d_created_at = Field('created_at','date')
 d_updated_at = Field('updated_at','date')
