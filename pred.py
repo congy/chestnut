@@ -1,6 +1,7 @@
 from util import *
 from constants import *
 from schema import *
+import datetime
 import globalv
 import z3
 
@@ -129,6 +130,8 @@ class AtomValue(object):
   def to_z3_value(self):
     if is_string_type(self.tipe) or type(self.v) is str:
       return hash(self.v) % MAXINT
+    elif is_date_type(self.tipe) and type(self.v) is str:
+      return datetime_to_int(self.v) 
     else:
       return self.v
   def get_type(self):

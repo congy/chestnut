@@ -8,10 +8,10 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-scale = 10
+scale = 20#80000
 
 agent = Table('agent', scale)
-event = Table('event', scale*100)
+event = Table('event', scale*400)
 delayed_job = Table('delayed_job', scale*2)
 link = Table('link',scale)
 user = Table('user',5)
@@ -104,6 +104,7 @@ def get_random_date():
   return str(datetime.datetime.now()-datetime.timedelta(days=random.randint(0, 365), hours=random.randint(0, 24), seconds=random.randint(0, 3600)))[0:-7]
 
 d_priority = Field('priority','uint')
+d_priority.value_with_prob = [(1, 80), (2, 10), (3, 10)]
 d_attempts = Field('attempts','uint')
 d_handler = Field('handler','string')
 d_handler.set_value_generator(fake_text(32))
@@ -111,9 +112,9 @@ d_last_error = Field('last_error','string')
 d_last_error.set_value_generator(fake_text(128))
 d_run_at = Field('run_at','date')
 d_locked_at = Field('locked_at','date')
-d_locked_at.set_value_generator(lambda: get_random_date() if random.randint(1, 10)<6 else '0000-00-00 00:00:00')
+#d_locked_at.set_value_generator(lambda: get_random_date() if random.randint(1, 10)<3 else '0000-00-00 00:00:00')
 d_failed_at = Field('failed_at','date')
-d_failed_at.value_with_prob = [('0000-00-00 00:00:00',80),('2019-01-01 00:00:00',20)]
+#d_failed_at.set_value_with_prob([('0000-00-00 00:00:00',80),('2019-01-01 00:00:00',20)])
 d_locked_by = Field('locked_by','varchar(32)')
 d_queue = Field('queue','varchar(16)')
 d_created_at = Field('created_at','date')
@@ -197,7 +198,7 @@ u_remember_created_at = Field("remember_created_at",'date')
 u_sign_in_count = Field('sign_in_count','uint')
 u_current_sign_in_at = Field('current_sign_in_at','date')
 u_last_sign_in_at = Field('last_sign_in_at','date')
-u_current_sign_in_ip = Field('current_sign_in_ip','varchar(16')
+u_current_sign_in_ip = Field('current_sign_in_ip','varchar(16)')
 u_last_sign_in_ip = Field('last_sign_in_ip','varchar(16)')
 u_created_at = Field('created_at','date')
 u_updated_at = Field('updated_at','date')

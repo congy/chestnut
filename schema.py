@@ -24,6 +24,12 @@ class Field(object):
         self.range = [0, 256]
       elif self.tipe in ['int','float'] or is_string_type(self.tipe):
         self.range = [0-MAXINT, MAXINT]
+  def set_value_with_prob(self, vprob):
+    if is_date_type(self.tipe):
+      
+      self.value_with_prob = [(datetime_to_int(x[0]),x[1]) for x in vprob]
+    else:
+      self.value_with_prob = vprob
   def fork(self):
     new_f = Field(self.name, self.tipe, self.range, self.default, self.is_temp)
     new_f.value_with_prob = [k for k in self.value_with_prob]

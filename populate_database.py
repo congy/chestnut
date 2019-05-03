@@ -50,8 +50,8 @@ def generate_db_data_files(data_dir, tables, associations):
     fp.close()
 
 def populate_database(data_dir, tables, associations, recreate=False):
-  remove_db(recreate)
-  create_db(recreate)
+  #remove_db(recreate)
+  #create_db(recreate)
   create_tables(tables, associations, recreate)
   populate_tables(data_dir, tables, associations, recreate)
 
@@ -109,6 +109,7 @@ def create_tables(tables, associations, recreate):
       ft += "{} DEFAULT NULL".format(sql_type)
       field_list.append(ft)
     if t.is_temp or recreate:
+      sys_cmd("mysql -u root {} -e \"DROP TABLE IF EXISTS {};\"".format(db_name, get_db_table_name(t.name)))
       sys_cmd("mysql -u root {} -e \"CREATE TABLE {} ({});\"".format(db_name, get_db_table_name(t.name), ", ".join(field_list)))
     if recreate == False:
       temp_fields = []
@@ -138,6 +139,8 @@ def populate_tables(data_dir, tables, associations, recreate_db=False):
 
     #create index
     if recreate_db:
+      for idf in temp_fields[1:]:
+        sys_cmd("mysql -u root {} -e \"CREATE INDEX index_{}_{} ON {} ({}) USING BTREE;\"".format(db_name, t.name, idf, to_plural(t.name), idf))
       sys_cmd("mysql -u root {} -e \"CREATE INDEX index_{}_id ON {} (id) USING BTREE;\"".format(db_name, t.name, to_plural(t.name)))
     
   for a in get_assoc_tables(associations):

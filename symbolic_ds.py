@@ -98,7 +98,7 @@ class SymbolicIndex(object):
             elif isinstance(params[0].params[i], QueryField):
               assert(False)
             elif isinstance(params[0].params[i], AtomValue): #and value_is_basic_type(params[0].params[i]):
-              param0 = params[0].params[i].v
+              param0 = params[0].params[i].to_z3_value()
             else:
               assert(False)
             if isinstance(params[1].params[i], Parameter): 
@@ -106,7 +106,7 @@ class SymbolicIndex(object):
             elif isinstance(params[1].params[i], QueryField):
               assert(False)
             elif isinstance(params[1].params[i], AtomValue): #value_is_basic_type(params[1].params[i]):
-              param1 = params[1].params[i].v
+              param1 = params[1].params[i].to_z3_value()
             else:
               assert(False)
             # special case for bool:

@@ -1,5 +1,6 @@
 import os
 import z3
+import datetime
 
 _db_name = ''
 def get_db_name():
@@ -45,7 +46,7 @@ def get_db_table_name(name):
   return to_plural(name)
 
 
-MAXINT = 23451 #4294967295
+MAXINT = 4294967295
 INVALID_VALUE = 4294967295+1
 
 MAX_NESTED_LEVEL = 4
@@ -324,6 +325,12 @@ def type_min_value(tipe):
     return 0
   elif tipe.startswith('varchar(') or tipe == 'string':
     return ''
+
+def datetime_to_int(dt):
+   if dt == '0000-00-00 00:00:00':
+     return 0
+   idt = datetime.datetime.strptime(dt,"%Y-%m-%d %H:%M:%S")
+   return idt.year*356+idt.month*12+idt.day
 
 def type_max_value(tipe):
   if tipe == 'int':

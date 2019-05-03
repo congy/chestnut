@@ -17,7 +17,7 @@ def clean_sql_query(s):
   return s.replace('"', "'")
 def get_path_prefix_helper(qf):
   if isinstance(qf, AssocOp):
-    return [pred.lh] + get_path_prefix_helper(qf.rh)
+    return [qf.lh] + get_path_prefix_helper(qf.rh)
   else:
     return [qf]
 def get_path_prefix(path, name):

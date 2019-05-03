@@ -7,6 +7,22 @@ from codegen_helper import *
 from codegen_state import *
 import globalv
 
+ruby_template_begin = """
+  ctx = ZMQ::Context.new
+  @rep_sock = ctx.socket(ZMQ::REQ)
+  rc = @rep_sock.connect('tcp://127.0.0.1:5555')
+  t1 = Time.now
+  @rep_sock.send_string(serialized_param)
+  data = ''
+  @rep_sock.recv_string(data)
+  t2 = Time.now
+"""
+
+ruby_template_end = """
+  @rep_sock.close()
+"""
+
+
 def cgen_ruby_client(read_queries, ruby_file_dir):
   ruby_t_f = {'1':'true', 1:'true', '0':'false', 0:'false'}
   s = ''
