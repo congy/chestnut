@@ -301,6 +301,10 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
   elif isinstance(expr, Parameter):
     if isinstance(expr, MultiParam):
       return '',[cgen_expr_with_placeholder(p, state)[1] for p in expr.params]
+    elif expr.is_fk(): # foreign key matches upper loop var's id
+      assert(state.upper is not None)
+      upper_loop_var_type = get_main_table(state.upper.ds.table)
+      return '',state.upper.get_queryfield_var(QueryField('id',upper_loop_var_type))
     else:
       return '',state.find_param_var(expr)
   elif isinstance(expr, EnvAtomicVariable):

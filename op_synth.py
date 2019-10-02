@@ -396,7 +396,8 @@ def enumerative_gen(queried_table, thread_ctx, pred, order, fk_pred):
     target_pred = ConnectOp(pred, AND, fk_pred)
   else:
     target_pred = pred
-  for length in range(0, len(elements) + 1):
+  #for length in range(0, len(elements) + 1):
+  for length in range(0, 1):
     for x in itertools.combinations(elements, length):
       field_cmp_map = {}
       if any([(is_valid_index_element(literal)==False) for literal in list(x)]):

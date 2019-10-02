@@ -9,6 +9,7 @@ from faker import Faker
 fake = Faker()
 
 scale = 20#80000
+#scale = 80000
 
 agent = Table('agent', scale)
 event = Table('event', scale*400)

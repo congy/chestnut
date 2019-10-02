@@ -28,10 +28,12 @@ set_data_file_dir(datafile_dir)
 
 set_cpp_file_path('../../')
 
-tables = [agent, event, delayed_job, link]
-associations = [agent_to_user, event_to_agent, event_to_user, link_source, link_receive]
+tables = [delayed_job]
+associations = []
+#tables = [agent, event, delayed_job, link]
+#associations = [agent_to_user, event_to_agent, event_to_user, link_source, link_receive]
 
-globalv.always_fk_indexed = [QueryField('sources',agent)]#[QueryField('agent',event)] 
+#globalv.always_fk_indexed = [QueryField('sources',agent)]#[QueryField('agent',event)] 
 globalv.tables = tables
 globalv.associations = associations
 
@@ -48,7 +50,7 @@ write_queries = []
 data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
-populate_database(data_dir, tables, associations, True)
+#populate_database(data_dir, tables, associations, True)
 #test_query(tables, associations, read_queries[0], 13)
 #search_plans_for_one_query(q_di_1)
 
@@ -56,15 +58,16 @@ populate_database(data_dir, tables, associations, True)
 
 # test_merge(q)
 #test_ilp(read_queries, membound_factor=1)
-#ilp_solve(read_queries, write_queries=[], membound_factor=1.5, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+ilp_solve(read_queries, write_queries=[], membound_factor=20, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+exit(0)
 #test_read_overall(tables, associations, read_queries, memfactor=1.5, read_from_file=True, read_ilp=True)
 
-exit(0)
+#exit(0)
 indexes = {user:[],\
 delayed_job:[['priority','run_at']],\
-event:[['id'], ['agent_id', 'created_at'], ['user_id','created_at']],\
+event:[['id'], ['agent_id', 'created_at'], ['user_id','created_at'],['user_id'],['created_at']],\
 agent:[['id'],['disabled','deactivated'],['type'],['user_id','created_at'],['type']],\
-link:[['receiver_id','source_id'],['id'],['source_id','receiver_id']]}
+link:[['receiver_id','source_id'],['id'],['source_id','receiver_id'],['receiver_id'],['source_id']]}
 s = create_psql_tables_script(data_dir, tables, associations, indexes)
 f = open('load_postgres_tables.sql', 'w')
 f.write(s)

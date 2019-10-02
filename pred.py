@@ -100,6 +100,11 @@ class Parameter(object):
     return 'param[{}]'.format(self.symbol)
   def get_all_fields(self):
     return []
+  def is_fk(self):
+    # XXX: foreign key compare in scan has the form xxx_id = Parameter(fk_xxx_id)
+    if self.symbol.startswith("fk_") and self.symbol.endswith("_id"):
+      return self.symbol.replace("fk_","").replace("_id","")
+    return None
 
 class MultiParam(Parameter):
   def __init__(self, params=[]):

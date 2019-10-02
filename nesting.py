@@ -184,6 +184,7 @@ def enumerate_nesting_helper(nesting, table, level):
       nested_t = table.get_nested_table_by_name(qf.field_name)
     main_t = assoc.table
 
+    """
     if qf not in globalv.always_fk_indexed:
       #nested obj
       next_lst = enumerate_nesting_helper(assoc, nested_t, level+1)
@@ -202,6 +203,7 @@ def enumerate_nesting_helper(nesting, table, level):
           temp_obj.add_nested_object(next_ds)
           next_dsmng.add_ds(IndexPlaceHolder(next_obj.table, IndexValue(OBJECT, next_obj)))
           lst[i].append((temp_obj, next_dsmng))
+    """
 
     if qf not in globalv.always_nested:
       # maintable exist/associd index

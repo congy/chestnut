@@ -262,7 +262,7 @@ def test_ilp(read_queries, membound_factor=1):
 
 def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False):
   
-  prune_nestings(read_queries)
+  #prune_nestings(read_queries)
   mem_bound = compute_mem_bound(membound_factor)
 
   start_time = time.time()
@@ -300,7 +300,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
         assert(rqmanagers[i])
     else:
       rqmanagers, dsmeta = get_dsmeta(read_queries)
-      prune_read_plans(rqmanagers, dsmeta)
+      #prune_read_plans(rqmanagers, dsmeta)
       if save_to_file:
         for i in range(0, len(rqmanagers)):
           f = open('q{}_plan.pickle'.format(i), 'w')
@@ -312,6 +312,13 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     
     print 'load time = {}'.format(time.time()-start_time)
     print dsmeta
+
+    total_Nplans = 0
+    for qi,rqmng in enumerate(rqmanagers):
+      Nqplans = sum([len(xxx.plans) for xxx in rqmng.plans])
+      print "query {} has {} plans ({}) nestings".format(qi, Nqplans, len(rqmng.plans))
+      total_Nplans += Nqplans
+    print "total: {}".format(total_Nplans)
 
   if read_ilp:
     f = open('mem{}_ilp.pickle'.format(membound_factor), 'r')
