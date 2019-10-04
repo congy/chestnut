@@ -109,7 +109,10 @@ class MemObject(object):
     s += '}\n'
     return s
   def to_json(self):
-    return [f.field_name for f in self.fields]
+    return {
+      "fields": [f.field_name for f in self.fields],
+      "nested": [x.to_json() for x in self.nested_objects],
+    }
   def compute_mem_cost(self, single_ele=True):
     field_sz = sum([f.get_sz() for f in self.fields]) 
     nested_sz = sum([o.compute_mem_cost(single_ele=True) for o in self.nested_objects])
@@ -165,8 +168,10 @@ class IndexValue(object):
   def eq_without_memobj(self, other):
     return self.value_type == other.value_type
   def to_json(self):
-    # TODO
-    pass
+    if self.value_type == MAINPTR:
+      return {'type':'ptr', 'target': self.value.id if self.value else None}
+    else:
+      return self.value.to_json()
   def fork(self):
     return IndexValue(self.value_type, self.value) 
   def add_field(self, f):
@@ -199,7 +204,7 @@ class IndexMeta(object):
       return 'AggrFor{}'.format(get_capitalized_name(self.table.name))
     else:
       assert(False)
-    
+
 class IndexKeys(object):
   def __init__(self, keys, range_keys=[]):
     self.keys = keys
@@ -219,10 +224,12 @@ class IndexKeys(object):
       self.range_keys.append(idf)
   def __str__(self):
     return ','.join([str(k) for k in self.keys])
+  def to_json(self):
+    return [k.to_json() for k in self.keys]
 
 class IndexBase(IndexMeta):
   def __init__(self, table, keys, condition, value, upper=None):
-    self.id = 0 
+    self.id = 0
     self.table = table #table ~ obj_type
     self.keys = keys.fork()
     self.condition = get_idx_condition(condition, keys.keys) #used to compute cost
@@ -239,10 +246,10 @@ class IndexBase(IndexMeta):
     if isinstance(cur_table, NestedTable):
       cur_table = cur_table.upper_table
       tables.insert(0, cur_table.name)
-    keys = [k.to_json() for k in self.keys]
+    keys = self.keys.to_json()
     condition = self.condition.to_json()
     value = self.value.to_json()
-    return ("Index", {"id":self.id, "table":'.'.join([t for t in tables]), "keys":keys.to_json(), "condition":condition, "value":value})
+    return {"type":"Index","id":self.id, "table":'.'.join(tables), "keys":keys, "condition":condition, "value":value}
 
   def is_range_key(self, key):
     return self.keys.contain_range_key()
@@ -373,7 +380,7 @@ class ObjBasicArray(IndexMeta):
       cur_table = cur_table.upper_table
       tables.insert(0, cur_table.name)
     value = self.value.to_json()
-    return ("BasicArray", {"id":self.id, "table":'.'.join([t for t in tables]), "value":value})
+    return {"type": 'BasicArray', "id":self.id, "table":'.'.join(tables), "value":value}
   def get_key_type_name(self):
     return 'size_t'
   def key_fields(self):

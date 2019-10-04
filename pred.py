@@ -240,6 +240,11 @@ class KeyPath(object):
     return self.hashstr == other.hashstr
   def __str__(self):
     return self.hashstr
+  def to_json(self):
+    return {
+      'key': self.key.to_json(),
+      'path': [x.to_json() for x in self.path],
+    }
   def compute_hash(self):
     path = []
     for p in self.path:
