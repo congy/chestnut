@@ -163,6 +163,11 @@ class DSManager(object):
     for i,ds in enumerate(self.data_structures):
       s += 'ds[{}]: {}\n'.format(i, ds)
     return s
+  def to_json(self):
+    x = {}
+    for i, ds in enumerate(self.data_structures):
+      x[i] = ds.to_json()
+    return x
 
 def print_ds_with_cost(dsmnger):
   ds_lst, memobj = collect_all_ds_helper1(dsmnger.data_structures)
