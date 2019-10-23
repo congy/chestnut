@@ -60,32 +60,6 @@ let model = {
 
 const xmlns = "http://www.w3.org/2000/svg";
 
-function helper_render_vstack(svg, elements, padding) {
-  const group = document.createElementNS(xmlns, "g");
-  svg.appendChild(group);
-
-  const border = document.createElementNS(xmlns, "rect");
-  group.appendChild(border);
-  border.style.fill = 'none';
-
-  let x = 0;
-  let y = padding;
-  for (const element of elements) {
-    group.appendChild(element);
-    element.setAttribute('transform', 'translate(' + padding + ',' + y + ')');
-
-    const bbox = element.getBBox();
-    console.log(bbox);
-    x = Math.max(x, bbox.width);
-    y += bbox.height + padding;
-  }
-  // Set border up.
-  border.setAttribute('width', x + 2 * padding);
-  border.setAttribute('height', y);
-
-  return { group, border };
-}
-
 function render_all(svg, model) {
   const elements = [];
 
