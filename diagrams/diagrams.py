@@ -8,8 +8,11 @@ from model import *
 
 
 
+#SCHEMA_JSON = {0: {'keys': [{'path': [], 'key': 'id'}], 'value': {'type': 'ptr', 'target': 0}, 'table': 'user', 'type': 'Index', 'id': 0, 'condition': 'id < param[uid]'}, 1: {'table': 'user', 'type': 'BasicArray', 'id': 0, 'value': {'fields': ['id', 'email', 'encrypted_password', 'reset_password_token', 'reset_password_sent_at', 'remember_created_at', 'first_name', 'last_name', 'signin_count', 'current_sign_in_at', 'current_sign_in_ip', 'last_sign_in_at', 'last_sign_in_ip', 'auth_token', 'locale', 'gravatar_hash', 'username', 'regstatus', 'active', 'is_admin', 'avatar_url', 'created_at', 'updated_at'], 'nested': []}}}
+#SCHEMA_JSON = {0: {'keys': [{'path': [], 'key': 'id'}], 'value': {'type': 'ptr', 'target': 0}, 'table': 'user', 'type': 'Index', 'id': 0, 'condition': 'id > param[uid]'}, 1: {'table': 'user', 'type': 'BasicArray', 'id': 0, 'value': {'fields': ['id', 'email', 'encrypted_password', 'reset_password_token', 'reset_password_sent_at', 'remember_created_at', 'first_name', 'last_name', 'signin_count', 'current_sign_in_at', 'current_sign_in_ip', 'last_sign_in_at', 'last_sign_in_ip', 'auth_token', 'locale', 'gravatar_hash', 'username', 'regstatus', 'active', 'is_admin', 'avatar_url', 'created_at', 'updated_at'], 'nested': []}}, 2: {'keys': [{'path': [], 'key': 'id'}], 'value': {'type': 'ptr', 'target': 0}, 'table': 'user', 'type': 'Index', 'id': 0, 'condition': 'id < param[uid]'}}
+from json_med import *
 
-SCHEMA_JSON = {0: {'keys': [{'path': [], 'key': 'id'}], 'value': {'type': 'ptr', 'target': 0}, 'table': 'user', 'type': 'Index', 'id': 0, 'condition': 'id < param[uid]'}, 1: {'table': 'user', 'type': 'BasicArray', 'id': 0, 'value': {'fields': ['id', 'email', 'encrypted_password', 'reset_password_token', 'reset_password_sent_at', 'remember_created_at', 'first_name', 'last_name', 'signin_count', 'current_sign_in_at', 'current_sign_in_ip', 'last_sign_in_at', 'last_sign_in_ip', 'auth_token', 'locale', 'gravatar_hash', 'username', 'regstatus', 'active', 'is_admin', 'avatar_url', 'created_at', 'updated_at'], 'nested': []}}}
+
 
 TSV_DIR = '../benchmark/kandan/data/kandan_diag/'
 
@@ -35,11 +38,13 @@ def get_chestnut_model(model):
   return ChestnutModel(model)
 
 def render(model, data):
-  
+
+  g = Digraph('G', filename='render.gv', format='svg')
+
+  model.render(data, g)
+  g.view()
 
   return
-
-  g = Digraph('G', filename='cluster.gv', format='svg')
 
   # NOTE: the subgraph name needs to begin with 'cluster' (all lowercase)
   #       so that Graphviz recognizes it as a special cluster subgraph
@@ -62,7 +67,8 @@ def render(model, data):
 
 if '__main__' == __name__:
   data = load_data(TSV_DIR)
-  print(data)
+  #print(data)
   model = get_chestnut_model(SCHEMA_JSON)
-  print(model)
+  #print(model)
+  render(model, data)
   exit(0)
