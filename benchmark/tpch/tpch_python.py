@@ -237,6 +237,8 @@ q8.get_include(f('lineitems')).aggr(UnaryExpr(SUM, \
 q8.project('*')
 q8.complete()
 
+search_plans_for_one_query(q8)
+
 q12 = get_all_records(lineitem)
 q12.pfilter(BinOp(f('shipmode'), IN, MultiParam([Parameter('shipmode1'), Parameter('shipmode2')])))
 q12.pfilter(BinOp(f('commitdate'), LE, f('receiptdate')))

@@ -1,0 +1,11 @@
+digraph G {
+	tab [label=<<table>
+  <tr>
+    <td port="left">left</td>
+    <td port="right">right</td>
+  </tr>
+</table>>]
+	b [label="big boy"]
+	tab:left -> b
+	tab:right -> b
+}

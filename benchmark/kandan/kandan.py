@@ -69,7 +69,7 @@ q_cc_w1, q_cc_w2]
 
 #q_ci_1.assigned_param_values = {Parameter('channel_id'):'47'}
 
-search_plans_for_one_query(q_ci_1)#read_queries[8])
+search_plans_for_one_query(q_di_1)#q_ci_1)#read_queries[8])
 exit(0)
 #get_dsmeta(read_queries)
 

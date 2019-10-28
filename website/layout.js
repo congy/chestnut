@@ -1,37 +1,42 @@
-class VStackLayout {
-    constructor(items) {
-      this.items = items;
-    }
-    draw(svg) {
-      for (let item of items) {
-        item.draw(svg);
+class StackLayout {
+  constructor(items, padding, isVert) {
+    this.items = items;
+    this.padding = padding;
+    this.isVert = isVert;
+  }
+  draw(svg) {
+    const group = document.createElementNS(xmlns, "g");
+    svg.appendChild(group);
+
+    let b = 0;
+    for (const item of this.items) {
+      const el = item.draw(svg);
+      // Check EL.
+      if (!(el instanceof Node)) {
+        console.log(item);
+        throw new Error(`Item's draw() failed to return node.`);
       }
+      group.appendChild(el);
+
+      const bbox = el.getBBox();
+
+      el.setAttribute('transform', this.isVert
+        ? `translate(0, ${b})`
+        : `translate(${b}, 0)`);
+
+      b += bbox[this.isVert ? 'height' : 'width'] + this.padding;
     }
+    return group;
+  }
 }
 
-
-function helper_render_vstack(svg, elements, padding) {
-  const group = document.createElementNS(xmlns, "g");
-  svg.appendChild(group);
-
-  const border = document.createElementNS(xmlns, "rect");
-  group.appendChild(border);
-  border.style.fill = 'none';
-
-  let x = 0;
-  let y = padding;
-  for (const element of elements) {
-    group.appendChild(element);
-    element.setAttribute('transform', 'translate(' + padding + ',' + y + ')');
-
-    const bbox = element.getBBox();
-    console.log(bbox);
-    x = Math.max(x, bbox.width);
-    y += bbox.height + padding;
+class VStackLayout extends StackLayout {
+  constructor(items, padding) {
+    super(items, padding, true);
   }
-  // Set border up.
-  border.setAttribute('width', x + 2 * padding);
-  border.setAttribute('height', y);
-
-  return { group, border };
+}
+class HStackLayout extends StackLayout {
+  constructor(items, padding) {
+    super(items, padding, false);
+  }
 }

@@ -8,15 +8,22 @@
   <!-- <link rel="stylesheet" href="css/styles.css?v=1.0"> -->
 </head>
 <body>
-  <svg width="800" height="600"></svg>
+  <svg width="1280" height="720"></svg>
 
-
-
+  <script src="./hsluv-0.0.3.min.js"></script>
+  <script type="text/javascript">
+    const xmlns = "http://www.w3.org/2000/svg";
+  </script>
   <script src="./layout.js"></script>
+  <script src="./outline.js"></script>
+  <script src="./native.js"></script>
+  <script src="./cells.js"></script>
+  <script src="./ds.js"></script>
   <script src="./render.js"></script>
   <script type="text/javascript">
     const svg = document.getElementsByTagName('svg')[0];
-    render_all(svg, model);
+    const diag = new ChestnutDiagram(model);
+    diag.draw(svg);
   </script>
 </body>
 </html>

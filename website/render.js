@@ -1,8 +1,92 @@
 let model = {
   "0": {
+    "table": "lineitem_group5",
+    "type": "BasicArray",
+    "id": 0,
+    "value": {
+      "fields": [
+        "id",
+        "order_orderdate"
+      ],
+      "nested": [
+        {
+          "keys": [
+            {
+              "path": [],
+              "key": "order.customer.nation.region.name"
+            }
+          ],
+          "value": {
+            "fields": [
+              "id",
+              "extendedprice",
+              "discount"
+            ],
+            "nested": [
+              {
+                "table": "lineitems.supplier",
+                "type": "BasicArray",
+                "id": 0,
+                "value": {
+                  "fields": [
+                    "id"
+                  ],
+                  "nested": [
+                    {
+                      "table": "supplier.nation",
+                      "type": "BasicArray",
+                      "id": 0,
+                      "value": {
+                        "fields": [
+                          "id",
+                          "name"
+                        ],
+                        "nested": []
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "table": "lineitems.part",
+                "type": "BasicArray",
+                "id": 0,
+                "value": {
+                  "fields": [
+                    "id",
+                    "p_type"
+                  ],
+                  "nested": []
+                }
+              }
+            ]
+          },
+          "table": "lineitem_group5.lineitems",
+          "type": "Index",
+          "id": 0,
+          "condition": "order.customer.nation.region.name == param[region_name]"
+        }
+      ]
+    }
+  },
+  "1": {
+    "table": "corder",
+    "type": "BasicArray",
+    "id": 0,
+    "value": {
+      "fields": [
+        "id",
+        "orderdate"
+      ],
+      "nested": []
+    }
+  },
+  "2": {
     "keys": [
       {
-        "path": [],
+        "path": [
+          "lineitems"
+        ],
         "key": "id"
       }
     ],
@@ -10,104 +94,35 @@ let model = {
       "type": "ptr",
       "target": 0
     },
-    "table": "activity",
+    "table": "corder",
     "type": "Index",
     "id": 0,
-    "condition": "id <= param[oldest]"
-  },
-  "1": {
-    "table": "activity",
-    "type": "BasicArray",
-    "id": 0,
-    "value": {
-      "fields": [
-        "id",
-        "created_at",
-        "updated_at",
-        "action",
-        "content",
-        "channel_id",
-        "user_id"
-      ],
-      "nested": [
-        {
-          "table": "activity.channel",
-          "type": "BasicArray",
-          "id": 0,
-          "value": {
-            "fields": [
-              "id"
-            ],
-            "nested": []
-          }
-        }
-      ]
-    }
-  },
-  "2": {
-    "table": "user",
-    "type": "BasicArray",
-    "id": 0,
-    "value": {
-      "fields": [
-        "id",
-        "username"
-      ],
-      "nested": []
-    }
+    "condition": "exists(lineitems, id == param[fk_lineitem_id])"
   }
 };
 
-const xmlns = "http://www.w3.org/2000/svg";
+const COLORS_LEN = 16;
+const COLORS = new Array(COLORS_LEN).fill().map((_, i) => {
+  const rgb = hsluv.hsluvToRgb([ 70 * i % 360, 80, 90 ]);
+  return '#' + rgb.map(x => (x * 255)|0)
+    .map(x => x.toString(16).padStart(2, '0'))
+    .join('');
+});
 
-function render_all(svg, model) {
-  const elements = [];
+const getColorFromTable = (() => {
+  const colorTable = {};
+  let i = 0;
+  return function(tableName) {
+    return colorTable[tableName] = colorTable[tableName] || COLORS[i++ % COLORS_LEN];
+  };
+})();
 
-  for (const [key, value] of Object.entries(model)) {
-    const element = render_ds(svg, value);
-    elements.push(element);
+class ChestnutDiagram {
+  constructor(model) {
+    const items = Object.values(model).map(getDS);
+    this.layout = new VStackLayout(items, 25);
   }
-
-  const { group, border } = helper_render_vstack(svg, elements, 10);
-  return group;
-}
-
-function render_ds(svg, model) {
-  const elements = [];
-
-  {
-    const text_table_name = document.createElementNS(xmlns, "text");
-    elements.push(text_table_name);
-
-    text_table_name.textContent = model.type + '[' + model.table + ']';
-    text_table_name.setAttribute('dominant-baseline', 'hanging');
+  draw(svg) {
+    this.layout.draw(svg);
   }
-
-  elements.push(...render_value(svg, model.value));
-
-  const { group, border } = helper_render_vstack(svg, elements, 5);
-  border.style.stroke = 'black';
-
-  return group;
-}
-
-function render_value(svg, model) {
-  const out = []
-
-  {
-    const text_fields = document.createElementNS(xmlns, "text");
-    out.push(text_fields);
-    text_fields.textContent = model.fields
-        ? model.fields.join(', ')
-        : model.type + '->' + model.target;
-    text_fields.setAttribute('dominant-baseline', 'hanging');
-  }
-
-  if (model.nested) {
-    for (const nested of model.nested) {
-      out.push(render_ds(svg, nested));
-    }
-  }
-
-  return out
 }
