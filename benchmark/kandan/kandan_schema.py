@@ -11,10 +11,10 @@ fake = Faker()
 #scale = 10000
 scale = 20000 #1000
 #scale = 10
-channel = Table('channel', 500)
-activity = Table('activity', 500*scale)
-user = Table('user', 10*scale)
-attachment = Table('attachment', 2*scale)
+channel = Table('channel', 6)
+activity = Table('activity', 10)
+user = Table('user', 10)
+attachment = Table('attachment', 5)
 
 # create_table "activities", :force => true do |t|
 #     t.text     "content"

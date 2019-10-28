@@ -7,7 +7,7 @@ from plan_search import *
 from ilp.ilp_manager import *
 from ds_manager import *
 from query_manager import *
-# from populate_database import *
+from populate_database import *
 from codegen.protogen import *
 from codegen.codegen_test import *
 import globalv
@@ -27,7 +27,7 @@ from main_index import *
 from main_search import *
 #from ilp_solve import *
 
-workload_name = "kandan_lg"
+workload_name = "kandan_diag"
 set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
@@ -39,8 +39,8 @@ associations = [channel_to_activitiy, channel_user, activity_user, attachment_us
 
 globalv.tables = tables
 globalv.associations = associations
-#generate_db_data_files(datafile_dir, tables, associations)
-#exit(0)
+generate_db_data_files(datafile_dir, tables, associations)
+exit(0)
 
 read_queries = [q_ai_1, q_ai_2, q_ai_3, \
 q_as_1, \
