@@ -8,7 +8,6 @@ from redmine_schema import *
 from nesting import *
 from plan_search import *
 from ds_manager import *
-from populate_database import *
 from ilp.ilp_manager import *
 from codegen.protogen import *
 from codegen.codegen_test import *

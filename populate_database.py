@@ -25,8 +25,25 @@ def generate_db_data_files(data_dir, tables, associations):
     print '{} remove fields: {}'.format(t.name, ','.join([str(f) for f in temp_fields]))
     field_name = '|'.join(filter(lambda x: x != None, [None if f.name in temp_fields else f.name for f in t.get_fields()]))
     fp.write('id|{}\n'.format(field_name))
+    pk_fields = [(xx:set()) for xx in t.primary_keys]
     for i in range(1, actual_sz+1):
-      field_values = filter(lambda x: x != None, [i] + [None if f.name in temp_fields else f.generate_value() for f in t.get_fields()])
+      while True:
+        field_values_map_ = filter(lambda x: x != None, [(t.get_field_by_name('id'),i)] + [None if f.name in temp_fields else (f,f.generate_value()) for f in t.get_fields()])
+        field_values_map = {x[0].name:x[1] for xx in field_values_map_}
+        field_names = [xx[0] for xx in field_values_map_]
+        if len(pk_fields) > 0:
+          exists = False
+          for kk,vv in pk_fields:
+            pk_value = '|'.join([str(field_values_map[kkx.name]) for kkx in kk])
+            if pk_value in vv:
+              exists = True
+            else:
+              vv.add(pk_value)
+          if exists==False:
+            break
+        else:
+          break
+      #field_values = filter(lambda x: x != None, [i] + [None if f.name in temp_fields else f.generate_value() for f in t.get_fields()])
       line = '|'.join([str(f) for f in field_values])
       fp.write("{}\n".format(line))
     fp.close()

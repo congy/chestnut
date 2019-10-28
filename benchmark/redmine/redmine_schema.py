@@ -125,6 +125,7 @@ tracker.add_fields([name, is_in_chlog, position, is_in_roadmap, default_status_i
 created_on = Field('created_on', 'date')
 mail_notification = Field('mail_notification', 'bool')
 member.add_fields([created_on, mail_notification])
+member.primary_keys = [(f('member_id'), f('user_id'))]
 
   # create_table "roles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.string "name", limit: 30, default: "", null: false
@@ -293,8 +294,11 @@ issue_status.add_fields([name, is_closed, position, default_done_ratio])
   # end
 
 name = Field('name', 'varchar(16)')
+name_id = Field('name_id', 'smallint')
+name_id.value_with_prob = [(0, 20), (1,20), (2,20), (3,20), (4, 20)]
 name.value_with_prob = [('issue_tracking', 20), ('wiki',20), ('repository',20), ('boards',20), ('news', 20)]
-enabled_module.add_fields([name])
+enabled_module.add_fields([name, name_id])
+enabled_module.primary_keys = [(f('name'), f('project_id'))]
 
 project_enabled_module = get_new_assoc("project_to_enabled_module", "one_to_many", project, enabled_module, "enabled_modules", "project")
 

@@ -155,6 +155,7 @@ class Table(object):
     self.indexes = []
     self.id_index = None
     self.is_temp = is_temp
+    self.primary_keys = []
   def __eq__(self, other):
     return type(self)==type(other) and self.name == other.name
   def __str__(self):
