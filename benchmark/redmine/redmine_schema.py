@@ -8,15 +8,15 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-scale=4000
+scale=1
 #scale=40
 #scale=400
 issue = Table('issue', scale*2000)
 user = Table('user', scale*200)
 member = Table('member', scale*400)
 project = Table('project', scale*80)
-enabled_module = Table('enabled_module', project.sz*6)
-enumeration = Table('enumeration', project.sz*4)
+enabled_module = Table('enabled_module', project.sz*4)
+enumeration = Table('enumeration', project.sz*5)
 version = Table('version', project.sz*2)
 news = Table('news', project.sz*8)
 board = Table('board', project.sz*2)
@@ -125,7 +125,7 @@ tracker.add_fields([name, is_in_chlog, position, is_in_roadmap, default_status_i
 created_on = Field('created_on', 'date')
 mail_notification = Field('mail_notification', 'bool')
 member.add_fields([created_on, mail_notification])
-member.primary_keys = [(f('member_id'), f('user_id'))]
+member.primary_keys = [(f('project_id'), f('user_id'))]
 
   # create_table "roles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.string "name", limit: 30, default: "", null: false
@@ -295,10 +295,13 @@ issue_status.add_fields([name, is_closed, position, default_done_ratio])
 
 name = Field('name', 'varchar(16)')
 name_id = Field('name_id', 'smallint')
-name_id.value_with_prob = [(0, 20), (1,20), (2,20), (3,20), (4, 20)]
-name.value_with_prob = [('issue_tracking', 20), ('wiki',20), ('repository',20), ('boards',20), ('news', 20)]
+name_id.value_with_prob = [(0, 20), (1,10), (2,10), (3,10), (4, 10),(5,10),(6,10),(7,10),(8,10)]
+name.value_with_prob = [('issue_tracking', 20), ('wiki',10), ('repository',10), ('calendar',10), ('documents',10),\
+  ('boards',10), ('news', 10), ('gantt',10),('files',10)]
 enabled_module.add_fields([name, name_id])
 enabled_module.primary_keys = [(f('name'), f('project_id'))]
+enabled_module.primary_keys = [(f('name_id'), f('project_id'))]
+
 
 project_enabled_module = get_new_assoc("project_to_enabled_module", "one_to_many", project, enabled_module, "enabled_modules", "project")
 

@@ -38,11 +38,28 @@ from welcome_index import *
 from project_new import *
 #from project_slow import *
 
-
 #generate_proto_files(get_cpp_file_path(), tables, associations)
-#generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
-#populate_database(data_dir, tables, associations)
-#exit(0)
+
+generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+#populate_database(datafile_dir, tables, associations)
+
+indexes = {issue:[['assigned_to_id'], ['author_id'], ['project_id']],\
+user:[],\
+member:[['project-id']],\
+project:[['id'], ['parent_id']],\
+enabled_module:[['project_id']],\
+news:[['created_on']],\
+tracker:[],\
+issue_status:[],\
+project_tracker:[],\
+enumeration:[['project_id']]}
+
+s = create_psql_tables_script(datafile_dir, tables, associations, indexes)
+f = open('load_postgres_tables.sql', 'w')
+f.write(s)
+f.close()
+exit(0)
+
 
 read_queries = [q_ai_0, q_ai_1, \
 q_ii_1, q_ii_2, \
@@ -79,40 +96,28 @@ ilp_solve(read_queries, write_queries=[], membound_factor=5, save_to_file=True, 
 exit(0)
 #ilp_solve(read_queries, write_queries=[], membound_factor=1.1, save_to_file=False, read_from_file=True, read_ilp=False, save_ilp=True)
 
-data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
-#generate_db_data_files(data_dir, tables, associations)
-#populate_database(data_dir, tables, associations)
+#generate_db_data_files(datafile_dir, tables, associations)
+#populate_database(datafile_dir, tables, associations)
 #test_query(tables, associations, read_queries[0], 13)
 #test_generate_sql([q_ii_2])
 #test_read_overall(tables, associations, read_queries, memfactor=1.1, read_from_file=True, read_ilp=True)
 
 #[issue, user, member, project, enabled_module, version, news, board, message, tracker, role, issue_status, enumeration]
 #exit(0)
-indexes = {issue:[['assigned_to_id'], ['author_id'],['created_on'],['project_id'],['status_id'],['tracker_id']],\
-user:[['type'], ['id'], ['id', 'type']],\
-member:[['project_id'], ['user_id'], ['user_id','project_id']],\
-project:[['id'], ['lft'], ['rgt']],\
-enabled_module:[['project_id']],\
-news:[['author_id'], ['created_on'], ['project_id']],\
-tracker:[],\
-issue_status:[],\
-project_tracker:[['project_id'], ['project_id', 'tracker_id']],\
-enumeration:[['project_id']]}
 
-indexes = {issue:[['assigned_to_id'], ['author_id'], ['project_id']],\
-user:[],\
-member:[['project-id']],\
-project:[['id'], ['parent_id']],\
-enabled_module:[['project_id']],\
-news:[['created_on']],\
-tracker:[],\
-issue_status:[],\
-project_tracker:[],\
-enumeration:[['project_id']]}
+# indexes = {issue:[['assigned_to_id'], ['author_id'],['created_on'],['project_id'],['status_id'],['tracker_id']],\
+# user:[['type'], ['id'], ['id', 'type']],\
+# member:[['project_id'], ['user_id'], ['user_id','project_id']],\
+# project:[['id'], ['lft'], ['rgt']],\
+# enabled_module:[['project_id']],\
+# news:[['author_id'], ['created_on'], ['project_id']],\
+# tracker:[],\
+# issue_status:[],\
+# project_tracker:[['project_id'], ['project_id', 'tracker_id']],\
+# enumeration:[['project_id']]}
 
-
-s = create_psql_tables_script(data_dir, tables, associations, indexes)
+s = create_psql_tables_script(datafile_dir, tables, associations, indexes)
 f = open('load_postgres_tables.sql', 'w')
 f.write(s)
 f.close()

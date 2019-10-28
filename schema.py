@@ -95,7 +95,7 @@ class Field(object):
           return v
         tmp = tmp + p
         last_v = v
-      return last_v
+      return last_v if last_v is not None else ''
     elif self.tipe == "date":
       t = ''
       while len(t) < 18:
