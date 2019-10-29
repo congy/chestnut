@@ -15,16 +15,16 @@
     const xmlns = "http://www.w3.org/2000/svg";
   </script>
   <script src="./data.js"></script>
+  <script src="./json.js"></script>
 
+  <script src="./util.js"></script>
+  <script src="./colors.js"></script>
   <script src="./layout.js"></script>
-  <script src="./outline.js"></script>
-  <script src="./native.js"></script>
-  <script src="./cells.js"></script>
-  <script src="./ds.js"></script>
-  <script src="./render.js"></script>
+
+  <script src="./model.js"></script>
   <script type="text/javascript">
     const svg = document.getElementsByTagName('svg')[0];
-    const diag = new ChestnutDiagram(model, DATA);
+    const diag = new ChestnutModel(JSON_MODEL, DATA);
     diag.draw(svg);
   </script>
 </body>

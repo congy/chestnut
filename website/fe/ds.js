@@ -1,29 +1,32 @@
-function getDS(model) {
-  if ('Index' === model.type) return new IndexDS(model);
-  if ('BasicArray' === model.type) return new ArrayDS(model);
+function getDS(model, data) {
+  if ('Index' === model.type) return new IndexDS(model, data);
+  if ('BasicArray' === model.type) return new ArrayDS(model, data);
   throw new Error(`Unknown type: '${model.type}'`);
 }
 
 class DS {
-  constructor(model) {
+  constructor(model, data) {
     this.type = model.type;
-    this.table = model.table;
+    this.path = model.table;
     this.value = model.value;
 
-    this.color = getColorFromTable(this.table.split('.').pop());
+    this.table = this.path.split('.').pop();
+    this.color = getColorFromTable(this.table);
 
-    const title = new TextElement(`${this.type}[${this.table}]`);
+    const [ header, rows ] = data[this.table];
+
+    const title = new TextElement(`${this.type}[${this.path}]`);
 
     const getNested = () => {
       const nestedItems = []
       for (const nested of this.value.nested || [])
-        nestedItems.push(getDS(nested));
+        nestedItems.push(getDS(nested, data));
       return nestedItems.length
         ? new VStackLayout(nestedItems, 5)
         : new Spacer(10, 10);
     };
 
-    const cellsItems = new Array(5).fill().map(getNested);
+    const cellsItems = new Array(rows.length).fill().map(getNested);
     const cells = new Cells(cellsItems, 10, {
       'fill': this.color
     });
@@ -36,13 +39,13 @@ class DS {
 }
 
 class ArrayDS extends DS {
-  constructor(model) {
-    super(model);
+  constructor(model, data) {
+    super(model, data);
   }
 }
 class IndexDS extends DS {
-  constructor(model) {
-    super(model);
+  constructor(model, data) {
+    super(model, data);
     this.pyramid = new PyramidOutline(this.layout, 10, {
       'fill': '#eeeeee',
     });

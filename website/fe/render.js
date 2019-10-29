@@ -1,8 +1,92 @@
 let model = {
   "0": {
+    "table": "lineitem_group5",
+    "type": "BasicArray",
+    "id": 0,
+    "value": {
+      "fields": [
+        "id",
+        "order_orderdate"
+      ],
+      "nested": [
+        {
+          "keys": [
+            {
+              "path": [],
+              "key": "order.customer.nation.region.name"
+            }
+          ],
+          "value": {
+            "fields": [
+              "id",
+              "extendedprice",
+              "discount"
+            ],
+            "nested": [
+              {
+                "table": "lineitems.supplier",
+                "type": "BasicArray",
+                "id": 0,
+                "value": {
+                  "fields": [
+                    "id"
+                  ],
+                  "nested": [
+                    {
+                      "table": "supplier.nation",
+                      "type": "BasicArray",
+                      "id": 0,
+                      "value": {
+                        "fields": [
+                          "id",
+                          "name"
+                        ],
+                        "nested": []
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "table": "lineitems.part",
+                "type": "BasicArray",
+                "id": 0,
+                "value": {
+                  "fields": [
+                    "id",
+                    "p_type"
+                  ],
+                  "nested": []
+                }
+              }
+            ]
+          },
+          "table": "lineitem_group5.lineitems",
+          "type": "Index",
+          "id": 0,
+          "condition": "order.customer.nation.region.name == param[region_name]"
+        }
+      ]
+    }
+  },
+  "1": {
+    "table": "corder",
+    "type": "BasicArray",
+    "id": 0,
+    "value": {
+      "fields": [
+        "id",
+        "orderdate"
+      ],
+      "nested": []
+    }
+  },
+  "2": {
     "keys": [
       {
-        "path": [],
+        "path": [
+          "lineitems"
+        ],
         "key": "id"
       }
     ],
@@ -10,51 +94,10 @@ let model = {
       "type": "ptr",
       "target": 0
     },
-    "table": "activity",
+    "table": "corder",
     "type": "Index",
     "id": 0,
-    "condition": "id <= param[oldest]"
-  },
-  "1": {
-    "table": "activity",
-    "type": "BasicArray",
-    "id": 0,
-    "value": {
-      "fields": [
-        "id",
-        "created_at",
-        "updated_at",
-        "action",
-        "content",
-        "channel_id",
-        "user_id"
-      ],
-      "nested": [
-        {
-          "table": "activity.channel",
-          "type": "BasicArray",
-          "id": 0,
-          "value": {
-            "fields": [
-              "id"
-            ],
-            "nested": []
-          }
-        }
-      ]
-    }
-  },
-  "2": {
-    "table": "user",
-    "type": "BasicArray",
-    "id": 0,
-    "value": {
-      "fields": [
-        "id",
-        "username"
-      ],
-      "nested": []
-    }
+    "condition": "exists(lineitems, id == param[fk_lineitem_id])"
   }
 };
 
@@ -65,7 +108,6 @@ const COLORS = new Array(COLORS_LEN).fill().map((_, i) => {
     .map(x => x.toString(16).padStart(2, '0'))
     .join('');
 });
-
 const getColorFromTable = (() => {
   const colorTable = {};
   let i = 0;
@@ -75,8 +117,8 @@ const getColorFromTable = (() => {
 })();
 
 class ChestnutDiagram {
-  constructor(model) {
-    const items = Object.values(model).map(getDS);
+  constructor(model, data) {
+    const items = Object.values(model).map(x => getDS(x, data));
     this.layout = new VStackLayout(items, 25);
   }
   draw(svg) {

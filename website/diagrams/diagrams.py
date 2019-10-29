@@ -14,7 +14,7 @@ from json_med import *
 
 
 
-TSV_DIR = '../benchmark/kandan/data/kandan_diag/'
+TSV_DIR = '../../benchmark/kandan/data/kandan_diag/'
 
 
 
