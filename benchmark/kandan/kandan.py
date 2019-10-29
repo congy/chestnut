@@ -39,8 +39,8 @@ associations = [channel_to_activitiy, channel_user, activity_user, attachment_us
 
 globalv.tables = tables
 globalv.associations = associations
-generate_db_data_files(datafile_dir, tables, associations)
-exit(0)
+#generate_db_data_files(datafile_dir, tables, associations)
+#exit(0)
 
 read_queries = [q_ai_1, q_ai_2, q_ai_3, \
 q_as_1, \
