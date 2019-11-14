@@ -1,0 +1,33 @@
+{{#section 'head'}}
+<style>
+html {
+    font-family: Arial, sans-serif;
+}
+</style>
+
+{{/section}}
+
+<h1>Chestnut</h1>
+
+<svg width="1280" height="720"></svg>
+
+<script src="/static/hsluv-0.0.3.min.js"></script>
+<script type="text/javascript">
+  const xmlns = "http://www.w3.org/2000/svg";
+</script>
+<script src="/static/json.js"></script>
+
+<script src="/static/util.js"></script>
+<script src="/static/colors.js"></script>
+<script src="/static/layout.js"></script>
+
+<script src="/static/model.js"></script>
+<script type="text/javascript">
+  const svg = document.getElementsByTagName('svg')[0];
+  fetch('/data')
+    .then(res => res.json())
+    .then((data) => {
+      const diag = new ChestnutModel(JSON_MODEL, data);
+      diag.draw(svg);
+    });
+</script>
