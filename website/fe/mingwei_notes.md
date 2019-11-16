@@ -60,5 +60,20 @@ Query result on the example data.
 
 
 # Deadline
+
 Sigmod 2020 - Look at demo track papers
 DUE January 15 2020
+
+
+# Query Plan
+
+TREEINDEX_INDEX_FOR_BEGIN -> all items
+TREEINDEX_RANGE_FOR_BEGIN -> range query
+
+
+## Bugs
+
+- Works for simple: kandan.
+- Aggregations precomputed stored.
+  - Dynamic in for loops work.
+- (Really complicated predicates)
