@@ -5,10 +5,11 @@ class ChestnutModel {
       const { rows } = data[table];
       return getDS(x, data, rows);
     });
+    this.layout = new VStackLayout(this.tlds, 20);
   }
-  draw(svg) {
-    let els = this.tlds.map((ds, i) => ds.draw(svg, 0, i));
-    return vStackLayout(svg, els, 10);
+  draw(svg) { // TODO pos arg.
+    const pos = { x: 0, y: 0 };
+    return this.layout.draw(svg, pos);
   }
 }
 
@@ -38,18 +39,12 @@ class DS {
     console.log(`${this.type}[${this.path}]: ${this.rows.length}/${allRows.length} rows.`);
 
     this.records = this.rows.map(row => new Record(model, data, row));
+    this.layout = new HStackLayout(this.records, 0);
   }
-  draw(svg, depth, nth) {
-    const recordEls = this.records.map((r, i) => r.draw(svg, depth + 1, i));
+  draw(svg, pos) {
+    checkArgs(svg, pos);
 
-    let hStack = hStackLayout(svg, recordEls, 0);
-
-    if (depth && nth)
-      return hStack; // Do not show text on lower depth.
-
-    const text = drawTextElem(svg, `${this.type}[${this.path}]: ${this.condition || '(all)'}`);
-
-    return vStackLayout(svg, [ text, hStack ], 5);
+    return passCheckWH(this.layout.draw(svg, pos));
   }
 }
 class ArrayDS extends DS {
@@ -77,15 +72,16 @@ class Record {
         const nestedRows = getNestedRows(data, header, row, nestedModel);
         return getDS(nestedModel, data, nestedRows)
       });
-  }
-  draw(svg, depth, nth) {
-    const text = drawTextElem(svg, `id=${this.row[0]}`);
 
-    const nestedElems = this.nested.map((n, i) => n.draw(svg, depth, nth));
-
-    const vStack = vStackLayout(svg, [ text, ...nestedElems ], 5);
-
+    // Layout
+    const text = new Text(`id=${this.row[0]}`);
+    const vStack = new VStackLayout([ text, ...this.nested ], 5);
     const fill = getColorFromTable(this.table);
-    return drawBox(svg, vStack, 5, { fill });
+    this.box = new Box(vStack, 5, { fill });
+  }
+  draw(svg, pos) {
+    checkArgs(svg, pos);
+
+    return passCheckWH(this.box.draw(svg, pos));
   }
 }
