@@ -4,7 +4,7 @@ class StackLayout {
     this.pad = pad;
     this.isVert = isVert;
   }
-  draw(svg, pos) {
+  draw(svg, pos, meta) {
     checkArgs(svg, pos);
 
     if (0 == this.items.length)
@@ -14,8 +14,7 @@ class StackLayout {
     let b = 0;
 
     for (const item of this.items) {
-      const { w: wi, h: hi } = item.draw(svg, { x, y });
-      console.log({ wi, hi });
+      const { w: wi, h: hi } = item.draw(svg, { x, y }, meta);
 
       if (this.isVert) {
         y += hi + this.pad;
@@ -31,7 +30,6 @@ class StackLayout {
     y -= this.pad;
     x -= this.pad;
 
-    console.log(this.isVert, x, pos.x);
     return passCheckWH(this.isVert
       ? { w: b, h: y - pos.y }
       : { w: x - pos.x, h: b });
@@ -54,52 +52,56 @@ class Box {
     this.pad = pad;
     this.attr = attr;
   }
-  draw(svg, { x, y }) {
+  draw(svg, { x, y }, meta) {
     checkArgs(svg, { x, y });
 
-    let { w, h } = this.item.draw(svg, { x: x + this.pad, y: y + this.pad });
+    let { w, h } = this.item.draw(svg, { x: x + this.pad, y: y + this.pad }, meta);
 
-    console.log(w, h);
     if (w == 0 || h == 0)
       console.log(this.item);
 
     w += 2 * this.pad;
     h += 2 * this.pad;
 
-    const box = document.createElementNS(xmlns, "rect");
+    const box = createBox(x, y, w, h, this.attr);
     svg.prepend(box);
-    box.setAttribute('fill', 'white');
-    box.setAttribute('stroke', 'black');
-    box.setAttribute('x', x);
-    box.setAttribute('y', y);
-    box.setAttribute('width', w);
-    box.setAttribute('height', h);
-
-    for (const kv of Object.entries(this.attr))
-      box.setAttribute(...kv);
 
     return passCheckWH({ w, h });
   }
+}
+
+function createBox(x, y, width, height, attr = {}) {
+  const box = document.createElementNS(xmlns, "rect");
+  box.setAttribute('fill', 'white');
+  box.setAttribute('stroke', 'black');
+  box.setAttribute('transform', `translate(${x}, ${y})`);
+  box.setAttribute('width', width);
+  box.setAttribute('height', height);
+  for (const kv of Object.entries(attr))
+    box.setAttribute(...kv);
+  return box;
 }
 
 class Text {
   constructor(text) {
     this.text = text;
   }
-  draw(svg, { x, y }) {
+  draw(svg, { x, y }, meta) {
     checkArgs(svg, { x, y });
 
-    const el = document.createElementNS(xmlns, "text");
+    const el = createText(this.text, x, y);
     svg.prepend(el);
-    el.textContent = this.text;
-    el.setAttribute('dominant-baseline', 'text-before-edge');
-    el.setAttribute('x', x);
-    el.setAttribute('y', y);
-
-    console.log(el.getBBox(), bboxToWH(el.getBBox()));
 
     return passCheckWH(bboxToWH(el.getBBox()));
   }
+}
+
+function createText(text, x, y) {
+  const el = document.createElementNS(xmlns, "text");
+  el.textContent = text;
+  el.setAttribute('dominant-baseline', 'text-before-edge');
+  el.setAttribute('transform', `translate(${x}, ${y})`);
+  return el;
 }
 
 function checkArgs(svg, pos) {

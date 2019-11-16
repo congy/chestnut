@@ -3,6 +3,9 @@
 html {
     font-family: Arial, sans-serif;
 }
+svg * {
+  transition: transform 0.8s cubic-bezier(0.47, 0, 0.745, 0.715);
+}
 </style>
 
 {{/section}}
@@ -28,6 +31,10 @@ html {
     .then(res => res.json())
     .then((data) => {
       const diag = new ChestnutModel(JSON_MODEL, data);
-      diag.draw(svg);
+      diag.draw(svg, { x: 100, y: 100 }, { state: 0 });
+      return promiseDelay(500);
+    })
+    .then(() => {
+      Record.moveAllToSavedPos();
     });
 </script>

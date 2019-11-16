@@ -62,3 +62,10 @@ function getNestedRows(data, header, row, nestedModel) {
   const nestedRows = nestedAllRows.filter(nestedRow => row[i] == nestedRow[j]);
   return nestedRows;
 }
+
+
+
+
+function promiseDelay(delay) {
+  return new Promise(resolve => window.setTimeout(resolve, delay));
+}

@@ -7,9 +7,8 @@ class ChestnutModel {
     });
     this.layout = new VStackLayout(this.tlds, 20);
   }
-  draw(svg) { // TODO pos arg.
-    const pos = { x: 0, y: 0 };
-    return this.layout.draw(svg, pos);
+  draw(svg, pos, meta) {
+    return this.layout.draw(svg, pos, meta, 0);
   }
 }
 
@@ -41,10 +40,10 @@ class DS {
     this.records = this.rows.map(row => new Record(model, data, row));
     this.layout = new HStackLayout(this.records, 0);
   }
-  draw(svg, pos) {
+  draw(svg, pos, meta) {
     checkArgs(svg, pos);
 
-    return passCheckWH(this.layout.draw(svg, pos));
+    return passCheckWH(this.layout.draw(svg, pos, meta));
   }
 }
 class ArrayDS extends DS {
@@ -60,7 +59,12 @@ class IndexDS extends DS {
 
 
 class Record {
+  static allRecords = [];
+  static pad = 5;
+
   constructor(model, data, row) {
+    Record.allRecords.push(this);
+
     this.row = row;
     this.path = model.table;
     this.table = getTableFromPath(this.path);
@@ -73,15 +77,55 @@ class Record {
         return getDS(nestedModel, data, nestedRows)
       });
 
-    // Layout
-    const text = new Text(`id=${this.row[0]}`);
-    const vStack = new VStackLayout([ text, ...this.nested ], 5);
-    const fill = getColorFromTable(this.table);
-    this.box = new Box(vStack, 5, { fill });
+    // // Layout
+    // const text = new Text(`id=${this.row[0]}`);
+    this.vStack = new VStackLayout(this.nested, 5);
+    this.color = getColorFromTable(this.table);
+    // this.box = new Box(vStack, 5, { fill });
+
+    this.group = document.createElementNS(xmlns, "g");
+    this.textEl = createText(`id=${this.row[0]}`, Record.pad, Record.pad);
+    this.group.appendChild(this.textEl);
+
+    this.savedPos = null;
   }
-  draw(svg, pos) {
+  static async moveAllToSavedPos() {
+    for (const record of Record.allRecords) {
+      await promiseDelay(3000 / Record.allRecords.length);
+      record.moveToSavedPos();
+    }
+  }
+  moveToSavedPos() {
+    const { x, y } = this.savedPos;
+    this.group.setAttribute('transform', `translate(${x}, ${y})`);
+  }
+  draw(svg, pos, meta) {
     checkArgs(svg, pos);
 
-    return passCheckWH(this.box.draw(svg, pos));
+    this.savedPos = pos;
+
+    let { x, y } = pos;
+
+    svg.prepend(this.group); // HACKY to get sizing.
+
+    const textBBox = this.textEl.getBBox();
+
+    x += Record.pad;
+    y += 2 * Record.pad + textBBox.height; // HACKY.
+
+    let { w, h } = this.vStack.draw(svg, { x, y }, meta);
+    w = 2 * Record.pad + Math.max(w, textBBox.width);
+    h += (this.nested.length ? 3 : 2) * Record.pad + textBBox.height;
+
+    svg.prepend(this.group);
+
+    if (0 === meta.state)
+      this.group.setAttribute('transform', `translate(${-w - 200 * Math.random()}, ${-50 * Math.random()})`);
+    else
+      this.group.setAttribute('transform', `translate(${x}, ${y})`);
+
+    this.group.prepend(createBox(0, 0, w, h, { fill: this.color }));
+
+    return { w, h };
   }
 }
