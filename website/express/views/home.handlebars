@@ -13,7 +13,6 @@ svg rect {
     height 0.8s cubic-bezier(0.47, 0, 0.745, 0.715);
 }
 </style>
-
 {{/section}}
 
 <h1>Chestnut</h1>
@@ -39,11 +38,30 @@ svg rect {
   fetch('/data')
     .then(res => res.json())
     .then((data) => {
-      const diag = new ChestnutModel(JSON_MODEL, data);
-      diag.draw(svg, { x: 100, y: 100 }, { state: 0 });
-      return promiseDelay(500);
+      const diskVis = new VisStack([], true, 20);
+      diskVis.prepend(svg);
+
+      for (const [ table, { header, rows } ] of Object.entries(data)) {
+        const idIndex = header.indexOf('id');
+        const color = getColorFromTable(table);
+
+        const tableVis = new VisStack();
+        tableVis.prepend(svg);
+
+        for (const row of rows) {
+          const recordVis = new VisRecord(row[idIndex], color, { table, row });
+          recordVis.prepend(svg);
+
+          tableVis.push(recordVis);
+        }
+
+        diskVis.push(tableVis);
+      }
+      //const diag = new ChestnutModel(JSON_MODEL, data);
+      //diag.draw(svg, { x: 100, y: 100 }, { state: 0 });
+      //return promiseDelay(500);
     })
-    .then(() => {
-      Record.moveAllToSavedPos();
-    });
+    //.then(() => {
+    //  Record.moveAllToSavedPos();
+    //});
 </script> --}}

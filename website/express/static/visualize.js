@@ -46,7 +46,7 @@ async function main() {
 
                     const bb = new VisElem(createTextEl("hi"));
                     bb.prepend(svg)
-                    x.stack.push(bb);
+                    x.box.item.push(bb);
                 }
             });
         });
@@ -71,7 +71,7 @@ function createTextEl(text) {
 
 function createRectEl() {
     const el = document.createElementNS(xmlns, "rect");
-    el.setAttribute('fill', 'rgba(255, 0, 0, 0.1)');
+    el.setAttribute('fill', 'white');
     el.setAttribute('stroke', 'black');
     return el;
 }
@@ -86,6 +86,7 @@ class Vis {
         this.parent = parent;
     }
     reflowParent() {
+        // console.log(`reflow ${this.constructor.name} -> parent ${this.parent && this.parent.constructor.name}`);
         if (null !== this.parent)
             this.parent.reflow(this);
     }
@@ -113,43 +114,98 @@ class VisElem extends Vis {
     }
 }
 
+class VisBox extends Vis {
+    constructor(item, color, pad = 0) {
+        super();
+
+        this.item = item;
+        this.item.setParent(this);
+
+        this.color = color;
+        this.rect = createRectEl();
+        this.rect.setAttribute('fill', color);
+
+        this.pad = pad;
+        this.width = 0;
+        this.height = 0;
+        this.move(0, 0);
+    }
+    _update() {
+        let { width, height } = this.item.size();
+        width  += 2 * this.pad;
+        height += 2 * this.pad;
+
+        if (this.width === width && this.height === height)
+            return false;
+
+        this.rect.setAttribute('width',  width);
+        this.rect.setAttribute('height', height);
+
+        this.width  = width;
+        this.height = height;
+
+        return true;
+    }
+    reflow(child) {
+        if (this._update())
+            this.reflowParent();
+    }
+    move(x, y) {
+        if (this.x === x && this.y === y)
+            return;
+
+        moveEl(this.rect, x, y);
+        this.item.move(x + this.pad, y + this.pad);
+    }
+    size() {
+        return { width: this.width, height: this.height };
+    }
+    prepend(svg) {
+        this.item.prepend(svg);
+        svg.prepend(this.rect);
+        this._update();
+    }
+    clone() {
+        return new VisBox(this.item.cloneNode(), this.color, this.pad);
+    }
+}
+
 class VisRecord extends Vis {
     static pad = 5;
     static spacing = 5;
 
-    constructor(id, data = null) {
+    constructor(id, color = 'rgba(255, 0, 0, 0.1)', data = null) {
         super();
         this.id = id;
         this.data = data;
 
         this.text = createTextEl(`id=${id}`);
-        this.box = createRectEl();
+        // this.box = createRectEl();
+        // this.box.setAttribute('fill', color);
 
-        this.stack = new VisStack([ new VisElem(this.text) ], true);
-        this.stack.setParent(this);
+        const stack = new VisStack([ new VisElem(this.text) ], true, VisRecord.spacing);
+        // this.stack.setParent(this);
+
+        this.box = new VisBox(stack, color, VisRecord.pad);
+        this.box.setParent(this);
+
         this.move(0, 0);
 
         this.width = 0;
         this.height = 0;
-
-        /* this.text.setAttribute('opacity', 0);
-        this.box.setAttribute('opacity', 0); */
     }
     reflow(child) {
-        const { width, height } = this.size();
-        let { width: nw, height: nh } = this.stack.size();
-        nw += 2 * VisRecord.pad;
-        nh += 2 * VisRecord.pad;
+        let { width, height } = this.box.size();
 
-        if (nw === width && nh === height) {
+        if (this.width === width && this.height === height) {
             return;
         }
 
-        this.box.setAttribute('width',  nw);
-        this.box.setAttribute('height', nh);
+        // this.box.setAttribute('width',  nw);
+        // this.box.setAttribute('height', nh);
 
-        this.width  = nw;
-        this.height = nh;
+        this.width  = width;
+        this.height = height;
 
         this.reflowParent();
     }
@@ -160,30 +216,29 @@ class VisRecord extends Vis {
         this.x = x;
         this.y = y;
         // moveEl(this.text, x + VisRecord.pad, y + VisRecord.pad);
-        this.stack.move(x + VisRecord.pad, y + VisRecord.pad);
-        moveEl(this.box, x, y);
+        // this.stack.move(x + VisRecord.pad, y + VisRecord.pad);
+        // moveEl(this.box, x, y);
+        this.box.move(x, y);
     }
     size() {
         return { width: this.width, height: this.height };
     }
     prepend(svg) {
-        svg.prepend(this.text);
-        let { width, height } = this.text.getBBox();
+        // svg.prepend(this.text);
+        // let { width, height } = this.text.getBBox();
 
-        width  += 2 * VisRecord.pad;
-        height += 2 * VisRecord.pad;
+        // width  += 2 * VisRecord.pad;
+        // height += 2 * VisRecord.pad;
 
-        this.box.setAttribute('width', width);
-        this.box.setAttribute('height', height);
-        svg.prepend(this.box);
+        // this.box.setAttribute('width', width);
+        // this.box.setAttribute('height', height);
+        // svg.prepend(this.box);
+
+        this.box.prepend(svg);
+        const { width, height } = this.box.size();
 
         this.width = width;
         this.height = height;
-
-        /* window.requestAnimationFrame(() => {
-            this.text.setAttribute('opacity', 1);
-            this.box.setAttribute('opacity', 1);
-        }); */
     }
     clone() {
         const clone = new VisRecord(this.id);
@@ -193,12 +248,13 @@ class VisRecord extends Vis {
 }
 
 class VisStack extends Vis {
-    constructor(items = [], isVert = false) {
+    constructor(items = [], isVert = false, pad = 0) {
         super();
 
         this.items = items;
         this.items.forEach(item => item.setParent(this));
 
+        this.pad = pad;
         this.width = 0;
         this.height = 0;
         this.isVert = isVert;
@@ -219,13 +275,13 @@ class VisStack extends Vis {
             const { width, height} = item.size();
             if (this.isVert) {
                 w = Math.max(w, width);
-                h += height;
-                y += height;
+                h += height + this.pad;
+                y += height + this.pad;
             }
             else {
                 h = Math.max(h, height);
-                w += width;
-                x += width;
+                w += width + this.pad;
+                x += width + this.pad;
             }
         }
         if (this.width === w && this.height === h)
@@ -252,6 +308,7 @@ class VisStack extends Vis {
     }
     prepend(svg) {
         this.items.forEach(item => item.prepend(svg));
+        this._update();
     }
     clone() {
         throw Error('no clone visarray yet :(');
