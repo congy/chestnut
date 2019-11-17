@@ -7,9 +7,10 @@ from nesting import *
 from plan_search import *
 from ilp.ilp_manager import *
 from ds_manager import *
+from codegen.codegen_test import *
 import globalv
 
-workload_name = "tpch_all"
+workload_name = "tpch"
 set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
@@ -327,10 +328,15 @@ read_queries = [q1, q3, q4, q5, q6, q7, q12, q13, q14, q15]
 # q8: to be fixed
 #test_merge(q12)
 
-prune_nesting_test(read_queries)
-test_prune_read_plan(read_queries)
-#search_plans_for_one_query(q5)
+#prune_nesting_test(read_queries)
+#test_prune_read_plan(read_queries)
+
+search_plans_for_one_query(q3)
+test_codegen_one_query(globalv.tables, globalv.associations, q3)
 #test_ilp(read_queries)
+
+#ilp_solve(read_queries, write_queries=[], membound_factor=1.7, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+#test_read_overall(tables, associations, read_queries, memfactor=1.7, read_from_file=True, read_ilp=True)
 
 # dsmanagers = enumerate_nestings_for_query(q5)
 # for i,ds in enumerate(dsmanagers):

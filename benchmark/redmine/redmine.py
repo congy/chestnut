@@ -14,16 +14,23 @@ from codegen.codegen_test import *
 import globalv
 
 
-workload_name = "redmine"
+workload_name = "redmine1"
 set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 
 set_cpp_file_path('../../')
 
+#globalv.tables = [enabled_module]
+#globalv.associations = [project_enabled_module]
+
+#globalv.tables = [user, member, role]
+#globalv.associations = [project_enabled_module]
+
 globalv.tables = [issue, user, member, project, enabled_module, version, news, board, message, tracker, role, issue_status, enumeration]
 globalv.associations = [project_issue, issue_tracker, issue_status_issue, member_user, project_member, member_roles,\
 project_tracker, project_news, project_enabled_module, project_version, project_board, message_board, project_enumeration]
+
 #issue_version, issue_user, issue_enumeration]
 
 tables = globalv.tables
@@ -40,8 +47,8 @@ from project_new import *
 
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 
-generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
-#populate_database(datafile_dir, tables, associations)
+#generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+populate_database(datafile_dir, tables, associations, True)
 
 indexes = {issue:[['assigned_to_id'], ['author_id'], ['project_id']],\
 user:[],\

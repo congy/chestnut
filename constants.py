@@ -384,7 +384,7 @@ def get_cpp_files_to_copy_path():
   global cpp_files_to_copy_path
   return cpp_files_to_copy_path
 
-cpp_file_path = ''
+cpp_file_path = '../../'
 def set_cpp_file_path(new_path):
   global cpp_file_path
   cpp_file_path = new_path

@@ -45,7 +45,7 @@ class Field(object):
       return type_size[self.tipe]
   def get_min_value(self, for_z3=False):
     if is_string_type(self.tipe):
-      return 0 if for_z3 else '\"\"'
+      return 0 if for_z3 else ''
     if len(self.value_with_prob) > 0:
       minv = MAXINT
       for v,p in self.value_with_prob:
@@ -60,7 +60,7 @@ class Field(object):
       return self.range[0]
   def get_max_value(self, for_z3=False):
     if is_string_type(self.tipe):
-      return MAXINT if for_z3 else '\"{}\"'.format(''.join(['z' for i in range(0, get_varchar_length(self.tipe))]))
+      return MAXINT if for_z3 else '{}'.format(''.join(['z' for i in range(0, get_varchar_length(self.tipe))]))
     if len(self.value_with_prob) > 0:
       maxv = 0-MAXINT
       for v,p in self.value_with_prob:
@@ -92,7 +92,7 @@ class Field(object):
       last_v = None
       for v,p in self.value_with_prob:
         if key < tmp + p:
-          return v
+          return v if v is not None else ''
         tmp = tmp + p
         last_v = v
       return last_v if last_v is not None else ''

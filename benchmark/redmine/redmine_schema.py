@@ -8,24 +8,28 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-scale=1
+scale=4000
 #scale=40
 #scale=400
-issue = Table('issue', scale*2000)
-user = Table('user', scale*200)
-member = Table('member', scale*400)
-project = Table('project', scale*80)
-enabled_module = Table('enabled_module', project.sz*4)
-enumeration = Table('enumeration', project.sz*5)
-version = Table('version', project.sz*2)
-news = Table('news', project.sz*8)
-board = Table('board', project.sz*2)
-message = Table('message', board.sz*2)
+issue = Table('issue', scale*4000)
+user = Table('user', scale)
+member = Table('member', scale*4000)
+project = Table('project', scale)
+enabled_module = Table('enabled_module', project.sz*5)
+enumeration = Table('enumeration', project.sz*50)
+version = Table('version', project.sz*20)
+news = Table('news', project.sz*80)
+board = Table('board', project.sz*20)
+message = Table('message', board.sz*20)
 
 tracker = Table('tracker', 10)
 role = Table('role', 20)
 issue_status = Table('issue_status', 10)
 
+
+#project = Table('project', scale)
+#user = Table('user', scale*100)
+#member = Table('member', scale*4000)
 
   # create_table "issues", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
   #   t.integer "tracker_id", null: false
@@ -299,8 +303,7 @@ name_id.value_with_prob = [(0, 20), (1,10), (2,10), (3,10), (4, 10),(5,10),(6,10
 name.value_with_prob = [('issue_tracking', 20), ('wiki',10), ('repository',10), ('calendar',10), ('documents',10),\
   ('boards',10), ('news', 10), ('gantt',10),('files',10)]
 enabled_module.add_fields([name, name_id])
-enabled_module.primary_keys = [(f('name'), f('project_id'))]
-enabled_module.primary_keys = [(f('name_id'), f('project_id'))]
+enabled_module.primary_keys = [(f('name_id'), f('project_id')), (f('name'), f('project_id'))]
 
 
 project_enabled_module = get_new_assoc("project_to_enabled_module", "one_to_many", project, enabled_module, "enabled_modules", "project")

@@ -28,20 +28,22 @@ def generate_db_data_files(data_dir, tables, associations):
     pk_fields = [(xx,set()) for xx in t.primary_keys]
     for i in range(1, actual_sz+1):
       loop_cnt = 0
+      if i%1000 == 0:
+        print "progress {} / {}".format(i, actual_sz)
       while True:
         field_values_map_ = filter(lambda x: x != None, [(t.get_field_by_name('id'),i)] + [None if f.name in temp_fields else (f,f.generate_value()) for f in t.get_fields()])
         field_values_map = {xx[0].name:xx[1] for xx in field_values_map_}
         field_names = [xx[0].name for xx in field_values_map_]
         field_values = [field_values_map[xx] for xx in field_names]
         if len(pk_fields) > 0:
-          exists = False
+          no_exists = True
           for kk,vv in pk_fields:
             pk_value = '|'.join([str(field_values_map[kkx.field_name]) for kkx in kk])
             if pk_value in vv:
-              exists = True
+              no_exists = False
             else:
               vv.add(pk_value)
-          if exists==False or loop_cnt > 10:
+          if no_exists or loop_cnt > 10:
             break
           loop_cnt += 1
         else:

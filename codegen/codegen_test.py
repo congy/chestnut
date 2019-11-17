@@ -182,6 +182,53 @@ def test_generate_sql_helper(ds, mycursor):
       nextqf = get_qf_from_nested_t(nextds.table)
       test_generate_sql_helper(nextds, mycursor)
 
+def test_codegen_one_query(tables, associations, query, planid=-1):
+  rqmanagers, dsmeta = get_dsmeta([query]) 
+  rqmng = rqmanagers[0]
+  chosen_plan = None # tup: ()
+  plan_id = 0
+  query.id = 0
+  for i,plan_for_one_nesting in enumerate(rqmng.plans):
+    for j in range(0, len(plan_for_one_nesting.plans)):
+      plan = plan_for_one_nesting.plans[j]
+      dsmng = plan_for_one_nesting.dsmanagers[j]
+      cost = to_real_value(plan.compute_cost())
+      if (planid==-1 and (chosen_plan is None or chosen_plan[0]>cost)) or (planid == plan_id):
+        chosen_plan = (cost, plan, dsmng, plan_id)  
+      plan_id = plan_id + 1
+
+  prepare_other_files(tables, associations)
+  header, cpp = cgen_initialize_all(tables, associations, dsmeta)
+  fp = open('{}/{}.h'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(header)
+  fp.close()
+
+  fp = open('{}/{}.cc'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(cpp)
+  fp.close()
+
+  chosen_plan[1].copy_ds_id(None, dsmeta)
+  header_, cpp_ = cgen_for_read_query(0, query, chosen_plan[1], chosen_plan[2], chosen_plan[3])
+  header = (header_ + '\n')
+  cpp = (cpp_ + '\n')
+  
+  header = query_includes + '#include "{}.h"\n\n'.format(get_db_name()) + header 
+  cpp = '#include "{}_query.h"'.format(get_db_name()) + '\n' + cpp
+
+  fp = open('{}/{}_query.h'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(header)
+  fp.close()
+
+  fp = open('{}/{}_query.cc'.format(get_db_name(), get_db_name()), 'w')
+  fp.write(cpp)
+  fp.close()
+
+  main_body = 'read_data();\n' + cgen_for_query_in_main([query], [chosen_plan[3]])
+  main = cgen_for_main_test(main_body, ds_def=True, include_query=True)
+  fp = open('{}/main.cc'.format(get_db_name()), 'w')
+  fp.write(main)
+  fp.close()
+
 def test_read_overall(tables, associations, queries, memfactor=1, read_from_file=False, read_ilp=False):
 
   (dsmeta, plans, plan_ds, plan_ids) = ilp_solve(queries, membound_factor=memfactor, read_from_file=read_from_file, read_ilp=read_ilp)
