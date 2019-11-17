@@ -9,10 +9,12 @@ async function main() {
 
     const outs = new Array(10).fill()
         .map(() => new VisStack([], true));
-    outs.forEach((v, i) => v.move(60 * i, 35));
+    // outs.forEach((v, i) => v.move(60 * i, 35));
+    const outStack = new VisStack(outs);
+    outStack.move(0, 60);
 
     const visItems = new Array(20).fill()
-        .map((_, i) => new VisRecord(i));
+        .map((_, i) => new VisRecord(81 + i));
     visItems.forEach(visItem => {
         //visItem.show();
         visItem.prepend(svg)
@@ -42,7 +44,7 @@ async function main() {
                 if (Math.random() < 0.1) {
                     const x = a.get((Math.random() * a.length() / 2) | 0);
 
-                    const bb = new VisElem(createTextEl("bb"));
+                    const bb = new VisElem(createTextEl("hi"));
                     bb.prepend(svg)
                     x.stack.push(bb);
                 }
@@ -115,15 +117,20 @@ class VisRecord extends Vis {
     static pad = 5;
     static spacing = 5;
 
-    constructor(id) {
+    constructor(id, data = null) {
         super();
         this.id = id;
+        this.data = data;
+
         this.text = createTextEl(`id=${id}`);
         this.box = createRectEl();
 
         this.stack = new VisStack([ new VisElem(this.text) ], true);
         this.stack.setParent(this);
         this.move(0, 0);
+
+        this.width = 0;
+        this.height = 0;
 
         /* this.text.setAttribute('opacity', 0);
         this.box.setAttribute('opacity', 0); */
@@ -141,9 +148,15 @@ class VisRecord extends Vis {
         this.box.setAttribute('width',  nw);
         this.box.setAttribute('height', nh);
 
+        this.width  = nw;
+        this.height = nh;
+
         this.reflowParent();
     }
     move(x, y) {
+        if (this.x === x && this.y === y)
+            return;
+
         this.x = x;
         this.y = y;
         // moveEl(this.text, x + VisRecord.pad, y + VisRecord.pad);
@@ -151,14 +164,21 @@ class VisRecord extends Vis {
         moveEl(this.box, x, y);
     }
     size() {
-        return this.box.getBBox();
+        return { width: this.width, height: this.height };
     }
     prepend(svg) {
         svg.prepend(this.text);
-        const { width, height } = this.text.getBBox();
-        this.box.setAttribute('width', width + 2 * VisRecord.pad);
-        this.box.setAttribute('height', height + 2 * VisRecord.pad);
+        let { width, height } = this.text.getBBox();
+
+        width  += 2 * VisRecord.pad;
+        height += 2 * VisRecord.pad;
+
+        this.box.setAttribute('width', width);
+        this.box.setAttribute('height', height);
         svg.prepend(this.box);
+
+        this.width = width;
+        this.height = height;
 
         /* window.requestAnimationFrame(() => {
             this.text.setAttribute('opacity', 1);
@@ -208,14 +228,21 @@ class VisStack extends Vis {
                 x += width;
             }
         }
+        if (this.width === w && this.height === h)
+            return false;
+
         this.width = w;
         this.height = h;
+        return true;
     }
     reflow(child) {
-        this._update();
-        this.reflowParent(this.items.indexOf(child));
+        if (this._update(this.items.indexOf(child)))
+            this.reflowParent(this);
     }
     move(x, y) {
+        if (this.x === x && this.y === y)
+            return;
+
         this.x = x;
         this.y = y;
         this._update();
