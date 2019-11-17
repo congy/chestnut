@@ -30,33 +30,35 @@ svg rect {
 {{!-- <script src="/static/layout.js"></script>
 <script src="/static/model.js"></script> --}}
 <script src="/static/visualize.js"></script>
-<script type="text/javascript">
-  main();
-</script>
 {{!-- <script type="text/javascript">
+  main();
+</script> --}}
+<script type="text/javascript">
   const svg = document.getElementsByTagName('svg')[0];
   fetch('/data')
     .then(res => res.json())
-    .then((data) => {
-      const diskVis = new VisStack([], true, 20);
-      diskVis.prepend(svg);
+    .then(async (data) => {
 
+      const allTableVis = [];
       for (const [ table, { header, rows } ] of Object.entries(data)) {
         const idIndex = header.indexOf('id');
         const color = getColorFromTable(table);
 
-        const tableVis = new VisStack();
-        tableVis.prepend(svg);
-
+        const allRecordVis = [];
         for (const row of rows) {
           const recordVis = new VisRecord(row[idIndex], color, { table, row });
-          recordVis.prepend(svg);
-
-          tableVis.push(recordVis);
+          recordVis.attach(svg);
+          allRecordVis.push(recordVis);
         }
 
-        diskVis.push(tableVis);
+        const tableVis = new VisStack(allRecordVis);
+        allTableVis.push(tableVis);
       }
+
+      const diskVis = new VisStack(allTableVis, true, 20);
+
+      const bigBox = new VisBox(diskVis, undefined, 25);
+      bigBox.attach(svg);
       //const diag = new ChestnutModel(JSON_MODEL, data);
       //diag.draw(svg, { x: 100, y: 100 }, { state: 0 });
       //return promiseDelay(500);
@@ -64,4 +66,4 @@ svg rect {
     //.then(() => {
     //  Record.moveAllToSavedPos();
     //});
-</script> --}}
+</script>
