@@ -22,10 +22,13 @@ svg * {
 
 <script src="/static/util.js"></script>
 <script src="/static/colors.js"></script>
-<script src="/static/layout.js"></script>
-
-<script src="/static/model.js"></script>
+{{!-- <script src="/static/layout.js"></script>
+<script src="/static/model.js"></script> --}}
+<script src="/static/visualize.js"></script>
 <script type="text/javascript">
+  main();
+</script>
+{{!-- <script type="text/javascript">
   const svg = document.getElementsByTagName('svg')[0];
   fetch('/data')
     .then(res => res.json())
@@ -37,4 +40,4 @@ svg * {
     .then(() => {
       Record.moveAllToSavedPos();
     });
-</script>
+</script> --}}
