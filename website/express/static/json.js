@@ -1,4 +1,4 @@
-let JSON_MODEL = {
+const JSON_MODEL = {
   "0": {
     "keys": [
       {

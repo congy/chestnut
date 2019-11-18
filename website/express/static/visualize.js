@@ -197,6 +197,7 @@ class VisRecord extends Vis {
         const stack = new VisStack([ new VisElem(this.text) ], true, vrSpacing);
         // this.stack.setParent(this);
 
+        this.color = color;
         this.box = new VisBox(stack, color, vrPad);
         this.box.setParent(this);
 
@@ -247,14 +248,15 @@ class VisRecord extends Vis {
         // // svg.attach(this.box);
 
         this.box.attach(svg);
+        // this.box.move(this.x, this.y); // TODO hacky?
         const { width, height } = this.box.size();
 
         this.width = width;
         this.height = height;
     }
     clone() {
-        const clone = new VisRecord(this.id);
-        clone.move(this.x, this.y);
+        const clone = new VisRecord(this.id, this.color, JSON.parse(JSON.stringify(this.data)));
+        clone.box.move(this.x, this.y);
         return clone;
     }
 }
@@ -326,12 +328,16 @@ class VisStack extends Vis {
 
         this.x = x;
         this.y = y;
-        this._update();
+
+        if (this._isAttached)
+            this._update();
     }
     size() {
         return { width: this.width, height: this.height };
     }
     attach(svg) {
+        this._isAttached = true; //HACKY.
+
         this.items.forEach(item => item.attach(svg));
         this._update();
     }
