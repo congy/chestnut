@@ -40,8 +40,8 @@ from project_new import *
 
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 
-generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
-#populate_database(datafile_dir, tables, associations)
+#generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+#populate_database(datafile_dir, tables, associations, True)
 
 indexes = {issue:[['assigned_to_id'], ['author_id'], ['project_id']],\
 user:[],\
@@ -54,11 +54,11 @@ issue_status:[],\
 project_tracker:[],\
 enumeration:[['project_id']]}
 
-s = create_psql_tables_script(datafile_dir, tables, associations, indexes)
-f = open('load_postgres_tables.sql', 'w')
-f.write(s)
-f.close()
-exit(0)
+#s = create_psql_tables_script(datafile_dir, tables, associations, indexes)
+#f = open('load_postgres_tables.sql', 'w')
+#f.write(s)
+#f.close()
+#exit(0)
 
 
 read_queries = [q_ai_0, q_ai_1, \
@@ -67,7 +67,21 @@ q_mp_1, q_mp_2, q_mp_3, \
 q_pi_0, q_pi_1, q_pi_2, \
 q_ps_1, q_ps_2, q_ps_3, \
 q_wi_0, q_wi_1, q_wi_2, q_wi_3, q_wi_4]
-#q_pl, 
+
+
+#q_ai_0
+#q_ai_1
+#q_ii_2
+#q_mp_1
+#q_mp_3
+#q_ps_3
+#q_wi_2
+#q_wi_3
+
+target_query = q_ii_2
+search_mincost_plan(target_query)
+#test_codegen_one_query(globalv.tables, globalv.associations, target_query)
+exit(0)
 
 write_queries = [q_pn_1, q_pn_2, q_pn_3, q_pn_4, q_pn_5, q_pn_6, q_pn_7]
 

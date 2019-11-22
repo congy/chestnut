@@ -317,6 +317,32 @@ def thread_search_plans_for_one_nesting(query_id, tasks, results, idx):
   results[idx] = plans
 
 import time
+def search_mincost_plan(query):
+  dsmngers = enumerate_nestings_for_query(query)
+  mincost_plan = None #tup of [cost, plan, ds]
+  for k,dsmng in enumerate(dsmngers):
+    try:
+      temp_plans = search_plans_for_one_nesting(query, dsmng)
+    except NestingFailException as e:
+      fail_nesting.append(dsmng)
+      continue
+    res = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
+    old_count = len(res)
+    p = PlansForOneNesting(dsmng, res)
+    for plan in res:
+      new_dsmnger = dsmng.copy_tables()
+      plan.get_used_ds(None, new_dsmnger)
+      new_dsmnger.clear_placeholder()
+      set_upperds_helper(new_dsmnger.data_structures)
+      plan.copy_ds_id(None, new_dsmnger)
+      cost = to_real_value(plan.compute_cost())
+      if mincost_plan is None or cost < mincost_plan[0]:
+         mincost_plan = [cost, plan, new_dsmnger]
+  print "Min cost plan: \n"
+  print mincost_plan[1]
+  print "\ndata structures:\n"
+  print mincost_plan[2]
+
 def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan=True):
   dsmngers = enumerate_nestings_for_query(query)
   compute_mem_bound()
