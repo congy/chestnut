@@ -112,7 +112,7 @@ class VisElem extends Vis {
         return this.elem.getBBox();
     }
     attach(svg) {
-        svg.insertBefore(this.elem, svg.firstChild);
+        svg.appendChild(this.elem);
     }
     clone() {
         return new VisElem(elem.cloneNode(true));
@@ -171,9 +171,9 @@ class VisBox extends Vis {
         return { width: this.width, height: this.height };
     }
     attach(svg) {
+        svg.appendChild(this.rect);
         this.item.attach(svg);
         this.item.move(this.pad, this.pad);
-        svg.insertBefore(this.rect, svg.firstChild);
         this._update();
     }
     clone() {
