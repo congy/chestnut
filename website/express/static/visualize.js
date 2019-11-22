@@ -57,7 +57,8 @@ async function main() {
 function moveEl(el, x, y) {
     if (typeof x !== 'number' || typeof y !== 'number')
         throw Error('x, y must be numeric.');
-    el.setAttribute('transform', `translate(${x}, ${y})`);
+    //el.setAttribute('transform', `translate(${x}, ${y})`);
+    el.setAttribute('style', `transform: translate(${x}px, ${y}px)`);
 }
 
 function createGroupEl() {
@@ -248,7 +249,6 @@ class VisRecord extends Vis {
         // // svg.attach(this.box);
 
         this.box.attach(svg);
-        // this.box.move(this.x, this.y); // TODO hacky?
         const { width, height } = this.box.size();
 
         this.width = width;
