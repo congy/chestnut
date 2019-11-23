@@ -52,7 +52,7 @@ class DS {
     }
     async form(svg, chestnutVis, delayFn) {
         const dsVis = new VisStack();
-        dsVis.attach(svg);
+        //dsVis.attach(svg, 0, 0); // Doesn't really matter where it is attached.
         chestnutVis.push(dsVis);
 
         for (const record of this.records) {
@@ -97,7 +97,6 @@ class Record {
         if (!recordVisToClone) return; // SHIELD.
 
         this._recordVis = recordVisToClone.clone(svg);
-        this._recordVis.attach(svg);
 
         this.nested.forEach(nest => nest.bind(svg, allTableVis));
     }
@@ -128,7 +127,6 @@ async function main() {
         const allRecordVis = [];
         for (const row of rows) {
             const recordVis = new VisRecord(row[idIndex], color, { table, row });
-            recordVis.attach(svg);
             allRecordVis.push(recordVis);
         }
 
@@ -143,12 +141,11 @@ async function main() {
     const chestnutBox = new VisBox(chestnutVis, 'none', 25); // TODO find out color order.
 
     const root = new VisStack([ diskBox, chestnutBox ], true, 25);
-    root.attach(svg);
+    root.attach(svg, 0, 0);
 
-    await delay(1000);
+    await delay(100);
 
     const chestnutModel = new ChestnutModel(JSON_MODEL, data);
     chestnutModel.bind(svg, allTableVis);
-    await delay(1000);
     await chestnutModel.form(svg, chestnutVis, () => delay(20));
 }

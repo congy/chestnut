@@ -62,13 +62,13 @@ class VisElem extends Vis {
             throw Error('Cannot call size() before attach()');
         return this.elem.getBBox();
     }
-    attach(svg) {
+    attach(svg, x, y) {
+        this.move(x, y);
         svg.appendChild(this.elem);
     }
     clone(svg) {
         const copy = new VisElem(elem.cloneNode(true));
-        copy.attach(svg);
-        copy.move(this.x, this.y);
+        copy.attach(svg, this.x, this.y);
         return copy;
     }
 }
@@ -124,17 +124,20 @@ class VisBox extends Vis {
     size() {
         return { width: this.width, height: this.height };
     }
-    attach(svg) {
+    attach(svg, x, y) {
+        this.x = x;
+        this.y = y;
+
+        moveEl(this.rect, x, y);
         svg.appendChild(this.rect);
-        this.item.attach(svg);
-        this.item.move(this.pad, this.pad);
+        this.item.attach(svg, x + this.pad, y + this.pad);
+
         this._update();
     }
     clone(svg) {
         throw new Error('not implemented.');
         const copy = new VisBox(this.item.clone(svg), this.color, this.pad);
-        copy.attach(svg);
-        copy.move(this.x, this.y);
+        copy.attach(svg, this.x, this.y);
         return copy;
     }
 }
@@ -168,9 +171,8 @@ class VisRecord extends Vis {
     reflow(child) {
         let { width, height } = this.box.size();
 
-        if (this.width === width && this.height === height) {
+        if (this.width === width && this.height === height)
             return;
-        }
 
         // this.box.setAttribute('width',  nw);
         // this.box.setAttribute('height', nh);
@@ -194,18 +196,11 @@ class VisRecord extends Vis {
     size() {
         return { width: this.width, height: this.height };
     }
-    attach(svg) {
-        // // svg.attach(this.text);
-        // let { width, height } = this.text.getBBox();
+    attach(svg, x, y) {
+        this.x = x;
+        this.y = y;
 
-        // width  += 2 * VisRecord.pad;
-        // height += 2 * VisRecord.pad;
-
-        // this.box.setAttribute('width', width);
-        // this.box.setAttribute('height', height);
-        // // svg.attach(this.box);
-
-        this.box.attach(svg);
+        this.box.attach(svg, x, y);
         const { width, height } = this.box.size();
 
         this.width = width;
@@ -213,8 +208,7 @@ class VisRecord extends Vis {
     }
     clone(svg) {
         const copy = new VisRecord(this.id, this.color, JSON.parse(JSON.stringify(this.data)));
-        copy.attach(svg);
-        copy.move(this.x, this.y);
+        copy.attach(svg, this.x, this.y);
         return copy;
     }
 
@@ -239,9 +233,9 @@ class VisStack extends Vis {
         this.x = null;
         this.y = null;
     }
-    _update(triggerIndex = -1) {
-        let x = this.x || 0;
-        let y = this.y || 0;
+    _update(triggerIndex = -1, attachSvg = null) {
+        let x = this.x;
+        let y = this.y;
 
         let w = 0;
         let h = 0;
@@ -249,10 +243,11 @@ class VisStack extends Vis {
         if (this.items.length) {
             for (let i = 0; i < this.items.length; i++) {
                 const item = this.items[i];
-                if (i > triggerIndex)
+                if (attachSvg)
+                    item.attach(attachSvg, x, y);
+                else if (i > triggerIndex)
                     item.move(x, y);
                 const { width, height } = item.size();
-                if (0 === width && 0 === height) console.log('NO SIZE.');
 
                 if (this.isVert) {
                     w = Math.max(w, width);
@@ -287,21 +282,20 @@ class VisStack extends Vis {
         if (this._update(this.items.indexOf(child)))
             this.reflowParent(this);
     }
-    move(x, y) {
+    move(x, y, attachSvg = null) {
         if (this.x === x && this.y === y)
             return;
 
         this.x = x;
         this.y = y;
 
-        this._update();
+        this._update(-1, attachSvg);
     }
     size() {
         return { width: this.width, height: this.height };
     }
-    attach(svg) {
-        this.items.forEach(item => item.attach(svg));
-        this._update();
+    attach(svg, x, y) {
+        this.move(x, y, svg);
     }
     clone(svg) {
         throw Error('no clone visstack yet :(');
