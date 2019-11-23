@@ -78,7 +78,7 @@ q_wi_0, q_wi_1, q_wi_2, q_wi_3, q_wi_4]
 #q_wi_2
 #q_wi_3
 
-target_query = q_ii_2
+target_query = q_ps_2
 search_mincost_plan(target_query)
 #test_codegen_one_query(globalv.tables, globalv.associations, target_query)
 exit(0)

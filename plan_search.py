@@ -342,6 +342,8 @@ def search_mincost_plan(query):
   print mincost_plan[1]
   print "\ndata structures:\n"
   print mincost_plan[2]
+  print "\njson DS:\n"
+  print mincost_plan[2].to_json()
 
 def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan=True):
   dsmngers = enumerate_nestings_for_query(query)

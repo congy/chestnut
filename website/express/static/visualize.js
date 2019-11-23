@@ -1,58 +1,8 @@
 
 const delay = (d) => new Promise(resolve => setTimeout(resolve, d));
-const frame = () => new Promise(resolve => window.requestAnimationFrame(resolve));
-const delayFrame = (d) => Promise.all([ delay(d), frame() ]).then(() => {});
+//const frame = () => new Promise(resolve => window.requestAnimationFrame(resolve));
+//const delayFrame = (d) => Promise.all([ delay(d), frame() ]).then(() => {});
 
-async function main() {
-    const svg = document.getElementsByTagName('svg')[0];
-    const visArray = new VisStack();
-
-    const outs = new Array(10).fill()
-        .map(() => new VisStack([], true));
-    // outs.forEach((v, i) => v.move(60 * i, 35));
-    const outStack = new VisStack(outs);
-    outStack.attach(svg);
-    outStack.move(0, 60);
-
-    const visItems = new Array(20).fill()
-        .map((_, i) => new VisRecord(81 + i));
-    visItems.forEach(visItem => {
-        //visItem.show();
-        visItem.attach(svg)
-    });
-
-    for (const visItem of visItems) {
-        visItem.attach(svg);
-        await delay(100);
-        visArray.push(visItem);
-    }
-
-    await delay(800);
-
-    for (let j = 0; j < outs.length * 30; j++) {
-        const i = (Math.random() * visArray.length()) | 0;
-        const item = visArray.get(i).clone();
-        item.attach(svg);
-
-        await delay(5);
-        delay(50).then(() => {
-            window.requestAnimationFrame(() => {
-                const a = outs[(Math.random() * outs.length) | 0];
-                //debugger;
-                a.push(item);
-                //a.move(a.x - 10 * Math.random() - 15, a.y);
-
-                if (Math.random() < 0.1) {
-                    const x = a.get((Math.random() * a.length() / 2) | 0);
-
-                    const bb = new VisElem(createTextEl("hi"));
-                    bb.attach(svg)
-                    x.box.item.push(bb);
-                }
-            });
-        });
-    }
-}
 
 function moveEl(el, x, y) {
     if (typeof x !== 'number' || typeof y !== 'number')
@@ -115,8 +65,11 @@ class VisElem extends Vis {
     attach(svg) {
         svg.appendChild(this.elem);
     }
-    clone() {
-        return new VisElem(elem.cloneNode(true));
+    clone(svg) {
+        const copy = new VisElem(elem.cloneNode(true));
+        copy.attach(svg);
+        copy.move(this.x, this.y);
+        return copy;
     }
 }
 
@@ -177,8 +130,12 @@ class VisBox extends Vis {
         this.item.move(this.pad, this.pad);
         this._update();
     }
-    clone() {
-        return new VisBox(this.item.cloneNode(), this.color, this.pad);
+    clone(svg) {
+        throw new Error('not implemented.');
+        const copy = new VisBox(this.item.clone(svg), this.color, this.pad);
+        copy.attach(svg);
+        copy.move(this.x, this.y);
+        return copy;
     }
 }
 
@@ -195,11 +152,11 @@ class VisRecord extends Vis {
         // this.box = createRectEl();
         // this.box.setAttribute('fill', color);
 
-        const stack = new VisStack([ new VisElem(this.text) ], true, vrSpacing);
+        this.stack = new VisStack([ new VisElem(this.text) ], true, vrSpacing);
         // this.stack.setParent(this);
 
         this.color = color;
-        this.box = new VisBox(stack, color, vrPad);
+        this.box = new VisBox(this.stack, color, vrPad);
         this.box.setParent(this);
 
         this.width = 0;
@@ -254,10 +211,16 @@ class VisRecord extends Vis {
         this.width = width;
         this.height = height;
     }
-    clone() {
-        const clone = new VisRecord(this.id, this.color, JSON.parse(JSON.stringify(this.data)));
-        clone.box.move(this.x, this.y);
-        return clone;
+    clone(svg) {
+        const copy = new VisRecord(this.id, this.color, JSON.parse(JSON.stringify(this.data)));
+        copy.attach(svg);
+        copy.move(this.x, this.y);
+        return copy;
+    }
+
+    // Add sub-DS.
+    push(item) {
+        this.stack.push(item);
     }
 }
 
@@ -288,7 +251,9 @@ class VisStack extends Vis {
                 const item = this.items[i];
                 if (i > triggerIndex)
                     item.move(x, y);
-                const { width, height} = item.size();
+                const { width, height } = item.size();
+                if (0 === width && 0 === height) console.log('NO SIZE.');
+
                 if (this.isVert) {
                     w = Math.max(w, width);
                     h += height + this.pad;
@@ -329,20 +294,17 @@ class VisStack extends Vis {
         this.x = x;
         this.y = y;
 
-        if (this._isAttached)
-            this._update();
+        this._update();
     }
     size() {
         return { width: this.width, height: this.height };
     }
     attach(svg) {
-        this._isAttached = true; //HACKY.
-
         this.items.forEach(item => item.attach(svg));
         this._update();
     }
-    clone() {
-        throw Error('no clone visarray yet :(');
+    clone(svg) {
+        throw Error('no clone visstack yet :(');
     }
 
     length() {
