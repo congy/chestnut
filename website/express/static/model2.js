@@ -86,7 +86,7 @@ class Record {
 
         this.nested = (model.value && model.value.nested || [])
             .map(nestedModel => {
-                const nestedRows = getNestedRows(data, header, row, nestedModel);
+                const nestedRows = getNestedRows(data, model, header, row, nestedModel);
                 return getDS(nestedModel, data, nestedRows)
             });
     }

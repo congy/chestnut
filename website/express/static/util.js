@@ -48,19 +48,43 @@ function parseCondition(conditionString) {
   return match.slice(1);
 }
 
-function getNestedRows(data, header, row, nestedModel) {
+function getNestedRows(data, model, header, row, nestedModel) {
+  const tableName = getTableFromPath(model.table);
   const nestedName = getTableFromPath(nestedModel.table);
-  const key = nestedName + '_id'; // TODO HACK, ASSUMPTION ABOUT NAMES.
-  const i = header.indexOf(key);
 
-  const { header: nestedHeader, rows: nestedAllRows } = data[nestedName];
-  const j = nestedHeader.indexOf('id');
+  // slice is HACK for plurality.
+  const { header: nestedHeader, rows: nestedAllRows } = data[nestedName] || data[nestedName.slice(0, -1)];
 
-  if (i < 0 || j < 0)
-    throw Error(`Failed to determine join column, table: ${this.table}, sub-table: ${nested.table}, i: ${i}, j: ${j}.`);
+  const keyManyToOne = nestedName + '_id';
+  const keyOneToMany = tableName + '_id';
 
-  const nestedRows = nestedAllRows.filter(nestedRow => row[i] == nestedRow[j]);
-  return nestedRows;
+  if (header.includes(keyManyToOne)) {
+    const i = header.indexOf(keyManyToOne);
+    const j = nestedHeader.indexOf('id');
+
+    if (i < 0 || j < 0)
+      throw Error(`Failed to determine join column, this table header: ${header}, sub-table: ${nestedModel.table}, i: ${i}, j: ${j}.`);
+
+    const nestedRows = nestedAllRows.filter(nestedRow => row[i] == nestedRow[j]);
+    return nestedRows;
+  }
+  else if (nestedHeader.includes(keyOneToMany)) {
+    const i = header.indexOf('id');
+    const j = nestedHeader.indexOf('id');
+
+    // TODO fix duplicate code.
+    if (i < 0 || j < 0)
+      throw Error(`Failed to determine join column, this table header: ${header}, sub-table: ${nestedModel.table}, i: ${i}, j: ${j}.`);
+
+    const nestedRows = nestedAllRows.filter(nestedRow => row[i] == nestedRow[j]);
+   return nestedRows;
+  }
+  // Many to Many
+  else {
+    let manyTable = tableName + '_' + nestedName;
+    console.log(manyTable);
+    //throw Error(`Failed to join: ${tableName}: ${header}, nested ${nestedName}: ${nestedHeader}.`);
+  }
 }
 
 

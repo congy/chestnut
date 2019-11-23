@@ -1,0 +1,15 @@
+id|name|name_id|project_id
+1|issue_tracking|0|2
+2|calendar|4|3
+3|wiki|4|1
+4|calendar|5|1
+5|documents|1|4
+6|news|1|1
+7|issue_tracking|5|3
+8|issue_tracking|3|2
+9|documents|2|4
+10|issue_tracking|8|2
+11|files|4|2
+12|news|3|4
+13|boards|2|2
+14|news|2|3

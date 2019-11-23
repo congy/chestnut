@@ -32,7 +32,7 @@ app.get('/', (req, res) => {
     res.render('home');
 });
 app.get('/data', asyncHandler(async (req, res) => {
-    const data = await loadData(CHESTNUT_DIR + '/benchmark/kandan/data/kandan_diag');
+    const data = await loadData(CHESTNUT_DIR + '/benchmark/redmine/data/redmine');
 
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(data, null, 2));
