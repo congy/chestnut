@@ -36,6 +36,7 @@ class DS {
         this.value = model.value;
 
         this.table = getTableFromPath(this.path);
+        if (!data[this.table]) this.table = this.table.slice(0, -1); // HACK to remove s.
         this.color = getColorFromTable(this.table);
 
         this.condition = model.condition;
@@ -77,7 +78,9 @@ class Record {
     constructor(model, data, row) {
         this.row = row;
         this.path = model.table;
+
         this.table = getTableFromPath(this.path);
+        if (!data[this.table]) this.table = this.table.slice(0, -1); // HACK to remove s.
 
         const { header, rows: allRows } = data[this.table];
 
