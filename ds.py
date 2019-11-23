@@ -114,14 +114,14 @@ class MemObject(object):
       "nested": [x.to_json() for x in self.nested_objects],
     }
   def compute_mem_cost(self, single_ele=True):
-    field_sz = sum([f.get_sz() for f in self.fields]) 
+    field_sz = sum([f.get_sz() for f in self.fields])
     nested_sz = sum([o.compute_mem_cost(single_ele=True) for o in self.nested_objects])
     return cost_add(field_sz, nested_sz)
   def find_nested_obj_by_field(self, field):
     for o in self.nested_objects:
       if get_main_table(o.table.upper_table) == field.table and o.table.name == field.field_name:
         return o
-    return None 
+    return None
   def get_value_type_name(self, dsid=None):
     if dsid is None:
       dsid = ''
@@ -249,7 +249,7 @@ class IndexBase(IndexMeta):
     keys = self.keys.to_json()
     condition = self.condition.to_json()
     value = self.value.to_json()
-    return {"type":"Index","id":self.id, "table":'.'.join(tables), "keys":keys, "condition":condition, "value":value}
+    return {"type":"Index","id":self.id, "table": tables, "keys":keys, "condition":condition, "value":value}
 
   def is_range_key(self, key):
     return self.keys.contain_range_key()
@@ -364,7 +364,7 @@ class ObjHashIndex(IndexBase):
 
 class ObjBasicArray(IndexMeta):
   def __init__(self, table, value, upper=None):
-    self.id = 0 
+    self.id = 0
     self.table = table #table ~ obj_type
     self.value = value.fork()
     if self.value.is_object() and (not isinstance(value, IndexValue)):
@@ -373,14 +373,24 @@ class ObjBasicArray(IndexMeta):
     self.is_refered = False
     self.upper = upper
     self.ecount = 0
+
   def to_json(self):
     tables = [self.table.name]
+    out = {
+      'type': 'BasicArray',
+      'value': self.value.to_json(),
+      'table': tables,
+    }
+
     cur_table = self.table
     if isinstance(cur_table, NestedTable):
       cur_table = cur_table.upper_table
       tables.insert(0, cur_table.name)
-    value = self.value.to_json()
-    return {"type": 'BasicArray', "id":self.id, "table":'.'.join(tables), "value":value}
+
+      out['association'] = cur_table.get_assoc_by_name(self.table.name).to_json()
+
+    return out
+
   def get_key_type_name(self):
     return 'size_t'
   def key_fields(self):
