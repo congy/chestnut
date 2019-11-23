@@ -362,6 +362,19 @@ class Association:
     return hash(self.name)
   def __str__(self):
     return '{}-{}'.format(self.lft.name, self.rgt.name)
+  def to_json(self):
+    out = {
+      'assocType': self.assoc_type,
+      'leftTable': self.lft.name,
+      'rightTable': self.rgt.name,
+      #'leftField': self.lft_field_name,
+      #'rightField': self.rgt_field_name,
+      'leftFkField': self.assoc_f1,
+      'rightFkField': self.assoc_f2,
+    }
+    if 'many_to_many' == self.assoc_type:
+      out['table'] = self.name
+    return out
   def reset_lft_ratio(self, lft_ratio):
     self.lft_ratio = lft_ratio
     if self.assoc_type == "many_to_many":
