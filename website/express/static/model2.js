@@ -30,6 +30,8 @@ class DS {
     constructor(model, data, rows, parentTableName = null) {
         if (!Array.isArray(rows))
             throw Error(`ROWS NOT ARRAY: ${rows}.`);
+        if (!rows.every(row => Array.isArray(row)))
+            throw Error(`INDIVIDUAL ROW(S) NOT ARRAY: ${rows}.`);
 
         this.type = model.type;
         this.path = model.table;

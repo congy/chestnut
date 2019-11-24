@@ -10,7 +10,7 @@ const OP_FNS = {
   '>':  (l, r) => l >  r,
 };
 function getRowSubsetByCondition({ header, rows }, conditionString=null) {
-  if (!Array.isArray(rows[0]))
+  if (!rows.every(row => Array.isArray(row)))
     throw Error(`rows must be array of arrays.`);
 
 
@@ -91,8 +91,8 @@ function getNestedRows(data, model, header, row, nestedModel) {
   if (!data[tableName]) throw Error(`failed to find table: ${tableName}`);
   const nestedName = getTableFromPath(nestedModel.table);
 
-  const keyManyToOne = nestedName + '_id';
-  const keyOneToMany = tableName + '_id';
+  // const keyManyToOne = nestedName + '_id';
+  // const keyOneToMany = tableName + '_id';
 
   const assoc = nestedModel.association;
 
@@ -129,11 +129,19 @@ function getNestedRows(data, model, header, row, nestedModel) {
           nestedRows.push(getRowById(nestedHeader, nestedAllRows, assocNestedFk));
         }
       }
+      // if (!nestedRows.length) debugger;
       return nestedRows;
     }
     else {
-      const parentTableKeyIndex = header.indexOf(parentIsLeft ? assoc.leftFkField : assoc.rightFkField);
-      const nestedTableKeyIndex = header.indexOf(parentIsLeft ? assoc.rightFkField : assoc.leftFkField);
+      // console.log(assoc);
+
+      const parentTableKeyField = parentIsLeft ? 'id' : assoc.rightFkField;
+      const parentTableKeyIndex = header.indexOf(parentTableKeyField);
+      if (parentTableKeyIndex < 0) throw Error(`Failed to find field "${parentTableKeyField}" in table "${tableName}", header: ${header}`);
+
+      const nestedTableKeyField = parentIsLeft ? assoc.rightFkField : 'id';
+      const nestedTableKeyIndex = nestedHeader.indexOf(nestedTableKeyField);
+      if (nestedTableKeyIndex < 0) throw Error(`Failed to find field "${nestedTableKeyField}" in table "${nestedName}", header: ${nestedHeader}`);
 
       const key = row[parentTableKeyIndex];
 
@@ -143,6 +151,7 @@ function getNestedRows(data, model, header, row, nestedModel) {
           nestedRows.push(nestedRow);
         }
       }
+      // if (!nestedRows.length) debugger;
       return nestedRows;
     }
   }
@@ -154,7 +163,7 @@ function getNestedRows(data, model, header, row, nestedModel) {
 
   // TODO clean up this code to use the `assoc`.
 
-  if (header.includes(keyManyToOne)) {
+  /*if (header.includes(keyManyToOne)) {
     const i = header.indexOf(keyManyToOne);
     const j = nestedHeader.indexOf('id');
 
@@ -179,7 +188,7 @@ function getNestedRows(data, model, header, row, nestedModel) {
   else {
     //let manyTable = tableName + '_' + nestedName;
     //console.log(manyTable);
-  }
+  }*/
   console.log('!TODO!', nestedModel.association);
   return nestedAllRows;
   throw Error(`Failed to join: ${tableName}: ${header}, nested ${nestedName}: ${nestedHeader}.`);
