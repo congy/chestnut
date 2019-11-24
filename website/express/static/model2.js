@@ -85,7 +85,7 @@ class Record {
 
         const { header, rows: allRows } = data[this.table];
 
-        this.recordId = row[header.indexOf('id')] - 1;
+        this.recordId = row[header.indexOf('id')];
         if (this.recordId < 0) throw new Error(`Bad recordId: ${this.recordId}.`);
 
         this.nested = (model.value && model.value.nested || [])
@@ -97,8 +97,8 @@ class Record {
     bind(svg, allTableVis) {
         const tableVis = allTableVis[this.table];
         if (!tableVis) throw Error(`Failed to find table "${this.table}" from tables ${Object.keys(allTableVis)}.`);
-        const recordVisToClone = tableVis.get(this.recordId);
-        if (!recordVisToClone) return; // SHIELD.
+        const recordVisToClone = tableVis.get(this.recordId - 1);
+        if (!recordVisToClone) return; // SHIELD against invalid FK constraint.
 
         this._recordVis = recordVisToClone.clone(svg);
 
@@ -159,5 +159,5 @@ async function main() {
 
     const chestnutModel = new ChestnutModel(JSON_MODEL, data);
     chestnutModel.bind(svg, allTableVis);
-    await chestnutModel.form(svg, chestnutVis, () => delay(20));
+    await chestnutModel.form(svg, chestnutVis, () => delay(100));
 }

@@ -104,7 +104,7 @@ function getNestedRows(data, model, header, row, nestedModel) {
     }
     else if (assoc.rightTable === tableName) {
       //console.log('right table is parent table.');
-      parentIsLeft = true;
+      parentIsLeft = false;
     }
     else {
       throw Error(`Association without either table?`);
@@ -129,7 +129,7 @@ function getNestedRows(data, model, header, row, nestedModel) {
           nestedRows.push(getRowById(nestedHeader, nestedAllRows, assocNestedFk));
         }
       }
-      // if (!nestedRows.length) debugger;
+      //if (!nestedRows.length) debugger;
       return nestedRows;
     }
     else {
@@ -161,34 +161,6 @@ function getNestedRows(data, model, header, row, nestedModel) {
   // slice is HACK for trailing 's'.
   const { header: nestedHeader, rows: nestedAllRows } = data[nestedName] || data[nestedName.slice(0, -1)];
 
-  // TODO clean up this code to use the `assoc`.
-
-  /*if (header.includes(keyManyToOne)) {
-    const i = header.indexOf(keyManyToOne);
-    const j = nestedHeader.indexOf('id');
-
-    if (i < 0 || j < 0)
-      throw Error(`Failed to determine join column, this table header: ${header}, sub-table: ${nestedModel.table}, i: ${i}, j: ${j}.`);
-
-    const nestedRows = nestedAllRows.filter(nestedRow => row[i] == nestedRow[j]);
-    return nestedRows;
-  }
-  else if (nestedHeader.includes(keyOneToMany)) {
-    const i = header.indexOf('id');
-    const j = nestedHeader.indexOf('id');
-
-    // TODO fix duplicate code.
-    if (i < 0 || j < 0)
-      throw Error(`Failed to determine join column, this table header: ${header}, sub-table: ${nestedModel.table}, i: ${i}, j: ${j}.`);
-
-    const nestedRows = nestedAllRows.filter(nestedRow => row[i] == nestedRow[j]);
-   return nestedRows;
-  }
-  // Many to Many
-  else {
-    //let manyTable = tableName + '_' + nestedName;
-    //console.log(manyTable);
-  }*/
   console.log('!TODO!', nestedModel.association);
   return nestedAllRows;
   throw Error(`Failed to join: ${tableName}: ${header}, nested ${nestedName}: ${nestedHeader}.`);
