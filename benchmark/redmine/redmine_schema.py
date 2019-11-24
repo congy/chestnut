@@ -9,18 +9,19 @@ from faker import Faker
 fake = Faker()
 
 scale=1.0/20.0
-other_scale = 0.4
+mid_scale = 0.5
+other_scale = 0.5
 #scale=40
 #scale=400
-issue = Table('issue', int(scale*2000))
+issue = Table('issue', int(scale*600))
 user = Table('user', int(scale*200))
 member = Table('member', int(scale*400))
 project = Table('project', int(scale*80))
-enabled_module = Table('enabled_module', project.sz*4)
-enumeration = Table('enumeration', project.sz*5)
-version = Table('version', project.sz*2)
-news = Table('news', project.sz*8)
-board = Table('board', project.sz*2)
+enabled_module = Table('enabled_module', int(mid_scale*project.sz*4))
+enumeration = Table('enumeration', int(mid_scale*project.sz*5))
+version = Table('version', int(mid_scale*project.sz*2))
+news = Table('news', int(mid_scale*project.sz*8))
+board = Table('board', int(mid_scale*project.sz*2))
 message = Table('message', board.sz*2)
 
 tracker = Table('tracker', int(other_scale*10))

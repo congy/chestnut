@@ -40,7 +40,7 @@ from project_new import *
 
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 
-#generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
 #populate_database(datafile_dir, tables, associations, True)
 
 indexes = {issue:[['assigned_to_id'], ['author_id'], ['project_id']],\
