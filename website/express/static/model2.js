@@ -42,7 +42,7 @@ class DS {
         this.condition = model.condition;
 
         let { header, rows: allRows } = data[this.table];
-        this.rows = getRowSubsetByCondition([ header, rows ], model.condition);
+        this.rows = getRowSubsetByCondition({ header, rows }, model.condition);
 
         console.log(`${this.type}[${this.path}]: ${this.rows.length}/${data[this.table].rows.length} rows.`);
 
@@ -128,7 +128,7 @@ async function main() {
 
         const allRecordVis = [];
         for (const row of rows) {
-            const recordVis = new VisRecord(row[idIndex], color, { table, row });
+            const recordVis = new VisRecord(table.slice(0, 1).toUpperCase() + row[idIndex], color, { table, row });
             allRecordVis.push(recordVis);
         }
 
@@ -136,13 +136,21 @@ async function main() {
         allTableVis[table] = tableVis;
     }
 
-    const diskVis = new VisStack([ new VisElem(createTextEl('Disk')), ...Object.values(allTableVis) ], true, 20);
+    // Table of Contents.
+    const toc = getColorTable();
+    const tocItems = Object.entries(toc).map(([ tableName, color ]) => new VisRecord(`${tableName} (${tableName.slice(0, 1).toUpperCase()})`, color));
+    const tocVis = new VisStack([ new VisElem(createTextEl('Tables')), ...tocItems ], true, 20);
+    const tocBox = new VisBox(tocVis, 'none', 25);
+
+    const diskVis = new VisStack([ new VisElem(createTextEl('Records')), ...Object.values(allTableVis) ], true, 20);
     const diskBox = new VisBox(diskVis, 'none', 25); // TODO find out color order.
+
+    const tocDiskVis = new VisStack([ tocBox, diskBox ], false, -1);
 
     const chestnutVis = new VisStack([ new VisElem(createTextEl('Chestnut (In-Memory)')) ], true, 20);
     const chestnutBox = new VisBox(chestnutVis, 'none', 25); // TODO find out color order.
 
-    const root = new VisStack([ diskBox, chestnutBox ], true, 25);
+    const root = new VisStack([ tocDiskVis, chestnutBox ], true, 25);
     root.attach(svg, 0, 0);
 
     await delay(100);

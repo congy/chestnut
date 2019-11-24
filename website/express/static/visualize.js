@@ -146,12 +146,12 @@ const vrPad = 5;
 const vrSpacing = 5;
 class VisRecord extends Vis {
 
-    constructor(id, color = 'rgba(255, 0, 0, 0.1)', data = null) {
+    constructor(label, color = 'rgba(255, 0, 0, 0.1)', data = null) {
         super();
-        this.id = id;
+        this.label = label;
         this.data = data;
 
-        this.text = createTextEl(`id=${id}`);
+        this.text = createTextEl(label);
         // this.box = createRectEl();
         // this.box.setAttribute('fill', color);
 
@@ -207,7 +207,7 @@ class VisRecord extends Vis {
         this.height = height;
     }
     clone(svg) {
-        const copy = new VisRecord(this.id, this.color, JSON.parse(JSON.stringify(this.data)));
+        const copy = new VisRecord(this.label, this.color, JSON.parse(JSON.stringify(this.data)));
         copy.attach(svg, this.x, this.y);
         return copy;
     }

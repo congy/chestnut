@@ -9,11 +9,17 @@ const OP_FNS = {
   '>=': (l, r) => l >= r,
   '>':  (l, r) => l >  r,
 };
-function getRowSubsetByCondition([ header, rows ], conditionString=null) {
+function getRowSubsetByCondition({ header, rows }, conditionString=null) {
+  if (!Array.isArray(rows[0]))
+    throw Error(`rows must be array of arrays.`);
+
+
   if (!conditionString)
     return rows;
 
   let [ lname, op, rname ] = parseCondition(conditionString);
+
+  console.log(lname, op, rname);
 
   // Index of column we care about.
   let i = header.indexOf(lname);
@@ -33,6 +39,7 @@ function getRowSubsetByCondition([ header, rows ], conditionString=null) {
 
   if (rname.startsWith("'") || rname.startsWith('"')) {
     const rval = eval(rname); // EVAL.
+    console.log(rval, rows);
     return rows.filter(row => opFn(row[i], rval));
   }
 
@@ -89,17 +96,14 @@ function getNestedRows(data, model, header, row, nestedModel) {
 
   const assoc = nestedModel.association;
 
-  // TODO remove this log.
-  console.log(tableName, nestedName, assoc);
-
   if (assoc) {
     let parentIsLeft;
     if (assoc.leftTable === tableName) {
-      console.log('left table is parent table.');
+      //console.log('left table is parent table.');
       parentIsLeft = true;
     }
     else if (assoc.rightTable === tableName) {
-      console.log('right table is parent table.');
+      //console.log('right table is parent table.');
       parentIsLeft = true;
     }
     else {
@@ -179,11 +183,4 @@ function getNestedRows(data, model, header, row, nestedModel) {
   console.log('!TODO!', nestedModel.association);
   return nestedAllRows;
   throw Error(`Failed to join: ${tableName}: ${header}, nested ${nestedName}: ${nestedHeader}.`);
-}
-
-
-
-
-function promiseDelay(delay) {
-  return new Promise(resolve => window.setTimeout(resolve, delay));
 }
