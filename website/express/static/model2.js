@@ -20,14 +20,14 @@ class ChestnutModel {
     }
 }
 
-function getDS(model, data, rows) {
-    if ('Index' === model.type) return new IndexDS(model, data, rows);
-    if ('BasicArray' === model.type) return new ArrayDS(model, data, rows);
+function getDS(model, data, rows, parentTableName = null) {
+    if ('Index' === model.type) return new IndexDS(model, data, rows, parentTableName);
+    if ('BasicArray' === model.type) return new ArrayDS(model, data, rows, parentTableName);
     throw new Error(`Unknown type: '${model.type}'`);
 }
 
 class DS {
-    constructor(model, data, rows) {
+    constructor(model, data, rows, parentTableName = null) {
         if (!Array.isArray(rows))
             throw Error(`ROWS NOT ARRAY: ${rows}.`);
 
@@ -35,8 +35,8 @@ class DS {
         this.path = model.table;
         this.value = model.value;
 
-        this.table = getTableFromPath(this.path);
-        if (!data[this.table]) this.table = this.table.slice(0, -1); // HACK to remove s.
+        this.table = determineTableName(data, model, parentTableName);
+
         this.color = getColorFromTable(this.table);
 
         this.condition = model.condition;
@@ -46,7 +46,7 @@ class DS {
 
         console.log(`${this.type}[${this.path}]: ${this.rows.length}/${data[this.table].rows.length} rows.`);
 
-        this.records = this.rows.map(row => new Record(model, data, row));
+        this.records = this.rows.map(row => new Record(model, data, row, parentTableName));
     }
     bind(svg, allTableVis) {
         this.records.map(record => record.bind(svg, allTableVis));
@@ -75,12 +75,11 @@ class IndexDS extends DS {
 
 
 class Record {
-    constructor(model, data, row) {
+    constructor(model, data, row, parentTableName = null) {
         this.row = row;
         this.path = model.table;
 
-        this.table = getTableFromPath(this.path);
-        if (!data[this.table]) this.table = this.table.slice(0, -1); // HACK to remove s.
+        this.table = determineTableName(data, model, parentTableName);
 
         const { header, rows: allRows } = data[this.table];
 
@@ -90,7 +89,7 @@ class Record {
         this.nested = (model.value && model.value.nested || [])
             .map(nestedModel => {
                 const nestedRows = getNestedRows(data, model, header, row, nestedModel);
-                return getDS(nestedModel, data, nestedRows)
+                return getDS(nestedModel, data, nestedRows, this.table);
             });
     }
     bind(svg, allTableVis) {

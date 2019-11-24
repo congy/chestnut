@@ -1,4 +1,5 @@
 function getTableFromPath(path) {
+  if (!path) throw Error('Cannot get table from missing path: ' + path);
   return path[path.length - 1];
 }
 const OP_FNS = {
@@ -57,38 +58,95 @@ function getRowById(header, rows, id) {
   return rows.find(row => id === row[i]);
 }
 
-function getNestedRows(data, model, header, row, nestedModel) {
-  const tableName = getTableFromPath(model.table);
-  const nestedName = getTableFromPath(nestedModel.table);
+function determineTableName(data, model, parentTableName = null) {
+  const assoc = model.association;
 
-  // slice is HACK for trailing 's'.
-  console.log(nestedName);
-  const { header: nestedHeader, rows: nestedAllRows } = data[nestedName] || data[nestedName.slice(0, -1)];
+  if (parentTableName && assoc) {
+    if (!data[parentTableName]) throw Error(
+      `Cannot find child table when parent table with name ${parentTableName} doesn't exist.`);
+    if (assoc.leftTable === parentTableName)
+      return assoc.rightTable;
+    if (assoc.rightTable === parentTableName)
+      return assoc.leftTable;
+    throw Error(`Failed to determine name for nested table: ${model.table}, parent: ${parentTableName}`);
+  }
+  else {
+    let name = getTableFromPath(model.table);
+    if (!data[name]) name = name.slice(0, -1);
+    if (!data[name]) throw Error(`Failed to determine name for table: ${model.table}`);
+    return name;
+  }
+}
+
+function getNestedRows(data, model, header, row, nestedModel) {
+  let tableName = getTableFromPath(model.table);
+  if (!data[tableName]) tableName = tableName.slice(0, -1);
+  if (!data[tableName]) throw Error(`failed to find table: ${tableName}`);
+  const nestedName = getTableFromPath(nestedModel.table);
 
   const keyManyToOne = nestedName + '_id';
   const keyOneToMany = tableName + '_id';
 
   const assoc = nestedModel.association;
 
-  if (assoc && assoc.table) {
-    const { header: assocHeader, rows: assocRows } = data[assoc.table];
-    const tableIdIndex = header.indexOf('id');
-    const rowId = row[tableIdIndex];
+  // TODO remove this log.
+  console.log(tableName, nestedName, assoc);
 
-    // TODO this may need to be left-right indifferent.
-    const assocTableFkIndex = assocHeader.indexOf(assoc.leftFkField);
-    const assocNestedFkIndex = assocHeader.indexOf(assoc.rightFkField);
-
-    const nestedRows = [];
-    for (const assocRow of assocRows) {
-      const assocTableFk = assocRow[assocTableFkIndex];
-      const assocNestedFk = assocRow[assocNestedFkIndex];
-      if (rowId === assocTableFk) {
-        nestedRows.push(getRowById(nestedHeader, nestedAllRows, assocNestedFk));
-      }
+  if (assoc) {
+    let parentIsLeft;
+    if (assoc.leftTable === tableName) {
+      console.log('left table is parent table.');
+      parentIsLeft = true;
     }
-    return nestedRows;
+    else if (assoc.rightTable === tableName) {
+      console.log('right table is parent table.');
+      parentIsLeft = true;
+    }
+    else {
+      throw Error(`Association without either table?`);
+    }
+
+    const { header: nestedHeader, rows: nestedAllRows } = data[parentIsLeft ? assoc.rightTable : assoc.leftTable];
+
+    if ('many_to_many' === assoc.assocType) {
+      const { header: assocHeader, rows: assocRows } = data[assoc.table];
+      const tableIdIndex = header.indexOf('id');
+      const rowId = row[tableIdIndex];
+
+      // TODO this may need to be left-right indifferent.
+      const assocTableFkIndex = assocHeader.indexOf(parentIsLeft ? assoc.leftFkField : assoc.rightFkField);
+      const assocNestedFkIndex = assocHeader.indexOf(parentIsLeft ? assoc.rightFkField : assoc.leftFkField);
+
+      const nestedRows = [];
+      for (const assocRow of assocRows) {
+        const assocTableFk = assocRow[assocTableFkIndex];
+        const assocNestedFk = assocRow[assocNestedFkIndex];
+        if (rowId === assocTableFk) {
+          nestedRows.push(getRowById(nestedHeader, nestedAllRows, assocNestedFk));
+        }
+      }
+      return nestedRows;
+    }
+    else {
+      const parentTableKeyIndex = header.indexOf(parentIsLeft ? assoc.leftFkField : assoc.rightFkField);
+      const nestedTableKeyIndex = header.indexOf(parentIsLeft ? assoc.rightFkField : assoc.leftFkField);
+
+      const key = row[parentTableKeyIndex];
+
+      const nestedRows = [];
+      for (const nestedRow of nestedAllRows) {
+        if (key === nestedRow[nestedTableKeyIndex]) {
+          nestedRows.push(nestedRow);
+        }
+      }
+      return nestedRows;
+    }
   }
+
+  // INDICES FROM HERE ON?
+
+  // slice is HACK for trailing 's'.
+  const { header: nestedHeader, rows: nestedAllRows } = data[nestedName] || data[nestedName.slice(0, -1)];
 
   // TODO clean up this code to use the `assoc`.
 
@@ -115,11 +173,11 @@ function getNestedRows(data, model, header, row, nestedModel) {
   }
   // Many to Many
   else {
-    let manyTable = tableName + '_' + nestedName;
-    console.log(manyTable);
+    //let manyTable = tableName + '_' + nestedName;
+    //console.log(manyTable);
   }
-  console.log(nestedModel.association);
-  return [];
+  console.log('!TODO!', nestedModel.association);
+  return nestedAllRows;
   throw Error(`Failed to join: ${tableName}: ${header}, nested ${nestedName}: ${nestedHeader}.`);
 }
 

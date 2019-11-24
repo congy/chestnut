@@ -1,19 +1,9 @@
 id|name|type|is_default|active|parent_id|position_name|project_id
-1|Mr. Kevin Rowe|IssuePriority|0|1|20|MYGtYbJXsCGfTpzTqhfGvzSXZTSXVM|1
-2|Kathleen Davis|DocumentCategory|1|1|8|omlYDhLFnFDdvsxerFwrqzPGfodhgX|1
-3|Kelly Cunningha|IssuePriority|0|0|14|zIhTgXESRRUKhvmZxcUSRcBeEnrexb|2
-4|Alan Mccoy|DocumentCategory|0|0|13|NkREMgVHWvLlGthOlBQnZdZdekNLzK|4
-5|Rachael Cuevas|IssuePriority|1|0|5|rFGjOykfUIyAhrRPGxbWHQfPRcFCkk|1
-6|Jennifer Miller|Enumeration|1|0|8|TJXGJxFCinFlxOMNwbwutVCXnocCzN|3
-7|Christina Harpe|Enumeration|1|1|20|fGsojsGUQKZikWaWCCYylSvUiKRvCg|3
-8|Paul Rodriguez|Enumeration|1|0|9|hMSVKXCXuBZuNAsllGLiyYSzzJcsWu|1
-9|Patrick Boyd|DocumentCategory|1|1|6|IayxuOvFXwPvQFTwvSWrnpgBVffUZN|2
-10|Ronnie Blake|IssuePriority|1|1|4|LXFGlVBOFrbOiGrDZWGgTgzLQOHibL|2
-11|Sheila White|IssuePriority|0|0|12|VmkDUqCkyOdfPwyoYUZriNbiaYQZff|2
-12|Christopher Vaz|IssuePriority|1|1|19|iMVgkdPIYLiXqOiGktsORoiQFBPkDd|1
-13|Mary Buchanan|Enumeration|1|0|1|yoyBxxehEhAPODfpqrjyPsnJTXrQPT|2
-14|Megan Floyd|Enumeration|1|1|17|PnjDsAdgTFFMTpIyiRqzgqpvhELBFp|1
-15|Kathy King|IssuePriority|1|0|12|kBjnOaBWQLgZvOxsLLJFUESNnsaCwu|4
-16|Robin Jones|DocumentCategory|1|0|6|otAcBRvXmEbOKXkXHJNSKADDqmdUJv|4
-17|Andrea Williams|DocumentCategory|1|0|11|EhglosPIUzWoYpKzLzncebCcwalPhc|4
-18|Paul Lewis|IssuePriority|1|1|18|ctAUOwTKOJPdNdXgrgFJUWEIpGtgTg|2
+1|David Murray|IssuePriority|0|1|6|yZpkiDtpcMHdvwkJPibsCxuOfzWgjx|2
+2|Michael Chamber|DocumentCategory|0|0|9|gVdgbFsTpzpjCMdZHWHSZnhrqVSpqj|1
+3|Jesse Williams|Enumeration|1|1|5|jDimNnJauKSwGNndTXaXCRIzrMAtos|2
+4|Kaitlyn Mathis|IssuePriority|1|1|10|aFVNYabOTjzfkvvPhDlvedJQqcbZqn|3
+5|Dennis Johnston|DocumentCategory|1|0|9|yDXtJZqzAhdVbpVCGAMQlGdGsaubFh|4
+6|Richard Rubio|Enumeration|1|1|4|fDjnXbjlfNXfjxxqHepoqDHMUlzDTF|3
+7|Lauren Morris|DocumentCategory|0|1|5|riOPCPHmZwuEkGcUkaPBVFfFYiizUB|2
+8|Tiffany Murphy|Enumeration|1|0|1|YWIrlMsfTNUSPIJxNRGUGYyGuUVnKW|1
