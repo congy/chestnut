@@ -142,17 +142,17 @@ async function main() {
     const toc = getColorTable();
     const tocItems = Object.entries(toc).map(([ tableName, color ]) => new VisRecord(`${tableName} (${tableName.slice(0, 1).toUpperCase()})`, color));
     const tocVis = new VisStack([ new VisElem(createTextEl('Tables')), ...tocItems ], true, 20);
-    const tocBox = new VisBox(tocVis, 'none', 25);
+    const tocBox = new VisBox(tocVis, 'rgba(0, 0, 0, 0.05)', 20);
 
     const diskVis = new VisStack([ new VisElem(createTextEl('Records')), ...Object.values(allTableVis) ], true, 20);
-    const diskBox = new VisBox(diskVis, 'none', 25); // TODO find out color order.
+    const diskBox = new VisBox(diskVis, 'rgba(0, 0, 0, 0.05)', 20); // TODO find out color order.
 
     const tocDiskVis = new VisStack([ tocBox, diskBox ], false, -1);
 
     const chestnutVis = new VisStack([ new VisElem(createTextEl('Chestnut (In-Memory)')) ], true, 20);
-    const chestnutBox = new VisBox(chestnutVis, 'none', 25); // TODO find out color order.
+    const chestnutBox = new VisBox(chestnutVis, 'rgba(0, 0, 0, 0.05)', 20); // TODO find out color order.
 
-    const root = new VisStack([ tocDiskVis, chestnutBox ], true, 25);
+    const root = new VisStack([ tocDiskVis, chestnutBox ], true, 20);
     root.attach(svg, 0, 0);
 
     await delay(100);

@@ -1,0 +1,19 @@
+html {
+    font-family: Arial, sans-serif;
+}
+
+.subtitle {
+    margin-top: -1em;
+}
+
+.smallcaps {
+    font-variant: small-caps;
+}
+
+.column {
+    width: 800px;
+    margin: auto;
+}
+.column.wide {
+    width: 1200px;
+}

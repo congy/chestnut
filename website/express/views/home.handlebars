@@ -1,39 +1,51 @@
 {{#section 'head'}}
-<style>
-html {
-    font-family: Arial, sans-serif;
-}
-svg * {
-  transition: transform 0.8s cubic-bezier(0.47, 0, 0.745, 0.715);
-}
-svg rect {
-  transition:
-    transform 0.8s cubic-bezier(0.47, 0, 0.745, 0.715),
-    width 0.8s cubic-bezier(0.47, 0, 0.745, 0.715),
-    height 0.8s cubic-bezier(0.47, 0, 0.745, 0.715);
-}
-</style>
+  <style>
+    svg * {
+      transition: transform 0.8s cubic-bezier(0.47, 0, 0.745, 0.715);
+    }
+    svg rect {
+      transition:
+        transform 0.8s cubic-bezier(0.47, 0, 0.745, 0.715),
+        width 0.8s cubic-bezier(0.47, 0, 0.745, 0.715),
+        height 0.8s cubic-bezier(0.47, 0, 0.745, 0.715);
+    }
+  </style>
+  <script src="/static/hsluv-0.0.3.min.js"></script>
+  <script src="/static/colors.js"></script>
+  <script src="/static/json.js" async="true"></script>
+  <script src="/static/util.js" async="true"></script>
+  <script src="/static/visualize.js" async="true"></script>
+  <script src="/static/model2.js" async="true"></script>
+  <script type="text/javascript">
+    const xmlns = "http://www.w3.org/2000/svg";
+    window.onload = () => main();
+  </script>
 {{/section}}
 
-<h1>Chestnut</h1>
-
-<svg width="3000" height="2000" viewBox="0 0 4500 3000"></svg>
-
-<script src="/static/hsluv-0.0.3.min.js"></script>
-<script type="text/javascript">
-  const xmlns = "http://www.w3.org/2000/svg";
-</script>
-<script src="/static/json.js"></script>
-
-<script src="/static/util.js"></script>
-<script src="/static/colors.js"></script>
-{{!-- <script src="/static/layout.js"></script>
-<script src="/static/model.js"></script> --}}
-<script src="/static/visualize.js"></script>
-<script src="/static/model2.js"></script>
-{{!-- <script type="text/javascript">
-  main();
-</script> --}}
-<script type="text/javascript">
-  main();
-</script>
+<div class="column">
+  <h1>Chestnut</h1>
+  <h4 class="subtitle">Application-Specific Data Layouts for In-memory Databases</h4>
+  <p>
+    <span class="smallcaps">Todo: Placeholder Text</span>.
+    <span class="smallcaps">Chestnut</span> is a data layout generator for in-memory object-oriented database applications. Given a memory budget,
+    <span class="smallcaps">Chestnut</span> generates customized in-memory data layouts and query plans to answer queries written using a subset of
+    the Rails API, a common framework for building object-oriented database applications.
+  </p>
+  <p>
+    <span class="smallcaps">Chestnut</span> differs from traditional query optimizers and physical designers in two ways:<br />
+    First, <span class="smallcaps">Chestnut</span> automatically generates data layouts
+    that are customized for the application after analyzing their queries, hence <span class="smallcaps">Chestnut</span>-generated data layouts are
+    designed to be efficient to answer queries from such applications.<br />
+    Second, <span class="smallcaps">Chestnut</span> uses a novel enumeration and
+    verification-based algorithm to generate query plans that use such data layouts, rather than rule-based approaches as
+    in traditional query optimizers.
+  </p>
+  <p>
+    We evaluated <span class="smallcaps">Chestnut</span> on four opensource Rails database applications. The result
+    shows that it can reduce average query processing time by over 3.6× (and up to 42×), as compared to other in-memory
+    relational database engines.
+  </p>
+</div>
+<div class="column wide">
+  <svg viewBox="-200 0 1460 1000" style="width: 1200px"></svg>
+</div>
