@@ -26,6 +26,11 @@
       ctrl.draw();
       await ctrl.play();
     };
+    function replay() {
+      ctrl.draw();
+      ctrl.play(); // Returns promise.
+      return false;
+    }
   </script>
 {{/section}}
 
@@ -57,8 +62,12 @@
   <svg viewBox="0 0 1060 610" style="width: 1000px;"></svg>
 </div>
 <div class="column">
-  
+  <p>
+    <a href="javascript:void();" onclick="replay();">Replay Button</a>
+  </p>
 </div>
 <div class="column">
-  Hello World.
+  <p>
+    Hello World.
+  </p>
 </div>
