@@ -154,6 +154,7 @@ function getNestedRows(data, model, header, row, nestedModel) {
       // if (!nestedRows.length) debugger;
       return nestedRows;
     }
+    throw 'unreachable';
   }
 
   // INDICES FROM HERE ON?
@@ -162,6 +163,7 @@ function getNestedRows(data, model, header, row, nestedModel) {
   const { header: nestedHeader, rows: nestedAllRows } = data[nestedName] || data[nestedName.slice(0, -1)];
 
   console.log('!TODO!', nestedModel.association);
+  //return [];
   return nestedAllRows;
   throw Error(`Failed to join: ${tableName}: ${header}, nested ${nestedName}: ${nestedHeader}.`);
 }

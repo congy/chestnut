@@ -16,9 +16,16 @@
   <script src="/static/util.js" async="true"></script>
   <script src="/static/visualize.js" async="true"></script>
   <script src="/static/model2.js" async="true"></script>
+  <script src="/static/script.js" async="true"></script>
   <script type="text/javascript">
     const xmlns = "http://www.w3.org/2000/svg";
-    window.onload = () => main();
+    window.onload = async () => {
+      window.svg = document.getElementsByTagName('svg')[0];
+      window.ctrl = new VisualizerController(svg);
+      await ctrl.load();
+      ctrl.draw();
+      await ctrl.play();
+    };
   </script>
 {{/section}}
 
@@ -46,6 +53,12 @@
     relational database engines.
   </p>
 </div>
-<div class="column wide">
-  <svg viewBox="-200 0 1460 1000" style="width: 1200px"></svg>
+<div class="column" style="width: 1000px;">
+  <svg viewBox="0 0 1060 610" style="width: 1000px;"></svg>
+</div>
+<div class="column">
+  
+</div>
+<div class="column">
+  Hello World.
 </div>
