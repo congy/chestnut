@@ -6,7 +6,7 @@ from util import *
 from query_manager import *
 from .ilp_helper import *
 import math
-from sets import Set
+
 import globalv
 # opt 0: reduce possible nestings
 # set globalv.always_nested, always_fk_indexed and reversely_visited
@@ -64,7 +64,7 @@ import time
 def prune_read_plans(rqmanagers, dsmeta):
   Nqueries = len(rqmanagers)
   pruned_plans = [0 for i in range(0, Nqueries)]
-  used_ds_lst = [Set([]) for i in range(0, Nqueries)]
+  used_ds_lst = [set([]) for i in range(0, Nqueries)]
   temp_plan_cost = [0 for i in range(0, Nqueries)]
 
   for qi,rqmng in enumerate(rqmanagers):

@@ -234,6 +234,9 @@ class OpPredHelper(object):
     p1 = key_map_to_pred(self.merge_keymap())
     p2 = key_map_to_pred(other.merge_keymap())
     return ( p1 is None and p2 is None ) or (p1 is not None and p2 is not None and p1.query_pred_eq(p2))
+  def __hash__(self): # NOT NEEDED?
+    p = key_map_to_pred(self.merge_keymap())
+    return hash(p)
   def fork(self):
     newop = OpPredHelper(self.table)
     newop.keys = [k for k in self.keys]

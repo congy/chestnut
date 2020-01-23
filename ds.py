@@ -165,6 +165,11 @@ class IndexValue(object):
       return self.value_type == other.value_type and self.value == other.value
     else:
       return self.value_type == other.value_type
+  def __hash__(self): # NOT NEEDED?
+    if self.value_type == MAINPTR:
+      return hash(( self.value_type, self.value ))
+    else:
+      return hash(self.value_type)
   def eq_without_memobj(self, other):
     return self.value_type == other.value_type
   def to_json(self):
@@ -211,6 +216,8 @@ class IndexKeys(object):
     self.range_keys = range_keys
   def __eq__(self, other):
     return set_equal(self.keys, other.keys) and list_equal(self.range_keys, other.range_keys)
+  def __hash__(self): # NOT NEEDED?
+    return hash(( frozenset(self.keys), tuple(self.range_keys) ))
   def contain_range_key(self):
     return len(self.range_keys) > 0
   def fork(self):
@@ -266,6 +273,8 @@ class IndexBase(IndexMeta):
     return type(self) == type(other) and self.table == other.table and \
     self.keys == other.keys and self.value == other.value and \
     self.condition.idx_pred_eq(other.condition)
+  def __hash__(self): # NOT NEEDED?
+    return hash(( type(self), self.table, self.keys, self.value, self.condition ))
   def eq_without_memobj(self, other):
     return type(self) == type(other) and self.table == other.table and \
     self.keys == other.keys and self.value.eq_without_memobj(other.value) and \
@@ -404,6 +413,8 @@ class ObjBasicArray(IndexMeta):
     return (isinstance(self.table, NestedTable) and self.value.is_main_ptr())
   def __eq__(self, other):
     return type(self) == type(other) and self.table == other.table and self.value == other.value
+  def __hash__(self): # NOT NEEDED?
+    return hash(( type(self), self.table, self.value ))
   def eq_without_memobj(self, other):
     return type(self) == type(other) and self.table == other.table and self.value.eq_without_memobj(other.value)
   def __str__(self, short=False):
