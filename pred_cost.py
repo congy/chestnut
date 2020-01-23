@@ -43,7 +43,7 @@ def get_dup_ratio_from_keys(keys, path=[]):
     if len(k.path) > 0:
       add_to_list_map(k.path[0], k, nextlevel)
   factor = 1
-  for k,v in nextlevel.items():
+  for k,v in list(nextlevel.items()):
     f = get_query_field(k)
     if f.table.has_one_or_many_field(f.field_name) != 1:
       factor = cost_mul(factor, f.table.get_nested_table_by_name(f.field_name).sz)

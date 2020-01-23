@@ -67,7 +67,7 @@ def generate_one_proto(t, upper_t, tables, level, queries=[]):
   if globalv.is_qr_type_proto():
     for q1 in queries:
       if get_main_table(q1.table) == t:
-        for k,q in q1.includes.items():
+        for k,q in list(q1.includes.items()):
           for v,f in q.aggrs:
             if v.is_temp == False and v.name not in names:
               names.append(v.name)
@@ -87,7 +87,7 @@ def generate_one_proto(t, upper_t, tables, level, queries=[]):
       next_queries = []
       for q in queries:
         if get_main_table(q.table) == t:
-          for k,v in q.includes.items():
+          for k,v in list(q.includes.items()):
             if k.field_name == next_t.name:
               next_queries.append(v)
       new_tables.append(get_main_table(next_t))

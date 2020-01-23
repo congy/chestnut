@@ -4,7 +4,7 @@ from plan_search import *
 from nesting import *
 from util import *
 from query_manager import *
-from ilp_helper import *
+from .ilp_helper import *
 import math
 from sets import Set
 import globalv
@@ -33,8 +33,8 @@ def prune_nestings(queries):
 
 # return a list of assoc fields
 def prune_nesting_helper(obj):
-  assocs = [qf for qf,assoc in obj.assocs.items()]
-  for qf,assoc in obj.assocs.items():
+  assocs = [qf for qf,assoc in list(obj.assocs.items())]
+  for qf,assoc in list(obj.assocs.items()):
     assocs += prune_nesting_helper(assoc)
   return assocs
     
@@ -48,11 +48,11 @@ def prune_nesting_test(queries):
   for query in queries:
     ns = enumerate_nestings_for_query(query)
     after_nestings += len(ns)
-  print 'assoc_fields = {}'.format(', '.join([str(f) for f in assoc_fields]))
+  print('assoc_fields = {}'.format(', '.join([str(f) for f in assoc_fields])))
   not_reversed = clean_lst([None if any([qf_==qf for qf_ in globalv.reversely_visited]) else qf for qf in assoc_fields])
-  print '\nnot reversed: {}'.format(', '.join([str(f) for f in not_reversed]))
-  print '\nalways_nested = {}'.format(', '.join([str(f) for f in globalv.always_nested]))
-  print '\nbefore {}; after {};'.format(prev_nestings, after_nestings)
+  print('\nnot reversed: {}'.format(', '.join([str(f) for f in not_reversed])))
+  print('\nalways_nested = {}'.format(', '.join([str(f) for f in globalv.always_nested])))
+  print('\nbefore {}; after {};'.format(prev_nestings, after_nestings))
 
 def encode_plan_list(lst):
   if len(lst) == 0:
@@ -86,8 +86,8 @@ def prune_read_plans(rqmanagers, dsmeta):
         if mem_cost > globalv.memory_bound:
         #  print 'query {} nesting {} plan {} is removed, mem_cost = {}'.format(qi, i, j, mem_cost)
          pruned_plans[qi][i].append(j)
-    print 'pass 1 query {}: {}'.format(qi, time.time()-start_time)
-  print 'finish pass 1'
+    print('pass 1 query {}: {}'.format(qi, time.time()-start_time))
+  print('finish pass 1')
   # opt 2.1: if planA's shared ds set (with any other query) is the same as planB's shared ds set, and planA is better than planB, just keep planA
   for qi,rqmng in enumerate(rqmanagers):
     start_time = time.time()
@@ -104,7 +104,7 @@ def prune_read_plans(rqmanagers, dsmeta):
           map_by_shared_ds[shared_encoded] = []
         map_by_shared_ds[shared_encoded].append((i,j,temp_plan_cost[qi][i][j][1],temp_plan_cost[qi][i][j][2]))
    
-    for xx,lst in map_by_shared_ds.items():
+    for xx,lst in list(map_by_shared_ds.items()):
       best = []
       for x1,tup1 in enumerate(lst): 
         exist_equal = False
@@ -120,10 +120,10 @@ def prune_read_plans(rqmanagers, dsmeta):
           pruned_plans[qi][tup1[0]].append(tup1[1])
         elif exist_equal:
           lst[x1] = (tup1[0], tup1[1], tup1[2]-1, tup1[3])
-    print 'pass 2 query {}: {}'.format(qi, time.time()-start_time)
+    print('pass 2 query {}: {}'.format(qi, time.time()-start_time))
     #print 'finish query {}'.format(qi)
         
-  print 'finish pass 2'
+  print('finish pass 2')
 
   for qi,rqmng in enumerate(rqmanagers):
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
@@ -249,7 +249,7 @@ def test_prune_read_plan(read_queries, membound_factor=2):
 
   rqmanagers, dsmeta = get_dsmeta(read_queries)
 
-  print 'mem_bound = {}'.format(mem_bound)
+  print('mem_bound = {}'.format(mem_bound))
   prune_read_plans(rqmanagers, dsmeta)
 
   new_plan_cnt = 0
@@ -257,4 +257,4 @@ def test_prune_read_plan(read_queries, membound_factor=2):
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
       new_plan_cnt += len(plan_for_one_nesting.plans)
 
-  print 'old plan cnt = {}, new plan cnt = {}'.format(old_plan_cnt, new_plan_cnt)
+  print('old plan cnt = {}, new plan cnt = {}'.format(old_plan_cnt, new_plan_cnt))

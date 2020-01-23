@@ -128,7 +128,7 @@ def get_idxop_and_params_by_pred(pred, keys, nonexternal={}):
         params[q.lh] = ([q.rh, q.lh.field_class.get_max_value()])
         op = RANGE
       elif q.op == EQ:
-        if any([q.lh==qf for qf,v in nonexternal.items()]):
+        if any([q.lh==qf for qf,v in list(nonexternal.items())]):
           params[q.lh] = ([nonexternal[q.lh][0]])
         else:
           params[q.lh] = ([q.rh])
@@ -201,7 +201,7 @@ def replace_subpred_with_var(pred, placeholder):
     return pred
 
 def find_objstruct_by_idx(pool, idx):
-  for k,v in pool.pools.items():
+  for k,v in list(pool.pools.items()):
     r = find_objstruct_by_idx_helper(v, idx)
     if r is not None:
       return r
@@ -211,7 +211,7 @@ def find_objstruct_by_idx_helper(objstruct, idx):
   for _idx in objstruct.idxes:
     if idx == _idx:
       return objstruct
-  for k,v in objstruct.next_level.items():
+  for k,v in list(objstruct.next_level.items()):
     r = find_objstruct_by_idx_helper(v, idx)
     if r is not None:
       return r

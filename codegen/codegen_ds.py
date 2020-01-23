@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../')
-from codegen_helper import *
+from .codegen_helper import *
 from schema import *
 from ds import *
 
@@ -236,7 +236,7 @@ def cgen_class_def(obj, obj_class_name, upper_table=None, prefix=[]):
   #if upper_table:
   element += cgen_init_from_proto(ele_name, main_t, proto_toptype_prefix, fields)
   
-  id_fields = filter(lambda x: x.field_name=='id', fields)
+  id_fields = [x for x in fields if x.field_name=='id']
   element += "  inline void clear() {{ {} }}\n".format(' '.join(['{} = 0;'.format(cgen_fname(idf)) for idf in id_fields]))
   element += "  inline bool operator==(const {}& other) const {{ return {}; }}\n".format(ele_name, '&&'.join(['{}==other.{}'.format(cgen_fname(idf),cgen_fname(idf)) for idf in id_fields]))
     #element += "  inline bool operator<(const {}& other) const {{ return id < other.id; }}\n".format(ele_name)

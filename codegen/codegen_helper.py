@@ -20,7 +20,7 @@ def cgen_fname(f):
   elif isinstance(f, EnvAtomicVariable):
     return f.name
   else:
-    print f
+    print(f)
     assert(False)
 
 def cgen_scalar_ftype(f):
@@ -139,7 +139,7 @@ def get_loop_define(idx, is_begin=True, is_range=False):
       range_for = ''
     return '{}{}_{}FOR_{}'.format(prefix, typ, range_for, suffix)
   else:
-    print idx
+    print(idx)
     assert(False)
 
 
@@ -204,9 +204,9 @@ def cgen_init_from_proto(typename, table, proto, fields):
     vs = {maint:'p'}
     for t in table.tables:
       var = vs[t]
-      fs = filter(lambda x: x.table == t, fields)
+      fs = [x for x in fields if x.table == t]
       s.append(','.join(['{}({}.{}())'.format(cgen_fname(f), var, f.name) for f in fields]))
-      for k,v in t.nested_tables.items():
+      for k,v in list(t.nested_tables.items()):
         if t.has_one_or_many_field(k) == 1:
           vs[get_main_table(v)] = '{}.{}()'.format(var, k)
         else:
@@ -357,7 +357,7 @@ def get_aggr_result(vpair, cxx_var, state):
     return cxx_var
   sum_v = None
   count_v = None
-  for k,v in state.ir_map.items():
+  for k,v in list(state.ir_map.items()):
     if k == vpair[0].sum_var:
       sum_v = v
     if k == vpair[0].count_var:
@@ -372,8 +372,8 @@ def cgen_print_query_result(query):
     if v.is_temp == False:
       fields[v] = type_to_print_symbol[v.tipe]
   if len(fields) > 0:
-    s += "  printf(\"aggrs: {}\\n\", {});\n".format(', '.join(['{} = {}'.format(k.name, v) for k,v in fields.items()]),\
-                  ','.join(['qresult.{}()'.format(k.name) for k,v in fields.items()]))
+    s += "  printf(\"aggrs: {}\\n\", {});\n".format(', '.join(['{} = {}'.format(k.name, v) for k,v in list(fields.items())]),\
+                  ','.join(['qresult.{}()'.format(k.name) for k,v in list(fields.items())]))
   if query.return_var:
     return_cxx_var = 'qresult.{}'.format(query.table.name)
     s += "  printf(\"sz = %u\\n\", {}.size());\n".format(return_cxx_var)
@@ -388,7 +388,7 @@ def cgen_print_query_result(query):
 def cgen_print_query_result_helper(query, element_var, level=1):
   s = ''
   fields = [f1.field_class for f1 in query.projections]
-  for k,q in query.includes.items(): 
+  for k,q in list(query.includes.items()): 
     for v,f in q.aggrs:
       if v.is_temp == False:
         fields.append(v)
@@ -397,7 +397,7 @@ def cgen_print_query_result_helper(query, element_var, level=1):
                         ','.join(['{}.{}().c_str()'.format(element_var, f.name) if is_string_type(f.tipe) \
                               else '{}.{}()'.format(element_var, f.name) for f in fields]))
   # FIXME
-  for k,v in query.includes.items():
+  for k,v in list(query.includes.items()):
     if v.return_var:
       if k.table.has_one_or_many_field(k.field_name):
         next_element_var = 'element_{}'.format(k.field_name)

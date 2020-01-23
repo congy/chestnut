@@ -136,7 +136,7 @@ class DSManager(object):
     ds_lst, memobj = collect_all_ds_helper1(self.data_structures)
     for ds in ds_lst:
       cost = cost_add(cost, ds.compute_mem_cost())
-    for k,v in memobj.items():
+    for k,v in list(memobj.items()):
       cnt = k.element_count()
       field_sz = sum([f.field_class.get_sz() for f in v.fields])
       cost = cost_add(cost, cost_mul(cnt, field_sz))
@@ -173,15 +173,15 @@ def print_ds_with_cost(dsmnger):
   ds_lst, memobj = collect_all_ds_helper1(dsmnger.data_structures)
   for ds in ds_lst:
     cost = ds.compute_mem_cost()
-    print 'ds {}, cost = {}, value = {}'.format(ds, to_symbol(cost), to_real_value(cost))
-    print '------'
-  print '\n * * * *\n'
-  for k,v in memobj.items():
+    print('ds {}, cost = {}, value = {}'.format(ds, to_symbol(cost), to_real_value(cost)))
+    print('------')
+  print('\n * * * *\n')
+  for k,v in list(memobj.items()):
     cnt = k.element_count()
     field_sz = sum([f.field_class.get_sz() for f in v.fields])
     cost = cost_mul(cnt, field_sz)
-    print 'object {}, cost = {}, value = {}'.format(v, to_symbol(cost), to_real_value(cost))
-    print '------'
+    print('object {}, cost = {}, value = {}'.format(v, to_symbol(cost), to_real_value(cost)))
+    print('------')
 
 def collect_all_ds_helper1(lst):
   ds_lst = []

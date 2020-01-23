@@ -3,11 +3,11 @@ sys.path.append('../')
 from schema import *
 from ds import *
 from query import *
-from codegen_template import *
-from codegen_helper import *
-from codegen_ds import *
-from codegen_sql import *
-from codegen_main import *
+from .codegen_template import *
+from .codegen_helper import *
+from .codegen_ds import *
+from .codegen_sql import *
+from .codegen_main import *
 import globalv
 
 def cgen_initialize_all(tables, associations, dsmeta):
@@ -80,7 +80,7 @@ def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
   cpp = ''
   # s = 'inline void init_ds_from_sql(MYSQL* conn{}{}) {{\n'.format(param1, param2)
   for ds in dslst:
-    print 'ds = {}'.format(ds)
+    print('ds = {}'.format(ds))
     select_by_id = (not isinstance(ds.table, NestedTable)) and to_real_value(ds.table.sz) > 100000
     query_str, nesting, fields = sql_for_ds_query(ds, select_by_id)
     header += '//ds {}: {}\n'.format(ds.id, ds.__str__(True))

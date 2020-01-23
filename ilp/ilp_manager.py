@@ -3,15 +3,15 @@ sys.path.append('../')
 from query_manager import *
 from util import *
 from cost import *
-from ilp_helper import *
+from .ilp_helper import *
 from constants import *
 from query_manager import *
-from ilp_helper import *
-from prune_plans import *
+from .ilp_helper import *
+from .prune_plans import *
 from ds_manager import *
 import multiprocessing
 import pickle
-from ilp_fake import *
+from .ilp_fake import *
 #from gurobipy import *
 
 class PlanUseDSConstraints(object):
@@ -22,7 +22,7 @@ class PlanUseDSConstraints(object):
     lst = [ds_map[ds] for ds in self.ds]
     if len(self.memobjs) == 0:
       return lst
-    for ds,fields in self.memobjs.items():
+    for ds,fields in list(self.memobjs.items()):
       ref_pairs = memobj_map[ds]
       for f in fields:
         if f.field_name == 'id':
@@ -33,7 +33,7 @@ class PlanUseDSConstraints(object):
             lst.append(ilpv)
             exists_ref = f1
         if exists_ref is None:
-          print 'ds = {}, check ref f = {}'.format(ds, f)
+          print('ds = {}, check ref f = {}'.format(ds, f))
         assert(exists_ref)
     return lst
 
@@ -64,7 +64,7 @@ class ILPVariableManager(object):
       self.model.addConstr(self.dsv[d1] <= self.dsv[d2])
 
     # CONSTR 2: memobj dependency
-    for ds,pairs in self.memobjv.items():
+    for ds,pairs in list(self.memobjv.items()):
       for pair in pairs:
         self.model.addConstr(pair[1] <= self.dsv[ds])
 
@@ -92,10 +92,10 @@ class ILPVariableManager(object):
     # CONSTR 8: each plan use structures/memobjs
 
     # CONSTR 9: within memory bound
-    cost = sum([self.dsv[ds.id]*to_real_value(ds.compute_mem_cost()) for ds_id,ds in self.ds_instance.items()])
+    cost = sum([self.dsv[ds.id]*to_real_value(ds.compute_mem_cost()) for ds_id,ds in list(self.ds_instance.items())])
     cost = cost + sum([sum([ilpv*f.field_class.get_sz() for f,ilpv in pair]) \
           * to_real_value(self.ds_instance[dsid].element_count()) \
-            for dsid, pair in self.memobjv.items()])
+            for dsid, pair in list(self.memobjv.items())])
     self.model.addConstr(cost <= self.mem_bound)
 
     # ========= set objective =========
@@ -109,7 +109,7 @@ class ILPVariableManager(object):
     temp_vars = self.model.addVars(len(ds_lst), vtype=GRB.BINARY)
     self.dsv = {ds_lst[i].id:temp_vars[i] for i in range(0, len(ds_lst))}
     self.ds_instance = {ds.id:ds for ds in ds_lst}
-    for dsid,fields in memobj_map.items():
+    for dsid,fields in list(memobj_map.items()):
       newv = self.model.addVars(len(fields), vtype=GRB.BINARY)
       self.memobjv[dsid] = [(fields[i], newv[i]) for i in range(0, len(fields))]
     for ds in ds_lst:
@@ -117,7 +117,7 @@ class ILPVariableManager(object):
         #dependent = dsmng.find_primary_array_exact_match(ds.table)
         dependent = ds.value.value
         if (not dependent and dependent.id > 0):
-          print 'ds fail! {}'.format(ds)
+          print('ds fail! {}'.format(ds))
         assert(dependent and dependent.id > 0)
         self.dsv_dependency.append((ds.id, dependent.id))
         #print 'ds {} pointer depends on {}'.format(ds.id, dependent.id)
@@ -236,24 +236,24 @@ class ILPVariableManager(object):
 
 
 def print_ilp_result(read_queries, ilp):
-  print 'result data structures = {}'.format(ilp.ret_dsmng)
-  print 'mem cost = {}'.format(to_real_value(ilp.ret_dsmng.compute_mem_cost()))
-  print 'cost breakdown: '
+  print('result data structures = {}'.format(ilp.ret_dsmng))
+  print('mem cost = {}'.format(to_real_value(ilp.ret_dsmng.compute_mem_cost())))
+  print('cost breakdown: ')
   ds_lst, memobj = collect_all_ds_helper1(ilp.ret_dsmng.data_structures)
   for ds in ds_lst:
-    print 'ds {} cost = {}'.format(ds.id, to_real_value(ds.compute_mem_cost()))
-  for k,v in memobj.items(): 
+    print('ds {} cost = {}'.format(ds.id, to_real_value(ds.compute_mem_cost())))
+  for k,v in list(memobj.items()): 
     cnt = k.element_count()
     field_sz = sum([f.field_class.get_sz() for f in v.fields])
-    print 'memobj {} #ele = {}, field = {}, cost = {}'.format(k.__str__(True), to_real_value(cnt), field_sz, to_real_value(cost_mul(cnt, field_sz)))
+    print('memobj {} #ele = {}, field = {}, cost = {}'.format(k.__str__(True), to_real_value(cnt), field_sz, to_real_value(cost_mul(cnt, field_sz))))
 
-  print 'result query plan:'
+  print('result query plan:')
   for i in range(0, len(read_queries)):
-    print 'QUERY {} plan {}:'.format(i, ilp.result_read_plan_id[i])
-    print ilp.result_read_plans[i]
-    print 'time cost = {}'.format(to_real_value(ilp.result_read_plans[i].compute_cost()))
-    print 'actual_ds = {}'.format(ilp.result_read_ds[i])
-    print '---------\n'
+    print('QUERY {} plan {}:'.format(i, ilp.result_read_plan_id[i]))
+    print(ilp.result_read_plans[i])
+    print('time cost = {}'.format(to_real_value(ilp.result_read_plans[i].compute_cost())))
+    print('actual_ds = {}'.format(ilp.result_read_ds[i]))
+    print('---------\n')
 
 
 import time
@@ -276,7 +276,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
         f = open('q{}_plan.pickle'.format(ix), 'r')
         rqmanagers[ix] = pickle.load(f)
         assert(rqmanagers[ix])
-        print 'read file {}'.format(ix)
+        print('read file {}'.format(ix))
         f.close()
 
       for i in range(0, len(read_queries)):
@@ -293,7 +293,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       rqmanagers = [None for i in range(0, len(read_queries))]
       for i in range(0, len(read_queries)):
         if i not in temp_rqmanagers:
-          print 'manager {} is None!'.format(i)
+          print('manager {} is None!'.format(i))
         else:
           rqmanagers[i] = temp_rqmanagers[i]
       for i in range(0, len(read_queries)):
@@ -310,15 +310,15 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
         pickle.dump(dsmeta, f)
         f.close()
     
-    print 'load time = {}'.format(time.time()-start_time)
-    print dsmeta
+    print('load time = {}'.format(time.time()-start_time))
+    print(dsmeta)
 
     total_Nplans = 0
     for qi,rqmng in enumerate(rqmanagers):
       Nqplans = sum([len(xxx.plans) for xxx in rqmng.plans])
-      print "query {} has {} plans ({}) nestings".format(qi, Nqplans, len(rqmng.plans))
+      print("query {} has {} plans ({}) nestings".format(qi, Nqplans, len(rqmng.plans)))
       total_Nplans += Nqplans
-    print "total: {}".format(total_Nplans)
+    print("total: {}".format(total_Nplans))
 
   if read_ilp:
     f = open('mem{}_ilp.pickle'.format(membound_factor), 'r')
@@ -348,7 +348,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       pickle.dump(new_ilp, f)
       f.close()
 
-  print 'MEMORY BOUND = {}'.format(ilp.mem_bound)
+  print('MEMORY BOUND = {}'.format(ilp.mem_bound))
   print_ilp_result(read_queries, ilp)
 
   dsmeta = ilp.ret_dsmng

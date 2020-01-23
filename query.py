@@ -36,7 +36,7 @@ class ReadQuery(object):
       s += ' order: {}\n'.format(','.join([str(o) for o in self.order]))
     for k,v in self.aggrs:
       s += ' aggr: {}->({}), '.format(k.name, v)
-    for k,v in self.includes.items():
+    for k,v in list(self.includes.items()):
       include_s = str(v)
       s += '\n'.join(['  '+l for l in include_s.split('\n')])
     return s
@@ -75,7 +75,7 @@ class ReadQuery(object):
       q.pfilter(pfilter)
     self.includes[field] = q
   def get_include(self, field):
-    for k,v in self.includes.items():
+    for k,v in list(self.includes.items()):
       if field.field_name == k.field_name:
         return v
     assert(False)
@@ -116,7 +116,7 @@ class ReadQuery(object):
     # compute return result size
     if self.return_var:
       self.return_var.sz = get_query_result_sz(self.table, self.pred)
-    for k,v in self.includes.items():
+    for k,v in list(self.includes.items()):
       v.complete()
   def get_aggr_var_name(self, var):
     return 'q{}_{}'.format(self.id, var.name)
@@ -126,7 +126,7 @@ class ReadQuery(object):
     r = []
     if self.pred:
       r = r + self.pred.get_all_params()
-    for k,v in self.includes.items():
+    for k,v in list(self.includes.items()):
       r = r + v.get_all_params()
     #new_r = clean_lst([r1 if not any([r1==x for x in r]) else None for r1 in r])
     return r
@@ -136,7 +136,7 @@ class ReadQuery(object):
     else:
       pairs = {}
     get_param_value_pair_by_pred(self.pred, pairs, self.assigned_param_values)
-    for k,v in self.includes.items():
+    for k,v in list(self.includes.items()):
       pairs = map_union(pairs, v.get_param_value_pair(pairs))
     return pairs
   def groupby(self, fields, Ngroups=0):
@@ -188,14 +188,14 @@ def get_param_value_pair_by_pred(pred, r, assigned_values={}):
       pairs.append((pred.lh, pred.rh))
     for lh,rh in pairs:
       if rh.dependence == None:
-        if any([assigned_p==rh for assigned_p,value in assigned_values.items()]):
-          r[rh] = filter(lambda x: x is not None, [value if assigned_p==rh else None for assigned_p,value in assigned_values.items()])[0]
+        if any([assigned_p==rh for assigned_p,value in list(assigned_values.items())]):
+          r[rh] = [x for x in [value if assigned_p==rh else None for assigned_p,value in list(assigned_values.items())] if x is not None][0]
         else:
           r[rh] = get_query_field(lh).field_class.generate_value()
     for lh,rh in pairs:
       if rh.dependence:
         dep_var = None
-        for k,v in r.items():
+        for k,v in list(r.items()):
           if k.symbol == rh.dependence[0].symbol:
             dep_var = v
         assert(dep_var)
@@ -214,7 +214,7 @@ class WriteQuery(object):
       query_cnt += 1
     self.assigned_param_values = {}
   def find_assigned_value(self, param):
-    for k,v in self.assigned_param_values.items():
+    for k,v in list(self.assigned_param_values.items()):
       if k == param:
         return v
     return None
@@ -256,7 +256,7 @@ class AddObject(WriteQuery):
   def __init__(self, table, field_values={}, new_id=True):
     self.table = table
     self.field_values = {}
-    for k,v in field_values.items():
+    for k,v in list(field_values.items()):
       k.complete_field(self.table)
       self.field_values[k] = v
       v.tipe = k.get_type()
@@ -266,20 +266,20 @@ class AddObject(WriteQuery):
     v.tipe = f.get_type()
   def get_all_params(self):
     r = []
-    for k,v in self.field_values.items():
+    for k,v in list(self.field_values.items()):
       if isinstance(v, Parameter):
         r.append(v)
     return r
   def get_param_value_pair(self):
     #pairs = {self.param:self.table.get_field_by_name('id').generate_value()}
     pairs = {}
-    for k,v in self.field_values.items():
+    for k,v in list(self.field_values.items()):
       if isinstance(v, Parameter):
         assigned_value = self.find_assigned_value(v)
         pairs[v] = k.field_class.generate_value() if assigned_value is None else assigned_value
     return pairs
   def __str__(self):
-    return 'Insert obj to {} ({})'.format(self.table.name, ','.join(['{}:{}'.format(k,v) for k,v in self.field_values.items()]))
+    return 'Insert obj to {} ({})'.format(self.table.name, ','.join(['{}:{}'.format(k,v) for k,v in list(self.field_values.items())]))
 
 
 class RemoveObject(WriteQuery):
@@ -301,7 +301,7 @@ class UpdateObject(WriteQuery):
   def __init__(self, table, param, updated_fields={}):
     self.table = table
     self.updated_fields = {}
-    for k,v in updated_fields.items():
+    for k,v in list(updated_fields.items()):
       k.complete_field(self.table)
       self.updated_fields[k] = v
       v.tipe = k.get_type()
@@ -313,21 +313,21 @@ class UpdateObject(WriteQuery):
     v.tipe = k.get_type()
   def get_all_params(self):
     r = [self.param]
-    for k,v in self.updated_fields.items():
+    for k,v in list(self.updated_fields.items()):
       if isinstance(v, Parameter):
         r.append(v)
     return r
   def get_param_value_pair(self):
     assigned_value = self.find_assigned_value(self.param)
     pairs = {self.param:self.table.get_field_by_name('id').generate_value() if assigned_value is None else assigned_value}
-    for k,v in self.updated_fields.items():
+    for k,v in list(self.updated_fields.items()):
       if isinstance(v, Parameter):
         assigned_value = self.find_assigned_value(v)
         pairs[v] = k.field_class.generate_value() if assigned_value is None else assigned_value
     return pairs
   def __str__(self):
     update_s = []
-    for k,v in self.updated_fields.items():
+    for k,v in list(self.updated_fields.items()):
       update_s.append('{}={}'.format(k.field_name, v))
     return 'Update obj {} ({}): {}'.format(self.table.name, self.param, ','.join(update_s))
   

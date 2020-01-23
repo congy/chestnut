@@ -2,9 +2,9 @@ import sys
 sys.path.append('../')
 from ds import *
 from planIR import *
-from codegen_helper import *
-from codegen_state import *
-from codegen_client import *
+from .codegen_helper import *
+from .codegen_state import *
+from .codegen_client import *
 import globalv
 
 def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
@@ -18,8 +18,8 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
   code = ""
   
   #plan.copy_ds_id(None, dsmnger)
-  print '\nread plan:'
-  print plan
+  print('\nread plan:')
+  print(plan)
   for i,p in enumerate(params):
     param_str.append("{} param_{}_{}".format(get_cpp_type(p.tipe), p.symbol, i))
     param_var_map[p] = "param_{}_{}".format(p.symbol, i)
@@ -49,7 +49,7 @@ def cgen_for_one_step(step, state, print_result=False):
     if state.topquery.return_var:
       state.qr_varmap[state.topquery.return_var] = '(&qresult)'
       state.qr_var = '(&qresult)'
-    print 'state = {}, qr_var = {}'.format(hash(state), state.qr_var)
+    print('state = {}, qr_var = {}'.format(hash(state), state.qr_var))
     next_s, temp_state = cgen_for_one_step(step.step, state)
     s += insert_indent(next_s)
     for v,aggr in state.topquery.aggrs:
@@ -88,7 +88,7 @@ def cgen_for_one_step(step, state, print_result=False):
         insert_no_duplicate(projections, QueryField('id', get_main_table(step.var.tipe)))
         expr_s = cgen_add_to_qresult(step.var, ele_name, projections, state)
     if step.cond:
-      print 'step.cond = {}'.format(step.cond)
+      print('step.cond = {}'.format(step.cond))
       dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
     else:
       cond_s = 'true'

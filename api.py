@@ -66,7 +66,7 @@ language=r"""
 
 class PNode(object):
   def __init__(self, children):
-    self.children = filter(lambda x: x is not None, children)
+    self.children = [x for x in children if x is not None]
   def visit(self, state):
     self.visited_children = []
     for c in self.children:
@@ -94,7 +94,7 @@ class VisitState(object):
     else:
       return None
   def find_query_by_name(self, name):
-    for k,v in self.queries.items():
+    for k,v in list(self.queries.items()):
       if k == name:
         return v
     return None
@@ -128,29 +128,29 @@ class BodyPNode(PNode):
         assocs.append(get_new_assoc(a[0], a[1], state.find_table_by_name(a[2]), state.find_table_by_name(a[3]), a[4], a[5], a[6], a[7]))
       state.associations = assocs
 
-      print 'tables:'
+      print('tables:')
       for t in state.tables:
-        print 'table {}, sz = {}'.format(t.name, t.sz)
+        print('table {}, sz = {}'.format(t.name, t.sz))
         for f in t.get_fields():
-          print '\t{} type = {}, vrange = {}, prob = {}'.format(f.name, f.tipe, f.range, f.value_with_prob)
-      print 'associations:'
+          print('\t{} type = {}, vrange = {}, prob = {}'.format(f.name, f.tipe, f.range, f.value_with_prob))
+      print('associations:')
       for a in state.associations:
-        print "{} {} {} {} {} {} {}".format(a.assoc_type, a.lft.name, a.rgt.name, a.lft_ratio, a.rgt_ratio, a.lft_field_name, a.rgt_field_name)
+        print("{} {} {} {} {} {} {}".format(a.assoc_type, a.lft.name, a.rgt.name, a.lft_ratio, a.rgt_ratio, a.lft_field_name, a.rgt_field_name))
       
     # handle queries then
     for c in self.children:
       if isinstance(c, QueryStmtPNode):
         c.visit(state)
 
-    print "\n-----\nqueries:"
+    print("\n-----\nqueries:")
     queries = []
-    for k,v in state.queries.items():
+    for k,v in list(state.queries.items()):
       if v.upper_query is None:
         queries.append(v)
 
     for q in queries:
-      print q
-      print ' * '
+      print(q)
+      print(' * ')
 
 #  space = ~"\s*"
 
@@ -559,7 +559,7 @@ class SubexprPNode(PNode):
       return self.children[0].visit(state)
     else:
       op1 = self.children[1].visit(state)
-      print op1
+      print(op1)
       op2 = self.children[2].visit(state)
       op3 = self.children[3].visit(state)
       return IfThenElseExpr(op1, op2, op3)

@@ -4,7 +4,7 @@ sys.path.append('../')
 from constants import *
 from schema import *
 from pred import *
-from codegen_helper import *
+from .codegen_helper import *
 from ds import *
 from planIR import *
 
@@ -23,20 +23,20 @@ class CodegenState(object):
     self.dsmnger = None
   def fork(self):
     news = CodegenState(self.upper)
-    news.qr_varmap = {k:v for k,v in self.qr_varmap.items()}
-    news.ir_varmap = {k:v for k,v in self.ir_varmap.items()}
+    news.qr_varmap = {k:v for k,v in list(self.qr_varmap.items())}
+    news.ir_varmap = {k:v for k,v in list(self.ir_varmap.items())}
     news.ds = self.ds
     news.loop_var = self.loop_var
     news.qr_var = self.qr_var
     news.topquery = self.topquery
-    news.param_map = {k:v for k,v in self.param_map.items()}
+    news.param_map = {k:v for k,v in list(self.param_map.items())}
     news.dsmnger = self.dsmnger
     return news
   def merge(self, other):
-    for k,v in other.qr_varmap.items():
+    for k,v in list(other.qr_varmap.items()):
       if k not in self.qr_varmap:
         self.qr_varmap[k] = v
-    for k,v in other.ir_varmap.items():
+    for k,v in list(other.ir_varmap.items()):
       if k not in self.ir_varmap:
         self.ir_varmap[k] = v
   def find_ir_var(self, var): # EnvAtomicVariable
@@ -62,7 +62,7 @@ class CodegenState(object):
   def find_qr_var(self, var): # EnvAtomicVariable
     if var in self.qr_varmap:
       return self.qr_varmap[var]
-    for k,v in self.qr_varmap.items():
+    for k,v in list(self.qr_varmap.items()):
       if var.name == k.name:
         return v
     if self.upper:
@@ -71,7 +71,7 @@ class CodegenState(object):
   def exist_qr_var(self, var):
     #if var in self.qr_varmap:
     #  return True
-    for k,v in self.qr_varmap.items():
+    for k,v in list(self.qr_varmap.items()):
       if var.name == k.name:
         return True
     if self.upper:

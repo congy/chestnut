@@ -217,7 +217,7 @@ class Table(object):
     return None
   def get_nested_tables(self):
     r = []
-    for k,v in self.nested_tables.items():
+    for k,v in list(self.nested_tables.items()):
       r.append(v)
     return r
   def get_nested_table_by_name(self, n):

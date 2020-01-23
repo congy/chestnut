@@ -63,7 +63,7 @@ class SymbolicIndex(object):
     self.keys = [k for k in self.idx.key_fields()]
     table_by_path = [main_id_key] + remove_duplicate(get_denormalized_tables(pred))
     self.tables = [t.get_query_field().table for t in table_by_path]
-    all_table_ids = [range(1, self.thread_ctx.get_symbs().symbolic_tables[t].sz+1) for t in self.tables[1:]]
+    all_table_ids = [list(range(1, self.thread_ctx.get_symbs().symbolic_tables[t].sz+1)) for t in self.tables[1:]]
     for i,symbolic_tuple in enumerate(self.thread_ctx.get_symbs().symbolic_tables[main_t].symbols):
       for table_ids in itertools.product(*all_table_ids):
         table_id_map = {table_by_path[i]:table_ids[i-1] for i in range(1, len(table_by_path))}
@@ -72,7 +72,7 @@ class SymbolicIndex(object):
         cond = get_denormalizing_cond_helper(self.thread_ctx, symbolic_tuple, [], pred, table_id_map, key_map)
         # if i == 0:
         #   print '  ^ pred = {}, ds cond = {}, keys = {}'.format(pred, cond, ','.join([str(v) for k,v in key_map.items()]))
-        assert(all([v is not None for k,v in key_map.items()]))
+        assert(all([v is not None for k,v in list(key_map.items())]))
         if self.upper_cond_lambda:
           cond = self.upper_cond_lambda(i+1, cond)
         symbol_tuple = SymbolicIndexEntry([i+1]+list(table_ids), cond, \

@@ -18,7 +18,7 @@ class ExecQueryStep(ExecStepSuper):
     self.query = query
     self.step = ExecStepSeq(steps)
     self.cost = 0
-    self.new_params = {k:v for k,v in new_params.items()}
+    self.new_params = {k:v for k,v in list(new_params.items())}
     self.variables = []
     if compute_variables:
       self.variables = self.step.get_all_variables()

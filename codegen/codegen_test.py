@@ -3,11 +3,11 @@ sys.path.append('../')
 from schema import *
 from ds import *
 from query import *
-from codegen_sql import *
-from codegen_initialize import *
-from codegen_ir import *
-from codegen_template import *
-from protogen import *
+from .codegen_sql import *
+from .codegen_initialize import *
+from .codegen_ir import *
+from .codegen_template import *
+from .protogen import *
 from constants import *
 #import mysql.connector
 from ilp.ilp_manager import *
@@ -56,7 +56,7 @@ def test_query(tables, associations, query, planid=0):
   rqmanagers, dsmeta_ = get_dsmeta([query])
   for idx,rqmng in enumerate(rqmanagers):
     cnt = 0
-    print 'Nplans = {}'.format(sum([len(x.plans) for x in rqmng.plans]))
+    print('Nplans = {}'.format(sum([len(x.plans) for x in rqmng.plans])))
     for i,plan_for_one_nesting in enumerate(rqmng.plans):
       if cnt + len(plan_for_one_nesting.plans) > planid:
         j = planid - cnt
@@ -110,7 +110,7 @@ def test_print_nesting(nesting, upper_obj, qf=None, level=1):
     s += 'for(int i{}=0; i{}<{}.{}_size(); i{}++){{\n'.format(level, level, upper_obj, tname, level)
     s += '  auto& i{}_{} = {}.{}(i{});\n'.format(level, tname, upper_obj, tname, level)
     s += '  printf("{}{} %u\\n", i{}_{}.id());\n'.format('  '.join(['' for x in range(0, level)]), tname, level, tname)
-  for k,v in nesting.assocs.items():
+  for k,v in list(nesting.assocs.items()):
     s += insert_indent(test_print_nesting(v, 'i{}_{}'.format(level, tname), k, level+1), level)
   s += '}\n'
   return s
@@ -171,8 +171,8 @@ def test_generate_sql(read_queries):
 
 def test_generate_sql_helper(ds, mycursor):
   query_str, nesting, fields = sql_for_ds_query(ds)
-  print 'ds = {}, query = {}'.format(ds.__str__(short=True), query_str)
-  print ''
+  print('ds = {}, query = {}'.format(ds.__str__(short=True), query_str))
+  print('')
   mycursor.execute(query_str+' limit 1')
   myresult = mycursor.fetchall()
   #print codegen_deserialize(ds, nesting, fields, query_str)
@@ -248,9 +248,9 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
   header = ''
   cpp = ''
   for i in range(0, len(plans)):
-    print 'generate file for query {} plan {}'.format(i, plan_ids[i])
+    print('generate file for query {} plan {}'.format(i, plan_ids[i]))
     queries[i].id = i
-    print plans[i]
+    print(plans[i])
     plans[i].copy_ds_id(None, dsmeta)
     header_, cpp_ = cgen_for_read_query(i, queries[i], plans[i], plan_ds[i], plan_ids[i])
     header += (header_ + '\n')

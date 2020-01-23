@@ -22,7 +22,7 @@ class ObjNesting(object):
         self.fields.append(f)
   def merge(self, other):
     assert(self.table == other.table)
-    for k,v in other.assocs.items():
+    for k,v in list(other.assocs.items()):
       if k not in self.assocs:
         self.assocs[k] = v
       else:
@@ -30,12 +30,12 @@ class ObjNesting(object):
     self.add_fields(other.fields)
   def fork(self):
     o = ObjNesting(self.table, self.fields, self.level)
-    for k,v in self.assocs.items():
+    for k,v in list(self.assocs.items()):
       o.assocs[k] = v.fork()
     return o
   def get_all_fields(self):
     r = [f for f in self.fields]
-    for k,v in self.assocs.items():
+    for k,v in list(self.assocs.items()):
       r = r + v.get_all_fields()
     return r
   def add_assoc(self, qf, assoc):
@@ -54,7 +54,7 @@ class ObjNesting(object):
   def __str__(self):
     s = "ObjShape [{}] ({} : ({}))\n".format(self.level, self.table.name, \
             ','.join(f.field_name for f in self.fields))
-    for k,v in self.assocs.items():
+    for k,v in list(self.assocs.items()):
       temp_s = str(v)
       temp_s = ''.join('  '+l+'\n' for l in temp_s.split('\n'))
       s += "  {}: {}".format(k.field_name, temp_s)
@@ -81,7 +81,7 @@ def get_obj_nesting_by_query(cur_obj, query):
         elif o.table == get_main_table(query.table):
           cur_obj.add_field(o)
   #check includes
-  for k,v in query.includes.items():
+  for k,v in list(query.includes.items()):
     new_assoc_obj = ObjNesting(k.field_class)
     get_obj_nesting_by_query(new_assoc_obj, v)
     cur_obj.add_assoc(k, new_assoc_obj)
@@ -176,7 +176,7 @@ def enumerate_nesting_helper(nesting, table, level):
     return [(MemObject(table), new_dsmng)]
   i = 0
   qfs = []
-  for qf,assoc in nesting.assocs.items():
+  for qf,assoc in list(nesting.assocs.items()):
     qfs.append(qf)
     if isinstance(table, DenormalizedTable):
       nested_t = qf.table.get_nested_table_by_name(qf.field_name)
@@ -286,15 +286,15 @@ def enumerate_nesting_helper(nesting, table, level):
       _obj.merge(temp_obj.fork())
       _dsmng.merge(temp_dsmng.fork())
     if len(r) == 116:
-      print 'to be merged:'
+      print('to be merged:')
       for x1 in x:
-        print x1[0]
-        print x1[1]
-        print '----'
-      print 'after merge:'
-      print _obj
-      print _dsmng
-      print '====* * ==='
+        print(x1[0])
+        print(x1[1])
+        print('----')
+      print('after merge:')
+      print(_obj)
+      print(_dsmng)
+      print('====* * ===')
     r.append((_obj, _dsmng))
   #print "len r = {}".format(len(r))
   return r
@@ -302,6 +302,6 @@ def enumerate_nesting_helper(nesting, table, level):
 def enumerate_nestings_for_query(query):
   cur_obj = ObjNesting(query.table)
   get_obj_nesting_by_query(cur_obj, query)
-  print cur_obj
+  print(cur_obj)
   dsmanagers = enumerate_nesting(cur_obj)
   return dsmanagers

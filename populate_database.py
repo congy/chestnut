@@ -4,7 +4,7 @@ from constants import *
 #import mysql.connector
 
 def sys_cmd(cmd):
-  print cmd
+  print(cmd)
   os.system(cmd)
 
 
@@ -22,16 +22,16 @@ def generate_db_data_files(data_dir, tables, associations):
     for assoc in t.get_assocs():
       if assoc.rgt == t and assoc.lft.is_temp:
         temp_fields.append('{}_id'.format(assoc.rgt_field_name))
-    print '{} remove fields: {}'.format(t.name, ','.join([str(f) for f in temp_fields]))
-    field_name = '|'.join(filter(lambda x: x != None, [None if f.name in temp_fields else f.name for f in t.get_fields()]))
+    print('{} remove fields: {}'.format(t.name, ','.join([str(f) for f in temp_fields])))
+    field_name = '|'.join([x for x in [None if f.name in temp_fields else f.name for f in t.get_fields()] if x != None])
     fp.write('id|{}\n'.format(field_name))
     pk_fields = [(xx,set()) for xx in t.primary_keys]
     for i in range(1, actual_sz+1):
       loop_cnt = 0
       if i%1000 == 0:
-        print "progress {} / {}".format(i, actual_sz)
+        print("progress {} / {}".format(i, actual_sz))
       while True:
-        field_values_map_ = filter(lambda x: x != None, [(t.get_field_by_name('id'),i)] + [None if f.name in temp_fields else (f,f.generate_value()) for f in t.get_fields()])
+        field_values_map_ = [x for x in [(t.get_field_by_name('id'),i)] + [None if f.name in temp_fields else (f,f.generate_value()) for f in t.get_fields()] if x != None]
         field_values_map = {xx[0].name:xx[1] for xx in field_values_map_}
         field_names = [xx[0].name for xx in field_values_map_]
         field_values = [field_values_map[xx] for xx in field_names]
@@ -69,7 +69,7 @@ def generate_db_data_files(data_dir, tables, associations):
         fp.write("{}\n".format('|'.join([str(f) for f in fields])))
         i += 1
       if j % 1000 == 0:
-        print "finish {} lft".format(j)
+        print("finish {} lft".format(j))
     fp.close()
 
 def populate_database(data_dir, tables, associations, recreate=False):
@@ -85,7 +85,7 @@ def create_psql_tables_script(data_dir, tables, associations, indexes={}):
     for assoc in t.get_assocs():
       if assoc.rgt == t and assoc.lft.is_temp:
         temp_fields.append('{}_id'.format(assoc.rgt_field_name))
-    fields = filter(lambda x: x != None, [None if f.name in temp_fields or f.is_temp else f for f in t.get_fields()])
+    fields = [x for x in [None if f.name in temp_fields or f.is_temp else f for f in t.get_fields()] if x != None]
     fields.insert(0, t.get_field_by_name('id'))
     table_name = to_plural(t.name)
     s += 'DROP TABLE {};\n'.format(table_name)
@@ -104,7 +104,7 @@ def create_psql_tables_script(data_dir, tables, associations, indexes={}):
     s += ');\n'
     s += "COPY {} FROM '{}/{}.tsv' DELIMITER '|' CSV HEADER;\n\n".format(table_name, data_dir, a.name)
 
-  for k,v in indexes.items():
+  for k,v in list(indexes.items()):
     for idx_fields in v:
       table_name = to_plural(k.name) if isinstance(k, Table) else k.name
       index_name = 'idx_on_{}_{}'.format(table_name, '_'.join(idx_fields))
@@ -155,7 +155,7 @@ def populate_tables(data_dir, tables, associations, recreate_db=False):
     for assoc in t.get_assocs():
       if assoc.rgt == t and assoc.lft.is_temp:
         temp_fields.append('{}_id'.format(assoc.rgt_field_name))
-    field_names = filter(lambda x: x != None, [None if f.name in temp_fields or f.is_temp else f.name for f in t.get_fields()])
+    field_names = [x for x in [None if f.name in temp_fields or f.is_temp else f.name for f in t.get_fields()] if x != None]
     field_names = 'id,{}'.format(','.join(field_names))
     sys_cmd("mysql -u root {} -e \"delete from {}\"".format(db_name, to_plural(t.name)))
     sys_cmd("mysql -u root --local-infile {} -e \"LOAD DATA LOCAL INFILE '{}' INTO TABLE {} FIELDS TERMINATED BY '|' LINES TERMINATED BY '\\n' IGNORE 1 LINES  ({})\"".format(db_name, fname, to_plural(t.name), field_names))
@@ -199,25 +199,25 @@ def test_schema(tables, associations):
       continue
     db_table_name = get_db_table_name(t.name)
     if db_table_name not in mysql_tables:
-      print 'table {} not in mysql tables!'.format(db_table_name)
+      print('table {} not in mysql tables!'.format(db_table_name))
       continue
     temp_fields = ['id']
     for assoc in t.get_assocs():
       if assoc.rgt == t and assoc.lft.is_temp:
         temp_fields.append('{}_id'.format(assoc.rgt_field_name))
-    field_names = filter(lambda x: x != None, [None if f.name in temp_fields or f.is_temp else f.name for f in t.get_fields()])
+    field_names = [x for x in [None if f.name in temp_fields or f.is_temp else f.name for f in t.get_fields()] if x != None]
     field_names.append('id')
     for f in field_names:
       if f not in mysql_fields[db_table_name]:
-        print '  field {} not in mysql fields of table {}!'.format(f, db_table_name)
+        print('  field {} not in mysql fields of table {}!'.format(f, db_table_name))
 
   for a in get_assoc_tables(associations):
     field_names = ['id', a.assoc_f1, a.assoc_f2]
     db_table_name = a.name
     if db_table_name not in mysql_tables:
-      print 'table {} not in mysql tables!'.format(db_table_name)
+      print('table {} not in mysql tables!'.format(db_table_name))
       continue
     for f in field_names:
       if f not in mysql_fields[db_table_name]:
-        print '  field {} not in mysql fields of table {}!'.format(f, db_table_name)
+        print('  field {} not in mysql fields of table {}!'.format(f, db_table_name))
   

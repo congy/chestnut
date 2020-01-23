@@ -4,8 +4,8 @@ from schema import *
 from ds import *
 from constants import *
 from query import *
-from codegen_helper import *
-from codegen_template import *
+from .codegen_helper import *
+from .codegen_template import *
 
 def cgen_for_main_test(main_body, ds_def=True, include_query=True):
   db_name = get_db_name()

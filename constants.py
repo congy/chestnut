@@ -29,7 +29,7 @@ def get_data_file_dir():
 words_map = {'status':'statuses', 'news':'news'}
 def to_plural(word):
   global words_map
-  for k,v in words_map.items():
+  for k,v in list(words_map.items()):
     if word.endswith(k):
       return word.replace(k, v)
   if word[-2:] in ['ss', 'sh', 'ch'] or word[-1] in ['x', 'z', 'o']:

@@ -65,6 +65,6 @@ class Model(object):
   def setObjective(self, obj, p):
     self.objective = obj
   def print_stat(self):
-    print '#variables = {}'.format(len(self.variables))
-    print '#constraints = {}'.format(len(self.constraints))
+    print('#variables = {}'.format(len(self.variables)))
+    print('#constraints = {}'.format(len(self.constraints)))
 

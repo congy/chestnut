@@ -46,7 +46,7 @@ class SymbolicTable(object):
         if f.name == 'id':
           continue
         new_v = None
-        for k,v in write_query.updated_fields.items():
+        for k,v in list(write_query.updated_fields.items()):
           if k.field_class == f:
             newv = z3.If(i+1==self.get_symbolic_param_or_value(write_query.param), \
                               self.get_symbolic_param_or_value(v), self.symbols[i][j])
@@ -143,7 +143,7 @@ def create_symbolic_obj_graph(thread_ctx, tables, associations):
         rgt_t = thread_ctx.get_symbs().symbolic_tables[assoc.rgt]
         lft_t = SymbolicTable(t, globalv.TABLE_SYMBOLIC_TUPLE_CNT, thread_ctx, init_tuples=False)
         symbol_a = SymbolicAssociation(assoc, globalv.ASSOC_SYMBOLIC_TUPLE_CNT, thread_ctx, init_tuples=False)
-        grouped_fields = filter(lambda f:f.name != 'id', t.get_fields())
+        grouped_fields = [f for f in t.get_fields() if f.name != 'id']
         assoc_id_pos = get_field_pos_in_tuple(assoc.rgt, '{}_id'.format(assoc.rgt_field_name))
         for i,symbol in enumerate(rgt_t.symbols):
           lft_symbol = symbol[assoc_id_pos]
@@ -212,7 +212,7 @@ def create_param_map_for_query(thread_ctx, query):
     thread_ctx.get_symbs().param_symbol_map[p] = v
 
   if isinstance(query, ReadQuery):
-    for k,v in query.includes.items():
+    for k,v in list(query.includes.items()):
       create_param_map_for_query(thread_ctx, v)
 
 
@@ -226,7 +226,7 @@ def update_symbolic_obj_graph(thread_ctx, write_query):
     symb_assoc.update(write_query)
   elif isinstance(write_query, RemoveObject):
     # update on symbolic-tables is done via chaing the 'mask' in symbolic_object, not here
-    for k,v in thread_ctx.get_symbs().symbolic_assocs.items():
+    for k,v in list(thread_ctx.get_symbs().symbolic_assocs.items()):
       v.delete_obj(write_query)
 
 class SymbolicQueryResult(object):
@@ -241,11 +241,11 @@ class SymbolicQueryResult(object):
     if self.query:
       s += ' id = {}\n'.format(self.oid)
     if len(self.aggrs) > 0:
-      for v,f in self.aggrs.items():
+      for v,f in list(self.aggrs.items()):
         s += '  aggr {} = {}\n'.format(v, f)
     if len(self.includes) > 0:
       inner_s = ''
-      for qf,ary in self.includes.items():
+      for qf,ary in list(self.includes.items()):
         s += '  include {}: \n'.format(qf)
         for i,sq in enumerate(ary):
           s += '   tuple {} match : '.format(i+1)
@@ -297,7 +297,7 @@ def generate_symbolic_query_result_helper(thread_ctx, query, upper_symbolic_q, u
     elements.append(element)
   
   #includes
-  for qf,next_query in query.includes.items():
+  for qf,next_query in list(query.includes.items()):
     assoc = table.get_assoc_by_name(qf.field_name)
     assoc_pos = 0 if assoc.lft == table else 1
     for i in range(0, symbolic_table.sz):

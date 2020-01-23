@@ -116,7 +116,7 @@ class MultiParam(Parameter):
   def get_type(self):
     return self.params[0].tipe
   def get_all_params(self):
-    return filter(lambda p: isinstance(p, Parameter), self.params)
+    return [p for p in self.params if isinstance(p, Parameter)]
   def query_pred_eq(self, other):
     return type(self) == type(other) and len(self.params) == len(other.params) and \
       all([self.params[p]==other.params[p] for p in range(0, len(self.params))])
@@ -200,7 +200,7 @@ class QueryField(object):
       else:
         self.field_class = assoc.lft
     else:
-      print "field {} in table {} unfound".format(field, table.name)
+      print("field {} in table {} unfound".format(field, table.name))
       assert (False)
   def to_var_or_value(self, replace={}):
     return "{}.{}".format(self.table.name, self.field_name)

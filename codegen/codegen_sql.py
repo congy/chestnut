@@ -6,7 +6,7 @@ from pred import *
 from pred_helper import *
 from nesting import *
 from ds import *
-from codegen_helper import *
+from .codegen_helper import *
 from query_manager import *
 
 # FIXME: currently we do not deal with NULL value:
@@ -101,13 +101,13 @@ def sql_for_ds_query(ds, select_by_id=False):
     s = 'select {} from {} as {} {} {}'.format(field_str, to_plural(entry_table), entry_table, \
                     ' '.join(join_strs), ' where '+' and '.join(pred_strs) if len(pred_strs) > 0 else '')
 
-  print "ds = {}, fields = {}".format(ds, ','.join(['{}({})'.format(str(f), f.__class__.__name__) for f in fields]))
+  print("ds = {}, fields = {}".format(ds, ','.join(['{}({})'.format(str(f), f.__class__.__name__) for f in fields])))
   return clean_sql_query(s), nesting, fields
 
 def find_nesting_until_match(nesting, table):
   if nesting.table == table:
     return nesting
-  for qf,assoc in nesting.assocs.items():
+  for qf,assoc in list(nesting.assocs.items()):
     n = find_nesting_until_match(assoc, table)
     if n:
       return n
@@ -386,12 +386,12 @@ def codegen_deserialize_helper(table, nesting, fields, upper_var, level=1):
         table_map[qf.field_class] = table_map[qf.table].get_nested_table_by_name(qf.field_name)
   else:
     table_map = {get_main_table(table):table}
-  for k,v in table_map.items():
+  for k,v in list(table_map.items()):
     s += '{}* {}_obj_ptr_{} = nullptr;\n'.format(cgen_proto_type(v), k.name, level)
     s += 'uint32_t last_{}_id_{} = 0;\n'.format(k.name, level)
   s += 'if ({}) {{\n'.format('||'.join([\
       'str_to_uint(row[{}]) != last_{}_id_{}'.format(helper_field_pos_in_row(fields,QueryField('id',k)), k.name, level) \
-        for k,v in table_map.items()]))
+        for k,v in list(table_map.items())]))
   if isinstance(table, DenormalizedTable):
     maint = table.get_main_table()
     s += '  {}_obj_ptr_{} = {}->add_{}();\n'.format(maint.name, level, upper_var, maint.name)
@@ -407,10 +407,10 @@ def codegen_deserialize_helper(table, nesting, fields, upper_var, level=1):
       s += '  {}_obj_ptr_{} = {}->add_{}();\n'.format(get_main_table(table).name, level, upper_var, table.name)
   else:
     s += '  {}_obj_ptr_{} = {}->add_{}();\n'.format(table.name, level, upper_var, table.name)
-  for k,v in table_map.items():
+  for k,v in list(table_map.items()):
     for f,pos in helper_get_table_fields_in_row(fields, k):
       s += '  {}_obj_ptr_{}->set_{}({}(row[{}]));\n'.format(f.table.name, level, f.field_name, helper_get_row_type_transform(f), pos)
-  for k,v in table_map.items():
+  for k,v in list(table_map.items()):
     s += '  last_{}_id_{} = str_to_uint(row[{}]);\n'.format(k.name, level, helper_field_pos_in_row(fields,QueryField('id',k)))
   s += '}\n'
 
@@ -418,12 +418,12 @@ def codegen_deserialize_helper(table, nesting, fields, upper_var, level=1):
     maint = table.get_main_table()
     for t in [qf.table for qf in table.join_fields]:
       n = nesting_map[t]
-      for next_qf,assoc in n.assocs.items():
+      for next_qf,assoc in list(n.assocs.items()):
         if next_qf.field_class not in nesting_map:
           next_table = next_qf.table.get_nested_table_by_name(next_qf.field_name)
           s += codegen_deserialize_helper(next_table, assoc, fields, upper_var='{}_obj_ptr_{}'.format(next_qf.table.name, level), level=level+1)
   else:
-    for qf,assoc in nesting.assocs.items():
+    for qf,assoc in list(nesting.assocs.items()):
       next_table = table.get_nested_table_by_name(qf.field_name)
       s += codegen_deserialize_helper(next_table, assoc, fields, upper_var='{}_obj_ptr_{}'.format(get_main_table(table).name, level), level=level+1)
   

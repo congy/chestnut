@@ -325,7 +325,7 @@ def or_exprs(exprs, default=True):
 
 def print_table_in_model(thread_ctx, m):
   s = ''
-  for table,v in thread_ctx.get_symbs().symbolic_tables.items():
+  for table,v in list(thread_ctx.get_symbs().symbolic_tables.items()):
     s +='Table {}\n'.format(table.name)
     s += '\t'.join([f.name for f in table.get_fields()])
     s += '\n'
@@ -334,7 +334,7 @@ def print_table_in_model(thread_ctx, m):
       s += '\t'.join([str(m[v.symbols[i][j]]) if j != id_pos else str(v.symbols[i][j]) for j in range(0, len(table.get_fields()))])
       s += '\n'
   s += '\n'
-  for assoc,v in thread_ctx.get_symbs().symbolic_assocs.items():
+  for assoc,v in list(thread_ctx.get_symbs().symbolic_assocs.items()):
     s += 'Assoc {}\n'.format(assoc.name)
     s += '{}_id\t{}_id\n'.format(assoc.lft.name, assoc.rgt.name)
     for i in range(0, v.sz):
@@ -342,19 +342,19 @@ def print_table_in_model(thread_ctx, m):
       s += '\n'
   s += '\n'
   s += 'Params:'
-  s += '\n'.join(['{}:{}'.format(k, str(m[v])) for k,v in thread_ctx.get_symbs().param_symbol_map.items()])
+  s += '\n'.join(['{}:{}'.format(k, str(m[v])) for k,v in list(thread_ctx.get_symbs().param_symbol_map.items())])
   return s
 
 def check_eq_debug(thread_ctx, msg, expr, exprs=[]):
   thread_ctx.get_symbs().solver.push()
   thread_ctx.get_symbs().solver.add(z3.Not(expr))
   if thread_ctx.get_symbs().solver.check() != z3.unsat:
-    print '{} {}'.format(msg, expr)
-    print 'CONSTRAINT FAILED!'
-    print print_table_in_model(thread_ctx, thread_ctx.get_symbs().solver.model())
-    print ''
+    print('{} {}'.format(msg, expr))
+    print('CONSTRAINT FAILED!')
+    print(print_table_in_model(thread_ctx, thread_ctx.get_symbs().solver.model()))
+    print('')
     for i,expr in enumerate(exprs):
-      print 'expr {} = {}'.format(expr[0], thread_ctx.get_symbs().solver.model().eval(expr[1]))
+      print('expr {} = {}'.format(expr[0], thread_ctx.get_symbs().solver.model().eval(expr[1])))
     exit(0)
   thread_ctx.get_symbs().solver.pop()
 
@@ -367,6 +367,6 @@ def print_all_debug_expr(model):
   global debug_reg
   for d,e in debug_reg:
     r = e if type(e) is bool else model.evaluate(e) 
-    print 'eval: {} = {}'.format(d, r)
+    print('eval: {} = {}'.format(d, r))
     if r:
-      print '    [expr = {}]'.format(z3.simplify(e))
+      print('    [expr = {}]'.format(z3.simplify(e)))

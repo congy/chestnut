@@ -15,6 +15,7 @@ from symbolic_helper import *
 import symbolic_context as symbctx
 import itertools
 import globalv
+from functools import reduce
 
 def get_ds_and_op_on_cond(thread_ctx, qtable, pred, ds_value, order=None, fk_pred=None, nonexternal={}):
   if pred is None:
@@ -84,7 +85,7 @@ class SynthHelper(object):
     self.tried_ops = [] # a list of hash value array
     self.all_params = []
     self.target_pred = target_pred
-    for k,v in pred_pool.items():
+    for k,v in list(pred_pool.items()):
       params = []
       for v1 in v:
         if isinstance(v1[1], Parameter):
@@ -97,7 +98,7 @@ class SynthHelper(object):
     # print 'table = {}'.format(self.main_table)
     # for k,v in pred_pool.items():
     #   print 'pool k = {}, v = {}'.format(k, ','.join([str(v1[1]) for v1 in v]))
-    self.max_sz = 1 if len(self.pred_pool) == 0 else reduce(lambda x, y: x*y, [len(v) for k,v in self.pred_pool.items()])
+    self.max_sz = 1 if len(self.pred_pool) == 0 else reduce(lambda x, y: x*y, [len(v) for k,v in list(self.pred_pool.items())])
   def str_ops(self, print_restp=False):
     return '\n'.join([o.__str__(print_restp) for o in self.cur_ops])
   def add_result(self):
@@ -166,12 +167,12 @@ def keyvalue_to_pred(key, value):
 def key_map_to_pred(keymap):
   others = {}
   preds = []
-  for k,v in keymap.items():
+  for k,v in list(keymap.items()):
     if len(k.path) == 0:
       preds += [keyvalue_to_pred(k, v1) for v1 in v]
     else:
       add_to_list_map(k.path[0], (k,v), others)
-  for k,v in others.items():
+  for k,v in list(others.items()):
     newmap = {}
     for k1,v1 in v: # v is a list of (k,v) from keymap
       newk = KeyPath(k1.key, k1.path[1:])
@@ -204,7 +205,7 @@ class OpPredHelper(object):
     symbolic_ds = SymbolicIndex(ds, None, thread_ctx)
     self.symbolic_result = symbolic_ds.get_symbolic_tuple_with_cond(self.dsop.op, self.dsop.params)
   def merge_keymap(self):
-    m = {k:[v] for k,v in self.params.items()}
+    m = {k:[v] for k,v in list(self.params.items())}
     for k,v in self.condition:
       add_to_list_map(k,v,m)
     return m
@@ -212,7 +213,7 @@ class OpPredHelper(object):
     # TODO
     return len(self.range_keys) <= 1 
   def contain_param(self, p):
-    for k,v in self.params.items():
+    for k,v in list(self.params.items()):
       if type(v[0]) is tuple:
         if v[0][1] == p or v[1][1] == p:
           return True
@@ -236,7 +237,7 @@ class OpPredHelper(object):
   def fork(self):
     newop = OpPredHelper(self.table)
     newop.keys = [k for k in self.keys]
-    newop.params = {k:v for k,v in self.params.items()}
+    newop.params = {k:v for k,v in list(self.params.items())}
     newop.point_keys = [k for k in self.point_keys]
     newop.range_keys = [k for k in self.range_keys]
     newop.condition = [k for k in self.condition]
@@ -280,8 +281,8 @@ class OpPredHelper(object):
     #print '  ** curop = {}, pred = {}'.format(self, pred)
     return pred
   def replace_param_with_qf(self, nonexternal):
-    for k,v in self.params.items():
-      if any([k==qf for qf,v1 in nonexternal.items()]):
+    for k,v in list(self.params.items()):
+      if any([k==qf for qf,v1 in list(nonexternal.items())]):
         to_be_replaced = nonexternal[k][1]
         qf = nonexternal[k][0]
         if type(self.params[k][0]) is tuple:
@@ -347,7 +348,7 @@ def enumerate_all_ops(state, order=None):
   ops = []
   all_keys = []
   all_values = []
-  for k,v in state.pred_pool.items():
+  for k,v in list(state.pred_pool.items()):
     lt = []
     gt = []
     for v1 in v:
@@ -365,7 +366,7 @@ def enumerate_all_ops(state, order=None):
     all_keys.append(k)
     all_values.append(values)
   for xx in itertools.product(*all_values):
-    for i in reversed(range(0, len(state.constant_pred)+1)):
+    for i in reversed(list(range(0, len(state.constant_pred)+1))):
       for consts in itertools.combinations(state.constant_pred, i):
         op = OpPredHelper(state.main_table)
         for j,value in enumerate(xx):

@@ -146,7 +146,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
   next_level_query = []
   next_fields = []
   assoc_steps = []
-  for qf,next_query in query.includes.items():
+  for qf,next_query in list(query.includes.items()):
     steps = search_steps_for_assoc(obj, dsmng, qf)
     field = qf
     next_fields.append(qf)
@@ -232,8 +232,7 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred,
 
   _rest_assoc_fields = [a for a in assoc_fields]
   if rest_pred:
-    _rest_assoc_fields += filter(lambda x: x is not None, \
-        [x if is_assoc_field(x) else None for x in rest_pred.get_curlevel_fields(include_assoc=True)])
+    _rest_assoc_fields += [x for x in [x if is_assoc_field(x) else None for x in rest_pred.get_curlevel_fields(include_assoc=True)] if x is not None]
   nextlevel_preds = find_nextlevel_pred(rest_pred)
   for p in nextlevel_preds:
     if is_assoc_field(p.lh):
@@ -291,7 +290,7 @@ def search_plans_for_one_nesting(query, dsmng):
   steps = []
   for ptu in ptunions:
     steps.append(ptu.to_steps())
-  print "one nesting steps = {}".format(len(steps))
+  print("one nesting steps = {}".format(len(steps)))
   return steps
 
 def thread_search_plans_for_one_nesting(query_id, tasks, results, idx):
@@ -338,17 +337,17 @@ def search_mincost_plan(query):
       cost = to_real_value(plan.compute_cost())
       if mincost_plan is None or cost < mincost_plan[0]:
          mincost_plan = [cost, plan, new_dsmnger]
-  print "Min cost plan: \n"
-  print mincost_plan[1]
-  print "\ndata structures:\n"
-  print mincost_plan[2]
+  print("Min cost plan: \n")
+  print(mincost_plan[1])
+  print("\ndata structures:\n")
+  print(mincost_plan[2])
 
 def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan=True):
   dsmngers = enumerate_nestings_for_query(query)
   compute_mem_bound()
   assert(globalv.memory_bound > 1000)
-  print 'mem bound = {}'.format(globalv.memory_bound)
-  print 'all nestings = {} ({})'.format(len(dsmngers), query_id)
+  print('mem bound = {}'.format(globalv.memory_bound))
+  print('all nestings = {} ({})'.format(len(dsmngers), query_id))
   plans = []
   if multiprocess:
     # TODO
@@ -359,7 +358,7 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
     start_time = time.time()
     for k,dsmng in enumerate(dsmngers):
       if print_plan:
-        print 'nesting {} = {}'.format(k, dsmng)
+        print('nesting {} = {}'.format(k, dsmng))
       try:
         temp_plans = search_plans_for_one_nesting(query, dsmng)
       except NestingFailException as e:
@@ -377,25 +376,25 @@ def search_plans_for_one_query(query, query_id=0, multiprocess=False, print_plan
         plan.copy_ds_id(None, new_dsmnger)
         plands.append(new_dsmnger)
         if print_plan:
-          print 'PLAN {}'.format(cnt)
-          print plan
-          print 'plan cost = {}'.format(to_real_value(plan.compute_cost()))
-          print 'plan json'
-          print plan.to_json()
-          print '** struct:'
-          print new_dsmnger
-          print
-          print new_dsmnger.to_json()
-          print '=============\n'
+          print('PLAN {}'.format(cnt))
+          print(plan)
+          print('plan cost = {}'.format(to_real_value(plan.compute_cost())))
+          print('plan json')
+          print(plan.to_json())
+          print('** struct:')
+          print(new_dsmnger)
+          print()
+          print(new_dsmnger.to_json())
+          print('=============\n')
           cnt += 1
       res = clean_lst([None if to_real_value(plands[ix].compute_mem_cost()) > globalv.memory_bound else res[ix] for ix in range(0, len(res))])
       new_count = len(res)
-      print 'pruned by memory bound: {} {}'.format(old_count, new_count)
+      print('pruned by memory bound: {} {}'.format(old_count, new_count))
       plans.append(p)
   # print '#Fail nestings: {}'.format(len(fail_nesting))
   # for i,f in enumerate(fail_nesting):
   #   print 'FAIL {}'.format(i)
   #   print f
   #   print '-----'
-  print 'query plan search time = {}'.format(time.time()-start_time)
+  print('query plan search time = {}'.format(time.time()-start_time))
   return plans

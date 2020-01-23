@@ -60,8 +60,8 @@ class PlanTree(object):
     pt.assoc_pred_steps = [s.fork() for s in self.assoc_pred_steps]
     pt.assoc_query_steps = [s.fork() for s in self.assoc_query_steps]
     pt.setv_steps = [s.fork() for s in self.setv_steps]
-    pt.next_level_pred = {k:v.fork() for k,v in self.next_level_pred.items()}
-    pt.next_level_query = {k:v.fork() for k,v in self.next_level_query.items()}
+    pt.next_level_pred = {k:v.fork() for k,v in list(self.next_level_pred.items())}
+    pt.next_level_query = {k:v.fork() for k,v in list(self.next_level_query.items())}
     return pt
   def find_retrieve_assoc_step(self, field, query=False):
     ary = self.assoc_query_steps if query else self.assoc_pred_steps 
@@ -78,7 +78,7 @@ class PlanTree(object):
     # assoc query steps
     # nextlevel query
     ele_ops = [s for s in self.assoc_pred_steps]
-    for k,v in self.next_level_pred.items():
+    for k,v in list(self.next_level_pred.items()):
       if is_assoc_field(k):
         s = self.find_retrieve_assoc_step(k)
         s.add_steps(v.to_steps())
@@ -86,7 +86,7 @@ class PlanTree(object):
         ele_ops += v.to_steps()
     ele_ops += self.setv_steps
     ele_ops += self.assoc_query_steps
-    for k,v in self.next_level_query.items():
+    for k,v in list(self.next_level_query.items()):
       if is_assoc_field(k):
         s = self.find_retrieve_assoc_step(k, True)
         s.add_steps(v.to_steps())

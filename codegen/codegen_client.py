@@ -3,8 +3,8 @@ sys.path.append('../')
 from ds import *
 from planIR import *
 from query import *
-from codegen_helper import *
-from codegen_state import *
+from .codegen_helper import *
+from .codegen_state import *
 import globalv
 
 ruby_template_begin = """
@@ -82,13 +82,13 @@ def cgen_ruby_client_print(query, result_var):
 def cgen_ruby_client_print_helper(query, element_var, level=0):
   s = ''
   indent = ''.join(['\t' for i in range(0, level)])
-  for k,q in query.includes.items():
+  for k,q in list(query.includes.items()):
     for v,f in q.aggrs:
       if v.is_temp == False:
         s += 'puts \"{}{} = #{{{}.{}}}\"\n'.format(indent, v.name, element_var, v.name)
   for f in query.table.get_fields():
     s += 'puts \"{}{} = #{{{}.{}}}\"\n'.format(indent, f.name, element_var, f.name)
-  for k,v in query.includes.items():
+  for k,v in list(query.includes.items()):
     if k.table.has_one_or_many_field(k.field_name):
       s += "if {}.{} != nil\n".format(element_var, k.field_name)
       s += insert_indent(cgen_ruby_client_print_helper(v, '{}.{}'.format(element_var, k.field_name), level+1))
@@ -172,7 +172,7 @@ def cgen_nonproto_query_result_element(query, upper_query=None, repeated=True):
       s += '{}; }}\n'.format(cmp_expr)
       upper_s += '  inline void sort_{}() {{ std::sort({}.begin(), {}.end()); }}\n'.format(retv.tipe.name, rs_var, rs_var)
     
-    for k,q in query.includes.items():
+    for k,q in list(query.includes.items()):
       repeated = (k.table.has_one_or_many_field(k.field_name) == 0)
       inner_s, inner_upper_s = cgen_nonproto_query_result_element(q, upper_query=query, repeated=repeated)
       s += insert_indent(inner_s)

@@ -184,7 +184,7 @@ def get_dsmeta(read_queries):
   dsmeta = DSManager()
   begin_ds_id = 1
   for query in read_queries:
-    print("query {}".format(query))
+    print(("query {}".format(query)))
     nesting_plans = search_plans_for_one_query(query, print_plan=False)
     rqmanagers.append(RQManager(query, nesting_plans))
     for i,plan_for_one_nesting in enumerate(nesting_plans):
@@ -218,22 +218,22 @@ def get_dsmeta(read_queries):
       total_new_plans += len(add_plans)
       rqmanagers[qi].plans[i].plans += add_plans
       rqmanagers[qi].plans[i].dsmanagers += add_dsmngers
-    print "finish find compatible ds for query {}, total new plan len = {}".format(qi, total_new_plans)
+    print("finish find compatible ds for query {}, total new plan len = {}".format(qi, total_new_plans))
           
   return rqmanagers, dsmeta
 
 def test_merge(query):
   rqmanagers, dsmeta = get_dsmeta([query])
-  print dsmeta
+  print(dsmeta)
   print_ds_with_cost(dsmeta)
 
 def test_cost(queries):
   rqmanagers, dsmeta = get_dsmeta(queries)
   ds_lst, memobj = collect_all_ds_helper1(dsmeta.data_structures)
   for ds in ds_lst:
-    print 'ds {} cost = {}'.format(ds.__str__(True), to_real_value(ds.compute_mem_cost()))
-    print ''
-  for k,v in memobj.items(): 
+    print('ds {} cost = {}'.format(ds.__str__(True), to_real_value(ds.compute_mem_cost())))
+    print('')
+  for k,v in list(memobj.items()): 
     cnt = k.element_count()
-    print 'memobj {} #element = {}'.format(k.__str__(True), to_real_value(cnt))
-    print ''
+    print('memobj {} #element = {}'.format(k.__str__(True), to_real_value(cnt)))
+    print('')
