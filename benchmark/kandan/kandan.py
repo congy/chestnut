@@ -44,11 +44,11 @@ globalv.associations = associations
 
 read_queries = [q_ai_1, q_ai_2, q_ai_3, \
 q_as_1, \
-q_di_1, \
+#q_di_1, \
 q_ti_1, \
 q_ci_1, \
 q_cs_1, \
-q_mi_1, \
+#q_mi_1, \
 q_ms_1]
 
 write_queries = [q_ac_w1, q_ac_w2, q_ac_w3, \
@@ -76,9 +76,8 @@ q_cc_w1, q_cc_w2]
 # test_merge(q)
 #test_cost(read_queries[:1])
 
-test_ilp(read_queries, membound_factor=1)
-# membound_factor: memory bound vs table size (2 means mem bound is 2x table size).
-
+test_ilp(read_queries, membound_factor=3.0)
+# membound_factor: memory bound vs table size (2 means mem bound is 2x table size).q
 ilp_solve(read_queries, write_queries=[], membound_factor=1.7, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
 test_read_overall(tables, associations, read_queries, memfactor=1.7, read_from_file=True, read_ilp=True)
 

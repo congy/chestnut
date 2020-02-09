@@ -78,8 +78,8 @@ def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, id
       idx_step = pair[0]
       rest_pred = pair[1]
       next_rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
-          # Rest of the things not in the index(?). RECURSION (?)
           enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred)
+          # ^ Rest of the things not in the index(?). RECURSION (?)
       cond_expr = next_rest_pred
       setvar_step = ExecSetVarStep(variable_to_set[i], AtomValue(not upper_pred_var.init_value), cond=cond_expr)
    
@@ -361,7 +361,7 @@ def thread_search_plans_for_one_nesting(query_id, tasks, results, idx):
   #       s = StructPool()
   #       plan.get_used_objstruct(None, s)
   #       struct.merge(s)
-  #   pickle.dump((plans, struct), open('query_{}_{}.pickle'.format(query_id, idx), 'w'))
+  #   pickle.dump((plans, struct), open('query_{}_{}.pickle'.format(query_id, idx), 'wb'))
   #   results[idx] = cnt
   # else:
   results[idx] = plans

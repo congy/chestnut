@@ -1,0 +1,668 @@
+syntax = "proto3";
+
+package kandan_lg;
+
+message PUser {
+  uint32 id = 1;
+  string email = 2;
+  string encrypted_password = 3;
+  string reset_password_token = 4;
+  uint32 reset_password_sent_at = 5;
+  uint32 remember_created_at = 6;
+  string first_name = 7;
+  string last_name = 8;
+  uint32 signin_count = 9;
+  uint32 current_sign_in_at = 10;
+  string current_sign_in_ip = 11;
+  uint32 last_sign_in_at = 12;
+  string last_sign_in_ip = 13;
+  string auth_token = 14;
+  string locale = 15;
+  string gravatar_hash = 16;
+  string username = 17;
+  string regstatus = 18;
+  bool active = 19;
+  bool is_admin = 20;
+  string avatar_url = 21;
+  uint32 created_at = 22;
+  uint32 updated_at = 23;
+  message PChannelsInUser {
+    uint32 id = 1;
+    string name = 2;
+    uint32 created_at = 3;
+    uint32 updated_at = 4;
+    uint32 user_id = 5;
+    uint32 count = 6;
+    message PActivitiesInChannel {
+      uint32 id = 1;
+      uint32 created_at = 2;
+      uint32 updated_at = 3;
+      string action = 4;
+      string content = 5;
+      uint32 channel_id = 6;
+      uint32 user_id = 7;
+    }
+    
+    repeated PActivitiesInChannel activities = 7;
+    message PAttachmentsInChannel {
+      uint32 id = 1;
+      string file_file_name = 2;
+      string file_content_type = 3;
+      uint32 file_file_size = 4;
+      uint32 message_id = 5;
+      uint32 file_updated_at = 6;
+      uint32 created_at = 7;
+      uint32 updated_at = 8;
+      uint32 user_id = 9;
+      uint32 channel_id = 10;
+    }
+    
+    repeated PAttachmentsInChannel attachments = 8;
+  }
+  
+  repeated PChannelsInUser channels = 24;
+  message PActivitiesInUser {
+    uint32 id = 1;
+    uint32 created_at = 2;
+    uint32 updated_at = 3;
+    string action = 4;
+    string content = 5;
+    uint32 channel_id = 6;
+    uint32 user_id = 7;
+    message PChannelInActivity {
+      uint32 id = 1;
+      string name = 2;
+      uint32 created_at = 3;
+      uint32 updated_at = 4;
+      uint32 user_id = 5;
+      uint32 count = 6;
+      message PAttachmentsInChannel {
+        uint32 id = 1;
+        string file_file_name = 2;
+        string file_content_type = 3;
+        uint32 file_file_size = 4;
+        uint32 message_id = 5;
+        uint32 file_updated_at = 6;
+        uint32 created_at = 7;
+        uint32 updated_at = 8;
+        uint32 user_id = 9;
+        uint32 channel_id = 10;
+      }
+      
+      repeated PAttachmentsInChannel attachments = 7;
+    }
+    
+    PChannelInActivity channel = 8;
+  }
+  
+  repeated PActivitiesInUser activities = 25;
+  message PAttachmentsInUser {
+    uint32 id = 1;
+    string file_file_name = 2;
+    string file_content_type = 3;
+    uint32 file_file_size = 4;
+    uint32 message_id = 5;
+    uint32 file_updated_at = 6;
+    uint32 created_at = 7;
+    uint32 updated_at = 8;
+    uint32 user_id = 9;
+    uint32 channel_id = 10;
+    message PChannelInAttachment {
+      uint32 id = 1;
+      string name = 2;
+      uint32 created_at = 3;
+      uint32 updated_at = 4;
+      uint32 user_id = 5;
+      uint32 count = 6;
+      message PActivitiesInChannel {
+        uint32 id = 1;
+        uint32 created_at = 2;
+        uint32 updated_at = 3;
+        string action = 4;
+        string content = 5;
+        uint32 channel_id = 6;
+        uint32 user_id = 7;
+      }
+      
+      repeated PActivitiesInChannel activities = 7;
+    }
+    
+    PChannelInAttachment channel = 11;
+  }
+  
+  repeated PAttachmentsInUser attachments = 26;
+}
+
+
+message PChannel {
+  uint32 id = 1;
+  string name = 2;
+  uint32 created_at = 3;
+  uint32 updated_at = 4;
+  uint32 user_id = 5;
+  uint32 count = 6;
+  message PActivitiesInChannel {
+    uint32 id = 1;
+    uint32 created_at = 2;
+    uint32 updated_at = 3;
+    string action = 4;
+    string content = 5;
+    uint32 channel_id = 6;
+    uint32 user_id = 7;
+    message PUserInActivity {
+      uint32 id = 1;
+      string email = 2;
+      string encrypted_password = 3;
+      string reset_password_token = 4;
+      uint32 reset_password_sent_at = 5;
+      uint32 remember_created_at = 6;
+      string first_name = 7;
+      string last_name = 8;
+      uint32 signin_count = 9;
+      uint32 current_sign_in_at = 10;
+      string current_sign_in_ip = 11;
+      uint32 last_sign_in_at = 12;
+      string last_sign_in_ip = 13;
+      string auth_token = 14;
+      string locale = 15;
+      string gravatar_hash = 16;
+      string username = 17;
+      string regstatus = 18;
+      bool active = 19;
+      bool is_admin = 20;
+      string avatar_url = 21;
+      uint32 created_at = 22;
+      uint32 updated_at = 23;
+      message PAttachmentsInUser {
+        uint32 id = 1;
+        string file_file_name = 2;
+        string file_content_type = 3;
+        uint32 file_file_size = 4;
+        uint32 message_id = 5;
+        uint32 file_updated_at = 6;
+        uint32 created_at = 7;
+        uint32 updated_at = 8;
+        uint32 user_id = 9;
+        uint32 channel_id = 10;
+      }
+      
+      repeated PAttachmentsInUser attachments = 24;
+    }
+    
+    PUserInActivity user = 8;
+  }
+  
+  repeated PActivitiesInChannel activities = 7;
+  message PUserInChannel {
+    uint32 id = 1;
+    string email = 2;
+    string encrypted_password = 3;
+    string reset_password_token = 4;
+    uint32 reset_password_sent_at = 5;
+    uint32 remember_created_at = 6;
+    string first_name = 7;
+    string last_name = 8;
+    uint32 signin_count = 9;
+    uint32 current_sign_in_at = 10;
+    string current_sign_in_ip = 11;
+    uint32 last_sign_in_at = 12;
+    string last_sign_in_ip = 13;
+    string auth_token = 14;
+    string locale = 15;
+    string gravatar_hash = 16;
+    string username = 17;
+    string regstatus = 18;
+    bool active = 19;
+    bool is_admin = 20;
+    string avatar_url = 21;
+    uint32 created_at = 22;
+    uint32 updated_at = 23;
+    message PActivitiesInUser {
+      uint32 id = 1;
+      uint32 created_at = 2;
+      uint32 updated_at = 3;
+      string action = 4;
+      string content = 5;
+      uint32 channel_id = 6;
+      uint32 user_id = 7;
+    }
+    
+    repeated PActivitiesInUser activities = 24;
+    message PAttachmentsInUser {
+      uint32 id = 1;
+      string file_file_name = 2;
+      string file_content_type = 3;
+      uint32 file_file_size = 4;
+      uint32 message_id = 5;
+      uint32 file_updated_at = 6;
+      uint32 created_at = 7;
+      uint32 updated_at = 8;
+      uint32 user_id = 9;
+      uint32 channel_id = 10;
+    }
+    
+    repeated PAttachmentsInUser attachments = 25;
+  }
+  
+  PUserInChannel user = 8;
+  message PAttachmentsInChannel {
+    uint32 id = 1;
+    string file_file_name = 2;
+    string file_content_type = 3;
+    uint32 file_file_size = 4;
+    uint32 message_id = 5;
+    uint32 file_updated_at = 6;
+    uint32 created_at = 7;
+    uint32 updated_at = 8;
+    uint32 user_id = 9;
+    uint32 channel_id = 10;
+    message PUserInAttachment {
+      uint32 id = 1;
+      string email = 2;
+      string encrypted_password = 3;
+      string reset_password_token = 4;
+      uint32 reset_password_sent_at = 5;
+      uint32 remember_created_at = 6;
+      string first_name = 7;
+      string last_name = 8;
+      uint32 signin_count = 9;
+      uint32 current_sign_in_at = 10;
+      string current_sign_in_ip = 11;
+      uint32 last_sign_in_at = 12;
+      string last_sign_in_ip = 13;
+      string auth_token = 14;
+      string locale = 15;
+      string gravatar_hash = 16;
+      string username = 17;
+      string regstatus = 18;
+      bool active = 19;
+      bool is_admin = 20;
+      string avatar_url = 21;
+      uint32 created_at = 22;
+      uint32 updated_at = 23;
+      message PActivitiesInUser {
+        uint32 id = 1;
+        uint32 created_at = 2;
+        uint32 updated_at = 3;
+        string action = 4;
+        string content = 5;
+        uint32 channel_id = 6;
+        uint32 user_id = 7;
+      }
+      
+      repeated PActivitiesInUser activities = 24;
+    }
+    
+    PUserInAttachment user = 11;
+  }
+  
+  repeated PAttachmentsInChannel attachments = 9;
+}
+
+
+message PActivity {
+  uint32 id = 1;
+  uint32 created_at = 2;
+  uint32 updated_at = 3;
+  string action = 4;
+  string content = 5;
+  uint32 channel_id = 6;
+  uint32 user_id = 7;
+  message PChannelInActivity {
+    uint32 id = 1;
+    string name = 2;
+    uint32 created_at = 3;
+    uint32 updated_at = 4;
+    uint32 user_id = 5;
+    uint32 count = 6;
+    message PUserInChannel {
+      uint32 id = 1;
+      string email = 2;
+      string encrypted_password = 3;
+      string reset_password_token = 4;
+      uint32 reset_password_sent_at = 5;
+      uint32 remember_created_at = 6;
+      string first_name = 7;
+      string last_name = 8;
+      uint32 signin_count = 9;
+      uint32 current_sign_in_at = 10;
+      string current_sign_in_ip = 11;
+      uint32 last_sign_in_at = 12;
+      string last_sign_in_ip = 13;
+      string auth_token = 14;
+      string locale = 15;
+      string gravatar_hash = 16;
+      string username = 17;
+      string regstatus = 18;
+      bool active = 19;
+      bool is_admin = 20;
+      string avatar_url = 21;
+      uint32 created_at = 22;
+      uint32 updated_at = 23;
+      message PAttachmentsInUser {
+        uint32 id = 1;
+        string file_file_name = 2;
+        string file_content_type = 3;
+        uint32 file_file_size = 4;
+        uint32 message_id = 5;
+        uint32 file_updated_at = 6;
+        uint32 created_at = 7;
+        uint32 updated_at = 8;
+        uint32 user_id = 9;
+        uint32 channel_id = 10;
+      }
+      
+      repeated PAttachmentsInUser attachments = 24;
+    }
+    
+    PUserInChannel user = 7;
+    message PAttachmentsInChannel {
+      uint32 id = 1;
+      string file_file_name = 2;
+      string file_content_type = 3;
+      uint32 file_file_size = 4;
+      uint32 message_id = 5;
+      uint32 file_updated_at = 6;
+      uint32 created_at = 7;
+      uint32 updated_at = 8;
+      uint32 user_id = 9;
+      uint32 channel_id = 10;
+      message PUserInAttachment {
+        uint32 id = 1;
+        string email = 2;
+        string encrypted_password = 3;
+        string reset_password_token = 4;
+        uint32 reset_password_sent_at = 5;
+        uint32 remember_created_at = 6;
+        string first_name = 7;
+        string last_name = 8;
+        uint32 signin_count = 9;
+        uint32 current_sign_in_at = 10;
+        string current_sign_in_ip = 11;
+        uint32 last_sign_in_at = 12;
+        string last_sign_in_ip = 13;
+        string auth_token = 14;
+        string locale = 15;
+        string gravatar_hash = 16;
+        string username = 17;
+        string regstatus = 18;
+        bool active = 19;
+        bool is_admin = 20;
+        string avatar_url = 21;
+        uint32 created_at = 22;
+        uint32 updated_at = 23;
+      }
+      
+      PUserInAttachment user = 11;
+    }
+    
+    repeated PAttachmentsInChannel attachments = 8;
+  }
+  
+  PChannelInActivity channel = 8;
+  message PUserInActivity {
+    uint32 id = 1;
+    string email = 2;
+    string encrypted_password = 3;
+    string reset_password_token = 4;
+    uint32 reset_password_sent_at = 5;
+    uint32 remember_created_at = 6;
+    string first_name = 7;
+    string last_name = 8;
+    uint32 signin_count = 9;
+    uint32 current_sign_in_at = 10;
+    string current_sign_in_ip = 11;
+    uint32 last_sign_in_at = 12;
+    string last_sign_in_ip = 13;
+    string auth_token = 14;
+    string locale = 15;
+    string gravatar_hash = 16;
+    string username = 17;
+    string regstatus = 18;
+    bool active = 19;
+    bool is_admin = 20;
+    string avatar_url = 21;
+    uint32 created_at = 22;
+    uint32 updated_at = 23;
+    message PChannelsInUser {
+      uint32 id = 1;
+      string name = 2;
+      uint32 created_at = 3;
+      uint32 updated_at = 4;
+      uint32 user_id = 5;
+      uint32 count = 6;
+      message PAttachmentsInChannel {
+        uint32 id = 1;
+        string file_file_name = 2;
+        string file_content_type = 3;
+        uint32 file_file_size = 4;
+        uint32 message_id = 5;
+        uint32 file_updated_at = 6;
+        uint32 created_at = 7;
+        uint32 updated_at = 8;
+        uint32 user_id = 9;
+        uint32 channel_id = 10;
+      }
+      
+      repeated PAttachmentsInChannel attachments = 7;
+    }
+    
+    repeated PChannelsInUser channels = 24;
+    message PAttachmentsInUser {
+      uint32 id = 1;
+      string file_file_name = 2;
+      string file_content_type = 3;
+      uint32 file_file_size = 4;
+      uint32 message_id = 5;
+      uint32 file_updated_at = 6;
+      uint32 created_at = 7;
+      uint32 updated_at = 8;
+      uint32 user_id = 9;
+      uint32 channel_id = 10;
+      message PChannelInAttachment {
+        uint32 id = 1;
+        string name = 2;
+        uint32 created_at = 3;
+        uint32 updated_at = 4;
+        uint32 user_id = 5;
+        uint32 count = 6;
+      }
+      
+      PChannelInAttachment channel = 11;
+    }
+    
+    repeated PAttachmentsInUser attachments = 25;
+  }
+  
+  PUserInActivity user = 9;
+}
+
+
+message PAttachment {
+  uint32 id = 1;
+  string file_file_name = 2;
+  string file_content_type = 3;
+  uint32 file_file_size = 4;
+  uint32 message_id = 5;
+  uint32 file_updated_at = 6;
+  uint32 created_at = 7;
+  uint32 updated_at = 8;
+  uint32 user_id = 9;
+  uint32 channel_id = 10;
+  message PUserInAttachment {
+    uint32 id = 1;
+    string email = 2;
+    string encrypted_password = 3;
+    string reset_password_token = 4;
+    uint32 reset_password_sent_at = 5;
+    uint32 remember_created_at = 6;
+    string first_name = 7;
+    string last_name = 8;
+    uint32 signin_count = 9;
+    uint32 current_sign_in_at = 10;
+    string current_sign_in_ip = 11;
+    uint32 last_sign_in_at = 12;
+    string last_sign_in_ip = 13;
+    string auth_token = 14;
+    string locale = 15;
+    string gravatar_hash = 16;
+    string username = 17;
+    string regstatus = 18;
+    bool active = 19;
+    bool is_admin = 20;
+    string avatar_url = 21;
+    uint32 created_at = 22;
+    uint32 updated_at = 23;
+    message PChannelsInUser {
+      uint32 id = 1;
+      string name = 2;
+      uint32 created_at = 3;
+      uint32 updated_at = 4;
+      uint32 user_id = 5;
+      uint32 count = 6;
+      message PActivitiesInChannel {
+        uint32 id = 1;
+        uint32 created_at = 2;
+        uint32 updated_at = 3;
+        string action = 4;
+        string content = 5;
+        uint32 channel_id = 6;
+        uint32 user_id = 7;
+      }
+      
+      repeated PActivitiesInChannel activities = 7;
+    }
+    
+    repeated PChannelsInUser channels = 24;
+    message PActivitiesInUser {
+      uint32 id = 1;
+      uint32 created_at = 2;
+      uint32 updated_at = 3;
+      string action = 4;
+      string content = 5;
+      uint32 channel_id = 6;
+      uint32 user_id = 7;
+      message PChannelInActivity {
+        uint32 id = 1;
+        string name = 2;
+        uint32 created_at = 3;
+        uint32 updated_at = 4;
+        uint32 user_id = 5;
+        uint32 count = 6;
+      }
+      
+      PChannelInActivity channel = 8;
+    }
+    
+    repeated PActivitiesInUser activities = 25;
+  }
+  
+  PUserInAttachment user = 11;
+  message PChannelInAttachment {
+    uint32 id = 1;
+    string name = 2;
+    uint32 created_at = 3;
+    uint32 updated_at = 4;
+    uint32 user_id = 5;
+    uint32 count = 6;
+    message PActivitiesInChannel {
+      uint32 id = 1;
+      uint32 created_at = 2;
+      uint32 updated_at = 3;
+      string action = 4;
+      string content = 5;
+      uint32 channel_id = 6;
+      uint32 user_id = 7;
+      message PUserInActivity {
+        uint32 id = 1;
+        string email = 2;
+        string encrypted_password = 3;
+        string reset_password_token = 4;
+        uint32 reset_password_sent_at = 5;
+        uint32 remember_created_at = 6;
+        string first_name = 7;
+        string last_name = 8;
+        uint32 signin_count = 9;
+        uint32 current_sign_in_at = 10;
+        string current_sign_in_ip = 11;
+        uint32 last_sign_in_at = 12;
+        string last_sign_in_ip = 13;
+        string auth_token = 14;
+        string locale = 15;
+        string gravatar_hash = 16;
+        string username = 17;
+        string regstatus = 18;
+        bool active = 19;
+        bool is_admin = 20;
+        string avatar_url = 21;
+        uint32 created_at = 22;
+        uint32 updated_at = 23;
+      }
+      
+      PUserInActivity user = 8;
+    }
+    
+    repeated PActivitiesInChannel activities = 7;
+    message PUserInChannel {
+      uint32 id = 1;
+      string email = 2;
+      string encrypted_password = 3;
+      string reset_password_token = 4;
+      uint32 reset_password_sent_at = 5;
+      uint32 remember_created_at = 6;
+      string first_name = 7;
+      string last_name = 8;
+      uint32 signin_count = 9;
+      uint32 current_sign_in_at = 10;
+      string current_sign_in_ip = 11;
+      uint32 last_sign_in_at = 12;
+      string last_sign_in_ip = 13;
+      string auth_token = 14;
+      string locale = 15;
+      string gravatar_hash = 16;
+      string username = 17;
+      string regstatus = 18;
+      bool active = 19;
+      bool is_admin = 20;
+      string avatar_url = 21;
+      uint32 created_at = 22;
+      uint32 updated_at = 23;
+      message PActivitiesInUser {
+        uint32 id = 1;
+        uint32 created_at = 2;
+        uint32 updated_at = 3;
+        string action = 4;
+        string content = 5;
+        uint32 channel_id = 6;
+        uint32 user_id = 7;
+      }
+      
+      repeated PActivitiesInUser activities = 24;
+    }
+    
+    PUserInChannel user = 8;
+  }
+  
+  PChannelInAttachment channel = 12;
+}
+
+
+message PUserList {
+  repeated PUser user = 1;
+}
+message PChannelList {
+  repeated PChannel channel = 1;
+}
+message PActivityList {
+  repeated PActivity activity = 1;
+}
+message PAttachmentList {
+  repeated PAttachment attachment = 1;
+}
+
+
+message QueryParam {
+  uint32 query_id = 1;
+}
+
+

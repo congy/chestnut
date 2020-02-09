@@ -12,9 +12,9 @@ from ds_manager import *
 import multiprocessing
 import pickle
 
-# TODO: use gurobipy when you have a license.
-from .ilp_fake import *
-#from gurobipy import *
+# Use gurobipy when you have a license.
+# from .ilp_fake import *
+from gurobipy import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -285,7 +285,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       temp_rqmanagers = manager.dict() #[None for i in range(0, len(read_queries))]
       processing_jobs = []
       def read_pickle_file(ix, rqmanagers):
-        f = open('q{}_plan.pickle'.format(ix), 'r')
+        f = open('q{}_plan.pickle'.format(ix), 'rb')
         rqmanagers[ix] = pickle.load(f)
         assert(rqmanagers[ix])
         print('read file {}'.format(ix))
@@ -298,7 +298,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       for p in processing_jobs:
         p.join()
 
-      f = open('dsmeta.pickle', 'r')
+      f = open('dsmeta.pickle', 'rb')
       dsmeta = pickle.load(f)
       f.close()
       assert(len(temp_rqmanagers) == len(read_queries))
@@ -316,10 +316,10 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       #prune_read_plans(rqmanagers, dsmeta)
       if save_to_file:
         for i in range(0, len(rqmanagers)):
-          f = open('q{}_plan.pickle'.format(i), 'w')
+          f = open('q{}_plan.pickle'.format(i), 'wb')
           pickle.dump(rqmanagers[i], f)
           f.close()
-        f = open('dsmeta.pickle', 'w')
+        f = open('dsmeta.pickle', 'wb')
         pickle.dump(dsmeta, f)
         f.close()
     
@@ -336,7 +336,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     print("total: {}".format(total_Nplans))
 
   if read_ilp:
-    f = open('mem{}_ilp.pickle'.format(membound_factor), 'r')
+    f = open('mem{}_ilp.pickle'.format(membound_factor), 'rb')
     ilp = pickle.load(f)
     f.close()
   else:
@@ -353,7 +353,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     ilp.solve()
     ilp.interpret_result(dsmeta, rqmanagers)
     if save_ilp:
-      f = open('mem{}_ilp.pickle'.format(membound_factor), 'w')
+      f = open('mem{}_ilp.pickle'.format(membound_factor), 'wb')
       new_ilp = ILPVariableManager()
       new_ilp.model = None
       new_ilp.ret_dsmng = ilp.ret_dsmng
