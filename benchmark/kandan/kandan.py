@@ -69,13 +69,16 @@ q_cc_w1, q_cc_w2]
 
 #q_ci_1.assigned_param_values = {Parameter('channel_id'):'47'}
 
-search_plans_for_one_query(q_ci_1)#read_queries[8])
-exit(0)
+#search_plans_for_one_query(q_ci_1)#read_queries[8])
+#exit(0)
 #get_dsmeta(read_queries)
 
 # test_merge(q)
 #test_cost(read_queries[:1])
-#test_ilp(read_queries, membound_factor=1)
+
+test_ilp(read_queries, membound_factor=1)
+# membound_factor: memory bound vs table size (2 means mem bound is 2x table size).
+
 ilp_solve(read_queries, write_queries=[], membound_factor=1.7, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
 test_read_overall(tables, associations, read_queries, memfactor=1.7, read_from_file=True, read_ilp=True)
 

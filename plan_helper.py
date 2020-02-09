@@ -11,6 +11,8 @@ from symbolic_ds import *
 import itertools
 import globalv
 
+# Nestings have different types of data structures.
+# Therefore one nesting has multiple plan/datastructures.
 class PlansForOneNesting(object):
   def __init__(self, nesting, plans):
     self.nesting = nesting

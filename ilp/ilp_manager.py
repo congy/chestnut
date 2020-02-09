@@ -11,6 +11,8 @@ from .prune_plans import *
 from ds_manager import *
 import multiprocessing
 import pickle
+
+# TODO: use gurobipy when you have a license.
 from .ilp_fake import *
 #from gurobipy import *
 
@@ -39,6 +41,7 @@ class PlanUseDSConstraints(object):
 
 # FOL constraint to ILP:
 # a -> b => a <= b
+# This class interfaces with gurobi ILP solver.
 class ILPVariableManager(object):
   def __init__(self):
     self.model = Model('idxsearch')
@@ -60,18 +63,19 @@ class ILPVariableManager(object):
   def add_constraints(self):
     # =========== constraints for data structures ============
     # CONSTR 1: data structure dependency for pointers
-    for d1,d2 in self.dsv_dependency:
+    for d1, d2 in self.dsv_dependency:
       self.model.addConstr(self.dsv[d1] <= self.dsv[d2])
 
     # CONSTR 2: memobj dependency
-    for ds,pairs in list(self.memobjv.items()):
+    # A contains B (nesting). Then if B exists A must exist.
+    for ds, pairs in list(self.memobjv.items()):
       for pair in pairs:
         self.model.addConstr(pair[1] <= self.dsv[ds])
 
     # CONSTR 3: data structure conflict ??
 
     # =========== constraints for read query ============
-    # CONSTR 4: each read query has one plan
+    # CONSTR 4: each read query must have exactly one plan
     for i in range(0, len(self.readqv)):
       self.model.addConstr(self.readqv[i] == or_(self.readq_planv[i]))
       self.model.addConstr(self.readqv[i] == 1)
@@ -91,7 +95,9 @@ class ILPVariableManager(object):
 
     # CONSTR 8: each plan use structures/memobjs
 
+    # =========== ===========
     # CONSTR 9: within memory bound
+    # compute_mem_cost() computes memory cost of data structure.
     cost = sum([self.dsv[ds.id]*to_real_value(ds.compute_mem_cost()) for ds_id,ds in list(self.ds_instance.items())])
     cost = cost + sum([sum([ilpv*f.field_class.get_sz() for f,ilpv in pair]) \
           * to_real_value(self.ds_instance[dsid].element_count()) \
@@ -99,6 +105,7 @@ class ILPVariableManager(object):
     self.model.addConstr(cost <= self.mem_bound)
 
     # ========= set objective =========
+    # Objective is weighted sum of query times.
     runtime = sum([sum([self.readq_planv[i][j] * self.readq_plancost[i][j]\
        for j in range(0, len(self.readq_planv[i]))]) for i in range(0, len(self.readqv))])
     # TODO: write run time
@@ -174,8 +181,9 @@ class ILPVariableManager(object):
     pass
 
   def solve(self):
-    self.model.optimize()
+    self.model.optimize() # solves ILP (gurobi).
     status = self.model.getAttr(GRB.Attr.Status)
+    # Failure cases.
     if status == GRB.INF_OR_UNBD or \
         status == GRB.UNBOUNDED:
       print("The model cannot be solved because it is unbounded")
@@ -184,8 +192,10 @@ class ILPVariableManager(object):
       print("The mode is not feasible")
       sys.exit(1)
     
+    # Result of objective. Recall objective is weighted sum of (theoretical) query times.
     self.objective_value = self.model.getAttr(GRB.Attr.ObjVal)
     
+  # Interprets the ILP results as the actual chosen datastructures and query plans.
   def interpret_result(self, dsmng, rqmanagers, wqmanagers=None):
     self.ret_dsmng = DSManager()
     self.ret_dsmng.data_structures = self.construct_result_dsmng_helper1(dsmng.data_structures)
@@ -201,6 +211,8 @@ class ILPVariableManager(object):
       planid = 0
       for plan_for_one_nesting in rqmng.plans:
         for j in range(0, len(plan_for_one_nesting.plans)):
+          # For some reasone gurobi returns non-bool values.
+          # > 0.5 means 1 (true).
           if (self.readq_planv[i][cnt].x > 0.5):
             plan = plan_for_one_nesting.plans[j]
             dsmanager = plan_for_one_nesting.dsmanagers[j]
@@ -299,7 +311,8 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       for i in range(0, len(read_queries)):
         assert(rqmanagers[i])
     else:
-      rqmanagers, dsmeta = get_dsmeta(read_queries)
+      rqmanagers, dsmeta = get_dsmeta(read_queries) # Does data structure/query plan search.
+      # TODO why is this disabled
       #prune_read_plans(rqmanagers, dsmeta)
       if save_to_file:
         for i in range(0, len(rqmanagers)):
@@ -314,6 +327,8 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     print(dsmeta)
 
     total_Nplans = 0
+    # rqmanagers: ReadQueryManagers has a list of list.
+    # list of PlansPerNesting, each contains multiple plans (data layouts/queries).
     for qi,rqmng in enumerate(rqmanagers):
       Nqplans = sum([len(xxx.plans) for xxx in rqmng.plans])
       print("query {} has {} plans ({}) nestings".format(qi, Nqplans, len(rqmng.plans)))
@@ -325,6 +340,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     ilp = pickle.load(f)
     f.close()
   else:
+    # Configur ILPVariableManager which interfaces with gurobi.
     ilp = ILPVariableManager()
     ilp.mem_bound = mem_bound 
     ilp.add_data_structures(dsmeta)
@@ -356,6 +372,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
   plan_ds = ilp.result_read_ds
   plan_id = ilp.result_read_plan_id
 
+  # Return the final processed results of the ILP plan.
   return (dsmeta, plans, plan_ds, plan_id)
 
 

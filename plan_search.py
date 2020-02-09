@@ -16,6 +16,52 @@ import multiprocessing
 import pickle
 import sys
 
+# Class.where(a == ?1).where(b == ?2).where(c == ?3)
+# Enumeration:
+# index on a; (b == ?2 && c == ?3)
+# index on b; (...)
+# index on c;
+# index on (a & b);
+# index on (b & c);
+# index on (a & c);
+# ...
+
+# Class.where(a == ?1).where(b == ?2).where(c == ?3)
+#   .where(exists(c.nested1, where() ...))
+# i.e.
+# Project.where(exists(issues, where(status=='open')))
+# i.e. projects that contain open issues.
+
+# Project.where(user == ??).where(exists(issues, where(status=='open')))
+# Enumeration:
+# - index on Project(user), (left over predicates: exists(issues, where(status=='open)))
+#     - index on Issue(status) [RECURSIVE]
+#     - no index on Issue, use scan (for loop in cpp codegen)
+# - index on Project(user, exists(issues, where(status=='open')))
+# - not use index on Project
+
+
+# Mutual recursion:
+# enumerate_indexes_for_pred(pred) -- index pred + rest pred
+#     enumerate_steps_for_rest_pred(rest_pred)
+#         enumerate_indexes_for_pred(next_level_pred)
+#             enumerate_steps_for_rest_pred(...)
+# ...
+#
+# Note: predicates are AND'ed together. Doesn't handle OR.
+# Pseudocode (generated cpp codegen):
+#
+# for obj in index.range(min, max)
+#     if (rest_pred(obj)):
+#         append obj to result
+#
+
+# OR in the predicate?
+# convert the predicate into disjunctive normal form.
+# Then this generates a bunch of AND queries (for each DNF parenthesis)
+# Then concatentate all the results of the queries.
+
+
 # enumerate all possible indexes to set upper_pred or answer query
 # return (index_step, next_var_state) pair
 def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, idx_placeholder, upper_assoc_qf=None):
@@ -31,8 +77,9 @@ def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, id
     for i,pair in enumerate(op_rest_pairs):
       idx_step = pair[0]
       rest_pred = pair[1]
-      next_rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs  = \
-         enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred)
+      next_rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
+          # Rest of the things not in the index(?). RECURSION (?)
+          enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred)
       cond_expr = next_rest_pred
       setvar_step = ExecSetVarStep(variable_to_set[i], AtomValue(not upper_pred_var.init_value), cond=cond_expr)
    
@@ -224,6 +271,8 @@ def helper_get_idx_step_by_pred(thread_ctx, queried_table, pred, order, idx_plac
         op_rest_pairs[i] = (pair[0], newpred)
   return all_steps
 
+
+# Next levels (?)
 def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred, assoc_fields=[]):
   if idx_placeholder.value.is_main_ptr():
     idx_placeholder = dsmng.find_placeholder(get_main_table(idx_placeholder.table))
@@ -256,7 +305,8 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred,
   
   nextlevel_step_combs = []
   nextlevel_fields = []
-  for p in nextlevel_preds:
+  # A predicate on a nesting (next level)
+  for p in nextlevel_preds: # i.e. exists(issues, where(status=='open'))
     field = get_query_field(p.lh)
     nextlevel_fields.append(p.lh)
     if is_assoc_field(p.lh):
@@ -274,6 +324,7 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred,
     assert(next_idx_placeholder)
     newvar = EnvAtomicVariable(get_envvar_name(), 'bool', init_value=(p.op == FORALL))
     placeholder[p] = newvar
+    # MUTUAL RECURSION (?).
     nextlevel_step_combs.append(enumerate_indexes_for_pred(thread_ctx, p.rh, newvar, dsmng, next_idx_placeholder, \
             upper_assoc_qf=field))
   

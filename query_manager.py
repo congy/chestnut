@@ -4,11 +4,15 @@ from query import *
 from plan_search import *
 
 
+# RQManager stores a (read) query.
+# the frequency of the query.
+# and the set of plans.
 class RQManager(object):
   def __init__(self, query, plans=[]):
     self.query = query
     self.frequency = 1
     self.plans = plans # list of PlansForOneNesting
+    # One 'nesting' has multiple plans.
 
 class WQManager(object):
   def __init__(self, query):
