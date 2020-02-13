@@ -240,7 +240,7 @@ def test_cost(queries):
   for ds in ds_lst:
     print('ds {} cost = {}'.format(ds.__str__(True), to_real_value(ds.compute_mem_cost())))
     print('')
-  for k,v in list(memobj.items()): 
+  for k, v in list(memobj.items()): 
     cnt = k.element_count()
     print('memobj {} #element = {}'.format(k.__str__(True), to_real_value(cnt)))
     print('')

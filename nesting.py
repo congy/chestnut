@@ -1,3 +1,6 @@
+# Generate all nestings of datastructures.
+# But no indices or plans.
+
 from schema import *
 from pred import *
 from ds import *
@@ -299,6 +302,7 @@ def enumerate_nesting_helper(nesting, table, level) -> [(MemObject, DSManager)]:
   #print "len r = {}".format(len(r))
   return r
 
+# Enumerates nesting. "What objects are within what" but no indices.
 def enumerate_nestings_for_query(query: ReadQuery) -> [DSManager]:
   cur_obj: ObjNesting = ObjNesting(query.table)
   get_obj_nesting_by_query(cur_obj, query)

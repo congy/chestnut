@@ -1,3 +1,11 @@
+# Does not enumerate nestings (directly).
+# Generates plans for given nestings.
+
+# Checks that the plan works (?).
+# How are bad plans made?
+#   op_synth.py checks if plans are bad, but its integrated into things so
+#   not really directly usable.
+
 from schema import *
 from util import *
 from constants import *
@@ -60,6 +68,9 @@ import sys
 # convert the predicate into disjunctive normal form.
 # Then this generates a bunch of AND queries (for each DNF parenthesis)
 # Then concatentate all the results of the queries.
+
+
+# Data layout and query plans are generated together.
 
 
 # enumerate all possible indexes to set upper_pred or answer query
@@ -393,11 +404,16 @@ def search_mincost_plan(query):
   print("\ndata structures:\n")
   print(mincost_plan[2])
 
+
+# MAIN THING TO MESS WITH
+# Calls enumerate_nestings_for_query to make a bunch of nestings.
+# Then it needs to add indexes and make the query plans.
 def search_plans_for_one_query(
     query: ReadQuery, query_id: int = 0, multiprocess: bool = False,
     print_plan: bool = True) -> [PlansForOneNesting]:
   dsmngers: [DSManager] = enumerate_nestings_for_query(query)
-  compute_mem_bound() # WHAT DOES THIS DO??
+  # Keep this thing above. Gives nestings. Then add indices.
+  compute_mem_bound() # Prints stuff to console.
   assert(globalv.memory_bound > 1000)
   print('mem bound = {}'.format(globalv.memory_bound))
   print('all nestings = {} ({})'.format(len(dsmngers), query_id))
