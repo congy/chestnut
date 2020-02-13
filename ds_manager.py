@@ -17,8 +17,9 @@ def table_contains(tbl1, tbl2): #return True if tbl1 contains tbl2
 class DSManager(object):
   def __init__(self):
     self.data_structures = [] # a set of indexes / arrays
+
   def add_ds(self, ds, replace=False):
-    for i,ds_ in enumerate(self.data_structures):
+    for i, ds_ in enumerate(self.data_structures):
       if ds_ == ds:
         if replace:
           ds.merge(ds_)
@@ -27,15 +28,18 @@ class DSManager(object):
           self.data_structures[i].merge(ds)
         return
     self.data_structures.append(ds)
+
   def remove_ds(self, ds):
     for i,ds_ in enumerate(self.data_structures):
       if ds == ds_:
         self.data_structures.pop(i)
-        return  
+        return
+
   def find_ds(self, ds_):
     for ds in self.data_structures:
       if ds.eq_without_memobj(ds_):
         return ds
+
   def find_primary_array(self, table, create_new=False):
     # return the vertically partitioned primary array
     # or return the table arry if not partitioned
@@ -63,6 +67,7 @@ class DSManager(object):
       if ds.is_primary and table_contains(ds.table, table):
         return ds
     return None
+
   def find_placeholder(self, table):
     for ds in self.data_structures:
       if isinstance(ds, IndexPlaceHolder) and ds.table == table:
@@ -71,11 +76,13 @@ class DSManager(object):
       if isinstance(ds, IndexPlaceHolder) and table_contains(ds.table, table):
         return ds
     return None
+
   def find_primary_array_exact_match(self, table):
     for ds in self.data_structures:
       if isinstance(ds, ObjBasicArray) and ds.table == table and ds.value.is_object():
         return ds
     return None
+
   def merge(self, other):
     for o1 in other.data_structures:
       exist = False
@@ -85,6 +92,7 @@ class DSManager(object):
           exist = True
       if not exist:
         self.data_structures.append(o1)
+
   def merge_self(self):
     # TODO: should be more than 1 pass?
     temp_ds = []
@@ -126,22 +134,25 @@ class DSManager(object):
           temp_ds.append(ds)
       temp_ds.append(main_ds)
     self.data_structures = temp_ds
-  def fork(self):
+
+  def fork(self) -> 'DSManager':
     new_ds = DSManager()
     for ds in self.data_structures:
       new_ds.data_structures.append(ds.fork())
     return new_ds
-  def compute_mem_cost(self):
-    cost = 0
+
+  def compute_mem_cost(self) -> int:
+    cost: int = 0
     ds_lst, memobj = collect_all_ds_helper1(self.data_structures)
     for ds in ds_lst:
       cost = cost_add(cost, ds.compute_mem_cost())
-    for k,v in list(memobj.items()):
+    for k, v in list(memobj.items()):
       cnt = k.element_count()
       field_sz = sum([f.field_class.get_sz() for f in v.fields])
       cost = cost_add(cost, cost_mul(cnt, field_sz))
     return cost
-  def copy_tables(self):
+
+  def copy_tables(self) -> 'DSManager':
     dsmng = DSManager()
     new_ds = []
     for ds in self.data_structures:
@@ -152,22 +163,26 @@ class DSManager(object):
         new_ds.append(IndexPlaceHolder(ds.table, IndexValue(OBJECT, ds.table)))
     dsmng.data_structures = new_ds
     return dsmng
+
   def clear_placeholder(self):
     temp_ds = []
     for ds in self.data_structures:
       if not isinstance(ds, IndexPlaceHolder):
         temp_ds.append(ds)
     self.data_structures = temp_ds
+
   def __str__(self):
     s = ""
     for i,ds in enumerate(self.data_structures):
       s += 'ds[{}]: {}\n'.format(i, ds)
     return s
+
   def to_json(self):
     x = {}
     for i, ds in enumerate(self.data_structures):
       x[i] = ds.to_json()
     return x
+
 
 def print_ds_with_cost(dsmnger):
   ds_lst, memobj = collect_all_ds_helper1(dsmnger.data_structures)

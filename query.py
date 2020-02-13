@@ -9,15 +9,16 @@ from pred_cost import *
 import datetime
 import globalv
 
-query_cnt = 0
-group_cnt = 0
+query_cnt: int = 0
+group_cnt: int = 0
 
 class ReadQuery(object):
-  def __init__(self, table):
+
+  def __init__(self, table: Table):
     global query_cnt
     query_cnt += 1
     self.id = query_cnt
-    self.table = table
+    self.table: Table = table
     self.return_var = EnvCollectionVariable("result_{}".format(self.table.name), self.table, False)
     self.pred = None
     self.includes = {} 
@@ -28,6 +29,7 @@ class ReadQuery(object):
     self.projections = []
     self.assigned_param_values = {}
     self.upper_query = None
+
   def __str__(self):
     s = 'Query {} on {} (return {}): '.format(self.id, self.table.get_full_type(), self.return_var)
     s += str(self.pred)
@@ -40,6 +42,7 @@ class ReadQuery(object):
       include_s = str(v)
       s += '\n'.join(['  '+l for l in include_s.split('\n')])
     return s
+
   def project(self, fields):
     if type(fields) is str and fields == '*':
       self.projections = clean_lst([None if f.is_temp else QueryField(f.name, get_main_table(self.table)) \
@@ -48,11 +51,14 @@ class ReadQuery(object):
     for f in fields:
       f.complete_field(get_main_table(self.table))
       self.projections.append(f)
+
   def has_order(self):
     return self.order
+
   def pfilter(self, pred):
     self.pred = ConnectOp(self.pred, AND, pred) if self.pred else pred
     self.pred.complete_field(get_main_table(self.table))
+
   def aggr(self, aggr_func, aggr_name):
     aggr_func.complete_field(get_main_table(self.table))
     tipe = aggr_func.get_type()
@@ -63,6 +69,7 @@ class ReadQuery(object):
       new_field = Field(aggr_name, aggr_func.get_type(), is_temp=True)
       get_main_table(self.table.upper_table).add_field(new_field)
     self.aggrs.append((newv, aggr_func))
+
   def finclude(self, field, pfilter=None, projection='*'):
     field.complete_field(get_main_table(self.table))
     nested_table = self.table.get_nested_table_by_name(field.field_name)
@@ -74,12 +81,14 @@ class ReadQuery(object):
     if pfilter:
       q.pfilter(pfilter)
     self.includes[field] = q
+
   def get_include(self, field):
     for k,v in list(self.includes.items()):
       if field.field_name == k.field_name:
         return v
     assert(False)
     return None
+
   def orderby(self, order, limit=0, ascending=True):
     self.order = order if type(order) is list else [order]
     for o in self.order:
@@ -88,8 +97,10 @@ class ReadQuery(object):
     self.return_var.order = order
     self.return_var.limit = limit
     self.return_var.ascending = ascending
+
   def return_limit(self, limit):
     self.return_var.limit = limit
+
   def complete(self):
     # if nothing gets projected, then return only aggr
     if len(self.projections) == 0:
@@ -118,10 +129,13 @@ class ReadQuery(object):
       self.return_var.sz = get_query_result_sz(self.table, self.pred)
     for k,v in list(self.includes.items()):
       v.complete()
+
   def get_aggr_var_name(self, var):
     return 'q{}_{}'.format(self.id, var.name)
+
   def get_aggr_var_prefix(self):
     return 'q{}_'.format(self.id)
+
   def get_all_params(self):
     r = []
     if self.pred:
@@ -130,6 +144,7 @@ class ReadQuery(object):
       r = r + v.get_all_params()
     #new_r = clean_lst([r1 if not any([r1==x for x in r]) else None for r1 in r])
     return r
+
   def get_param_value_pair(self, upper_pairs=None):
     if upper_pairs is not None:
       pairs = upper_pairs
@@ -139,7 +154,8 @@ class ReadQuery(object):
     for k,v in list(self.includes.items()):
       pairs = map_union(pairs, v.get_param_value_pair(pairs))
     return pairs
-  def groupby(self, fields, Ngroups=0):
+
+  def groupby(self, fields, Ngroups=0) -> 'ReadQuery':
     # only support top level groupby
     assert(not isinstance(self.table, NestedTable))
     global group_cnt
@@ -169,7 +185,9 @@ class ReadQuery(object):
     read_query.includes[f] = self
     self.upper_query = read_query
     return read_query
-  
+
+
+
 def get_param_value_pair_by_pred(pred, r, assigned_values={}):
   if isinstance(pred, ConnectOp):
     p_lh = get_param_value_pair_by_pred(pred.lh, r, assigned_values)
@@ -332,5 +350,5 @@ class UpdateObject(WriteQuery):
     return 'Update obj {} ({}): {}'.format(self.table.name, self.param, ','.join(update_s))
   
 
-def get_all_records(table):
+def get_all_records(table: Table) -> ReadQuery:
   return ReadQuery(table)

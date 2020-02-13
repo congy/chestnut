@@ -269,16 +269,18 @@ def print_ilp_result(read_queries, ilp):
 
 
 import time
-def test_ilp(read_queries, membound_factor=1):
+def test_ilp(read_queries: [ReadQuery], membound_factor=1):
   ilp_solve(read_queries, membound_factor=1)
 
-def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False):
+def ilp_solve(read_queries: [ReadQuery], write_queries=[], membound_factor=1, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False):
   
   #prune_nestings(read_queries)
-  mem_bound = compute_mem_bound(membound_factor)
+
+  # UNITS?
+  mem_bound: int = compute_mem_bound(membound_factor)
 
   start_time = time.time()
-  
+
   if read_ilp == False:
     if read_from_file:
       manager = multiprocessing.Manager()
@@ -311,7 +313,9 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       for i in range(0, len(read_queries)):
         assert(rqmanagers[i])
     else:
-      rqmanagers, dsmeta = get_dsmeta(read_queries) # Does data structure/query plan search.
+      rqmanagers: [RQManager]
+      dsmeta: DSManager
+      rqmanagers, dsmeta = get_dsmeta(read_queries) # !! Does data structure/query plan search.
       # TODO why is this disabled
       #prune_read_plans(rqmanagers, dsmeta)
       if save_to_file:
@@ -329,7 +333,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
     total_Nplans = 0
     # rqmanagers: ReadQueryManagers has a list of list.
     # list of PlansPerNesting, each contains multiple plans (data layouts/queries).
-    for qi,rqmng in enumerate(rqmanagers):
+    for qi, rqmng in enumerate(rqmanagers):
       Nqplans = sum([len(xxx.plans) for xxx in rqmng.plans])
       print("query {} has {} plans ({}) nestings".format(qi, Nqplans, len(rqmng.plans)))
       total_Nplans += Nqplans

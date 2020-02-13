@@ -459,12 +459,12 @@ class IndexPlaceHolder(IndexMeta):
   def is_single_element(self):
     return isinstance(self.table, NestedTable) and get_main_table(self.table.upper_table).has_one_or_many_field(self.table.name) == 1
 
-def compute_mem_bound(factor=2):
-  sz = 0
-  ele_cnt = 0
+def compute_mem_bound(factor: int = 2) -> int:
+  sz: int = 0
+  ele_cnt: int = 0
   for t in globalv.tables:
     field_sz = sum([f.get_sz() for f in t.get_fields()])
-    sz += t.sz*field_sz
+    sz += t.sz * field_sz
   for a in globalv.associations:
     if a.assoc_type == 'many_to_many':
       sz += a.lft.sz * a.lft_ratio * 3

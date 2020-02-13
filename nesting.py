@@ -60,7 +60,7 @@ class ObjNesting(object):
       s += "  {}: {}".format(k.field_name, temp_s)
     return s
   
-def get_obj_nesting_by_query(cur_obj, query):
+def get_obj_nesting_by_query(cur_obj, query: ReadQuery):
   #check filter pred
   if query.pred:
     cur_obj.add_fields(query.pred.get_curlevel_fields())
@@ -160,16 +160,16 @@ def table_already_contained(dsmng, table):
       return ds
   return None
 
-def enumerate_nesting(nesting):
+def enumerate_nesting(nesting: ObjNesting) -> [DSManager]:
   table = nesting.table
   ds_managers = []
-  for i,(obj, dsmng) in enumerate(enumerate_nesting_helper(nesting, table, 1)):
+  for i, (obj, dsmng) in enumerate(enumerate_nesting_helper(nesting, table, 1)):
     dsmng.add_ds(IndexPlaceHolder(table, IndexValue(OBJECT, obj)))
     dsmng.merge_self()
     ds_managers.append(dsmng)
   return ds_managers
 
-def enumerate_nesting_helper(nesting, table, level):
+def enumerate_nesting_helper(nesting, table, level) -> [(MemObject, DSManager)]:
   lst = [[] for i in range(0, len(nesting.assocs))]
   new_dsmng = DSManager()
   if len(lst) == 0:
@@ -299,9 +299,9 @@ def enumerate_nesting_helper(nesting, table, level):
   #print "len r = {}".format(len(r))
   return r
 
-def enumerate_nestings_for_query(query):
-  cur_obj = ObjNesting(query.table)
+def enumerate_nestings_for_query(query: ReadQuery) -> [DSManager]:
+  cur_obj: ObjNesting = ObjNesting(query.table)
   get_obj_nesting_by_query(cur_obj, query)
   print(cur_obj)
-  dsmanagers = enumerate_nesting(cur_obj)
+  dsmanagers: [DSManager] = enumerate_nesting(cur_obj)
   return dsmanagers

@@ -8,10 +8,10 @@ from plan_search import *
 # the frequency of the query.
 # and the set of plans.
 class RQManager(object):
-  def __init__(self, query, plans=[]):
+  def __init__(self, query, plans: [PlansForOneNesting] = []):
     self.query = query
     self.frequency = 1
-    self.plans = plans # list of PlansForOneNesting
+    self.plans: [PlansForOneNesting] = plans # list of PlansForOneNesting
     # One 'nesting' has multiple plans.
 
 class WQManager(object):
@@ -183,18 +183,21 @@ def replace_compatible_ds(step, cur_obj, dsmeta, thread_ctx):
   # if isinstance(step, ExecGetAssocStep):
   # if isinstance(step, ExecScanStep):
 
-def get_dsmeta(read_queries):
-  rqmanagers = []
-  dsmeta = DSManager()
-  begin_ds_id = 1
+# Entry point from ilp_manager.py:ilp_solve().
+# Read queries is list of read queries (python representation).
+def get_dsmeta(read_queries: [ReadQuery]) -> ([RQManager], DSManager):
+  rqmanagers: [RQManager] = []
+  dsmeta: DSManager = DSManager()
+  begin_ds_id: int = 1
   for query in read_queries:
     print(("query {}".format(query)))
+    # Search plans for a particular query. This goes into plan_search.py:search_plans_for_one_query()
     nesting_plans = search_plans_for_one_query(query, print_plan=False)
     rqmanagers.append(RQManager(query, nesting_plans))
-    for i,plan_for_one_nesting in enumerate(nesting_plans):
+    for i, plan_for_one_nesting in enumerate(nesting_plans):
       #print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
       dsmng = plan_for_one_nesting.nesting
-      for j,plan in enumerate(plan_for_one_nesting.plans):
+      for j, plan in enumerate(plan_for_one_nesting.plans):
         new_dsmnger = dsmng.copy_tables()
         plan.get_used_ds(None, new_dsmnger)
         begin_ds_id, deltas = collect_all_structures(dsmeta, new_dsmnger, begin_ds_id)
@@ -207,11 +210,11 @@ def get_dsmeta(read_queries):
     create_param_map_for_query(thread_ctx, query)
     nesting_plans = rqmanagers[qi].plans
     total_new_plans = 0
-    for i,plan_for_one_nesting in enumerate(nesting_plans):
+    for i, plan_for_one_nesting in enumerate(nesting_plans):
       dsmng = plan_for_one_nesting.nesting
       add_plans = []
       add_dsmngers = []
-      for j,plan in enumerate(plan_for_one_nesting.plans):
+      for j, plan in enumerate(plan_for_one_nesting.plans):
         newplans = replace_compatible_ds(plan, None, dsmeta, thread_ctx)
         for newplan in newplans:
           new_dsmnger = dsmng.copy_tables()
