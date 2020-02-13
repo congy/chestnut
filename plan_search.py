@@ -421,51 +421,52 @@ def search_plans_for_one_query(
   if multiprocess:
     # TODO
     raise Error('multiprocess not implemented')
-    pass
-  else:
-    cnt: int = 0
-    fail_nesting: [DSManager] = []
-    start_time = time.time()
 
-    k: int
-    dsmng: DSManager
-    for k, dsmng in enumerate(dsmngers):
+
+  cnt: int = 0
+  fail_nesting: [DSManager] = []
+  start_time = time.time()
+
+  k: int
+  dsmng: DSManager
+  for k, dsmng in enumerate(dsmngers):
+    if print_plan:
+      print('nesting {} = {}'.format(k, dsmng))
+    try:
+      temp_plans = search_plans_for_one_nesting(query, dsmng)
+    except NestingFailException as e:
+      fail_nesting.append(dsmng)
+      continue
+    res: [ExecQueryStep] = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
+    old_count: int = len(res)
+    p: PlansForOneNesting = PlansForOneNesting(dsmng, res)
+    plands: [DSManager] = []
+
+    plan: ExecQueryStep
+    for plan in res:
+      new_dsmnger = dsmng.copy_tables()
+      plan.get_used_ds(None, new_dsmnger)
+      new_dsmnger.clear_placeholder()
+      set_upperds_helper(new_dsmnger.data_structures)
+      plan.copy_ds_id(None, new_dsmnger)
+      plands.append(new_dsmnger)
       if print_plan:
-        print('nesting {} = {}'.format(k, dsmng))
-      try:
-        temp_plans = search_plans_for_one_nesting(query, dsmng)
-      except NestingFailException as e:
-        fail_nesting.append(dsmng)
-        continue
-      res: [ExecQueryStep] = [ExecQueryStep(query, steps=steps) for steps in temp_plans]
-      old_count: int = len(res)
-      p: PlansForOneNesting = PlansForOneNesting(dsmng, res)
-      plands: [DSManager] = []
+        print('PLAN {}'.format(cnt))
+        print(plan)
+        print('plan cost = {}'.format(to_real_value(plan.compute_cost())))
+        print('plan json')
+        print(plan.to_json())
+        print('** struct:')
+        print(new_dsmnger)
+        print()
+        print(new_dsmnger.to_json())
+        print('=============\n')
+        cnt += 1
+    res: [ExecQueryStep] = [res[ix] for ix in range(0, len(res)) if to_real_value(plands[ix].compute_mem_cost()) <= globalv.memory_bound]
+    new_count: int = len(res)
+    print('pruned by memory bound: {} {}'.format(old_count, new_count))
+    plans.append(p)
 
-      plan: ExecQueryStep
-      for plan in res:
-        new_dsmnger = dsmng.copy_tables()
-        plan.get_used_ds(None, new_dsmnger)
-        new_dsmnger.clear_placeholder()
-        set_upperds_helper(new_dsmnger.data_structures)
-        plan.copy_ds_id(None, new_dsmnger)
-        plands.append(new_dsmnger)
-        if print_plan:
-          print('PLAN {}'.format(cnt))
-          print(plan)
-          print('plan cost = {}'.format(to_real_value(plan.compute_cost())))
-          print('plan json')
-          print(plan.to_json())
-          print('** struct:')
-          print(new_dsmnger)
-          print()
-          print(new_dsmnger.to_json())
-          print('=============\n')
-          cnt += 1
-      res: [ExecQueryStep] = [res[ix] for ix in range(0, len(res)) if to_real_value(plands[ix].compute_mem_cost()) <= globalv.memory_bound]
-      new_count: int = len(res)
-      print('pruned by memory bound: {} {}'.format(old_count, new_count))
-      plans.append(p)
   # print '#Fail nestings: {}'.format(len(fail_nesting))
   # for i,f in enumerate(fail_nesting):
   #   print 'FAIL {}'.format(i)
