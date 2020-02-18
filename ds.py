@@ -144,51 +144,67 @@ class IndexValue(object):
       self.value = value.fork() if isinstance(value, MemObject) else MemObject(value)
     else:
       self.value = value
-  def to_json(self):
-    if self.value_type == MAINPTR:
-      return "mainptr"
-    else:
-      return self.value.to_json()
+
+  # def to_json(self):
+  #   if self.value_type == MAINPTR:
+  #     return "mainptr"
+  #   else:
+  #     return self.value.to_json()
+
   def is_main_ptr(self):
     return self.value_type == MAINPTR
+
   def is_object(self):
     return self.value_type == OBJECT
+
   def is_aggr(self):
     return self.value_type == AGGR
+
   def __str__(self, short=False):
     if self.value_type == MAINPTR:
       return 'ptr to {}'.format(self.value.id if self.value else 'none')
     else:
       return self.value.__str__(short)
+
   def __eq__(self, other):
     if self.value_type == MAINPTR:
       return self.value_type == other.value_type and self.value == other.value
     else:
       return self.value_type == other.value_type
+
   def __hash__(self): # NOT NEEDED?
     if self.value_type == MAINPTR:
       return hash(( self.value_type, self.value ))
     else:
       return hash(self.value_type)
+
   def eq_without_memobj(self, other):
     return self.value_type == other.value_type
+
   def to_json(self):
     if self.value_type == MAINPTR:
       return {'type':'ptr', 'target': self.value.id if self.value else None}
     else:
       return self.value.to_json()
+
   def fork(self):
     return IndexValue(self.value_type, self.value) 
+
   def add_field(self, f):
     assert(self.value_type == OBJECT)
     self.value.add_field(f)
+
   def add_nested_object(self, obj):
     self.value.add_nested_object(obj)
+
   def get_object(self):
     return self.value
+
   def set_type(self, table):
     self.value.table = table
-  
+
+
+
 class IndexMeta(object):
   # common class members:
   # id, table, value
@@ -444,20 +460,27 @@ class ObjBasicArray(IndexMeta):
 
 # used in enumerate nestings, only indicate the type of indexed value, no concrete index is created yet
 class IndexPlaceHolder(IndexMeta):
-  def __init__(self, table, value):
-    self.table = table
-    self.value = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
-  def fork(self):
+  def __init__(self, table: Table, value: ...):
+    self.table: Table = table
+    self.value: IndexValue = value.fork() if isinstance(value, IndexValue) else IndexValue(value)
+
+  def fork(self) -> 'IndexPlaceHolder':
     return IndexPlaceHolder(self.table, self.value)
+
   def fork_without_memobj(self):
     assert(False)
-  def __eq__(self, other):
+
+  def __eq__(self, other) -> bool:
     return type(self) == type(other) and self.table == other.table and self.value == other.value
-  def __str__(self, short=False):
-    s = 'Placeholder [table = {}, value = {}]'.format(self.table.get_full_type(), self.value.__str__(short))
+
+  def __str__(self, short = False) -> str:
+    s = 'IndexPlaceholder [\n table = {}, value = {}\n]'.format(self.table.get_full_type(), self.value.__str__(short))
     return s
-  def is_single_element(self):
+
+  def is_single_element(self) -> bool:
     return isinstance(self.table, NestedTable) and get_main_table(self.table.upper_table).has_one_or_many_field(self.table.name) == 1
+
+
 
 def compute_mem_bound(factor: int = 2) -> int:
   sz: int = 0
@@ -471,7 +494,7 @@ def compute_mem_bound(factor: int = 2) -> int:
   globalv.memory_bound = sz * factor
   return sz * factor
 
-def get_idx_condition(pred, keys):
+def get_idx_condition(pred, keys) -> Pred:
   if isinstance(pred, ConnectOp):
     return ConnectOp(get_idx_condition(pred.lh, keys), pred.op, get_idx_condition(pred.rh, keys))
   elif isinstance(pred, SetOp):

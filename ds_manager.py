@@ -171,13 +171,13 @@ class DSManager(object):
         temp_ds.append(ds)
     self.data_structures = temp_ds
 
-  def __str__(self):
+  def __str__(self) -> str:
     s = ""
     for i,ds in enumerate(self.data_structures):
       s += 'ds[{}]: {}\n'.format(i, ds)
     return s
 
-  def to_json(self):
+  def to_json(self) -> dict:
     x = {}
     for i, ds in enumerate(self.data_structures):
       x[i] = ds.to_json()

@@ -27,15 +27,15 @@ class PlanTreesForOneNesting(object):
     self.nesting = nesting
 
 class PlanTreeUnion(object):
-  def __init__(self, plan_trees=[]):
-    self.plan_trees = plan_trees
-    self.after_steps = []
-  def fork(self):
+  def __init__(self, plan_trees: ['PlanTree'] = []):
+    self.plan_trees: ['PlanTree'] = plan_trees # Surely plan_trees is a list of PlanTree.
+    self.after_steps: [ExecStepSuper] = [] # Unsure about type.
+  def fork(self) -> 'PlanTreeUnion':
     ptu = PlanTreeUnion([p.fork() for p in self.plan_trees])
     ptu.after_steps = [s.fork() for s in self.after_steps]
     return ptu
-  def to_steps(self):
-    s = []
+  def to_steps(self) -> [ExecStepSuper]:
+    s: [ExecStepSuper] = []
     for pt in self.plan_trees:
       s += pt.to_steps()
     s += self.after_steps
@@ -43,7 +43,7 @@ class PlanTreeUnion(object):
 
 class PlanTree(object):
   def __init__(self):
-    self.pre_steps = []
+    self.pre_steps: [ExecStepSuper] = [] # Not 100% sure about type.
     self.index_step = None
     self.sort_step = None
     # element_steps include getting assoc fields, set vars, etc
@@ -54,6 +54,7 @@ class PlanTree(object):
     self.next_level_pred = {}
     # next level key: qf; value: PlanTreeUnion
     self.next_level_query = {}
+
   def fork(self):
     pt = PlanTree()
     pt.index_step = self.index_step.fork()
@@ -65,6 +66,7 @@ class PlanTree(object):
     pt.next_level_pred = {k:v.fork() for k,v in list(self.next_level_pred.items())}
     pt.next_level_query = {k:v.fork() for k,v in list(self.next_level_query.items())}
     return pt
+
   def find_retrieve_assoc_step(self, field, query=False):
     ary = self.assoc_query_steps if query else self.assoc_pred_steps 
     for s in ary:
@@ -72,7 +74,8 @@ class PlanTree(object):
       if len(s.steps) <= len(fields) and all([s.steps[i].field == fields[i] for i in range(0, len(s.steps))]):
         return s
     assert(False)
-  def to_steps(self):
+
+  def to_steps(self) -> [ExecStepSuper]:
     idx_step = self.index_step.fork()
     # assoc_pred_steps
     # nextlevel pred
@@ -95,6 +98,11 @@ class PlanTree(object):
       else:
         ele_ops += v.to_steps()
     idx_step.ele_ops.add_steps(ele_ops)
+    # if len(self.pre_steps):
+    #   print(f'TYPE: {type(self.pre_steps[0])}')
+    # print(f'TYPE: {type(idx_step)}')
+    # print(f'TYPE: {type(self.sort_step)}')
+    # print('!!DONE!!')
     if self.sort_step:
       return self.pre_steps + [idx_step, self.sort_step]
     else:

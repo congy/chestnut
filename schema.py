@@ -156,85 +156,113 @@ class Table(object):
     self.id_index = None
     self.is_temp = is_temp
     self.primary_keys = []
+
   def __eq__(self, other):
-    return type(self)==type(other) and self.name == other.name
+    return type(self) == type(other) and self.name == other.name
+
   def __str__(self):
     return 'Table({})'.format(self.name)
+
   def __hash__(self):
     return hash(self.name)
+
   def get_sz_for_cost(self):
     return CostTableUnit(self)
+
   def cost_str_symbol(self):
     return 'N{}'.format(self.name)
+
   def cost_real_size(self):
     return self.sz
+
   def cost_all_sz(self):
     return self.sz
+
   def cost_range_size(self, take_min=True):
     return get_table_size_range(self, take_min)
+
   def add_field(self, f):
     f.table = self
     self.fields.append((f.name, f))
+
   def add_fields(self, fs):
     for f in fs:
       f.table = self
       self.fields.append((f.name, f))
+
   def add_assoc(self, name, a):
     self.assocs.append((name, a))
     self.nested_tables[name] = NestedTable(self, a.rgt if a.lft.name == self.name else a.lft, name, a.lft_ratio if a.lft.name == self.name else a.rgt_ratio)
+
   def get_fields(self):
     r = []
     for fn,f in self.fields:
       r.append(f)
     return r
+
   #return -- 1: one; 0: many
+  # TODO "has_only_one_field() -> bool"
   def has_one_or_many_field(self, fn):
     assoc = self.get_assoc_by_name(fn)
     assert(assoc)
     if assoc.assoc_type == "one_to_many" and assoc.rgt == self:
       return 1
     return 0
+
   def get_assocs(self):
     r = []
-    for an,a in self.assocs:
+    for an, a in self.assocs:
       r.append(a)
     return r
+
   def get_field_pairs(self):
     return self.fields
+
   def get_assoc_pairs(self):
     return self.assocs
+
   def get_field_by_name(self, n):
-    for fn,f in self.fields:
+    for fn, f in self.fields:
       if n == fn:
         return f 
     return None
+
   def has_field(self, n):
     return self.get_field_by_name(n) != None 
+
   def get_assoc_by_name(self, n):
-    for an,a in self.assocs:
+    for an, a in self.assocs:
       if an == n:
         return a
     return None
+
   def get_nested_tables(self):
     r = []
-    for k,v in list(self.nested_tables.items()):
+    for k, v in list(self.nested_tables.items()):
       r.append(v)
     return r
+
   def get_nested_table_by_name(self, n):
     return self.nested_tables[n]
+
   def has_assoc(self, n):
     return self.get_assoc_by_name(n) != None 
+
   def add_nested_table(self, name, table):
     self.nested_tables[name] = table
+
   def get_full_type(self, return_list=False):
     if return_list:
       return [get_capitalized_name(self.name)]
     else:
       return get_capitalized_name(self.name)
+
   def get_id_index(self):
     return self.id_index
+
   def contain_table(self, table):
     return self == table
+
 
 class NestedTable(Table):
   def __init__(self, upper_table, related_table, name, sz, is_temp=False):
@@ -248,7 +276,7 @@ class NestedTable(Table):
     self.sz_name = 'MAX_{}_PER_{}'.format(self.name.upper(), self.upper_table.name.upper())
     self.is_temp = is_temp
   def __str__(self):
-    return 'Table({})'.format(self.get_full_type())
+    return 'NestedTable({})'.format(self.get_full_type())
   def __eq__(self, other):
     return type(self) == type(other) and self.upper_table == other.upper_table and self.related_table == other.related_table and self.name == other.name
   def __hash__(self):

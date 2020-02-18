@@ -62,5 +62,5 @@ class ThreadCtx(object):
   def get_symbs(self):
     return self.symbolic_manager
 
-def create_thread_ctx():
+def create_thread_ctx() -> ThreadCtx:
   return ThreadCtx()

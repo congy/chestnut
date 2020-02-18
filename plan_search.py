@@ -115,11 +115,14 @@ def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, id
 
   return upper_pred_plans
 
-def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper_assoc_qf=None):
+def enumerate_indexes_for_query(
+    thread_ctx: symbctx.ThreadCtx, query: ReadQuery, dsmng: DSManager,
+    idx_placeholder: 'an index something', upper_assoc_qf = None) -> [PlanTreeUnion]:
+
   query_plans = []
   aggr_assoc_fields = []
   queried_table = get_main_table(query.table)
-  for v,aggr in query.aggrs:
+  for v, aggr in query.aggrs:
     for f in aggr.get_curlevel_fields(include_assoc=True):
       if is_assoc_field(f):
         aggr_assoc_fields.append(f)
@@ -136,7 +139,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       sortedN = len(all_steps)
   total_comb_length = len(all_steps)
 
-  for x,op_rest_pairs in enumerate(all_steps):
+  for x, op_rest_pairs in enumerate(all_steps):
     plantree_nodes = []
     variable_to_set = []
     if len(op_rest_pairs) > 1 and query.return_var.sz:
@@ -147,7 +150,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       variable_to_set = [query.return_var]
     
     plantree_combs = [[] for j in range(0, len(op_rest_pairs))]
-    for i,pair in enumerate(op_rest_pairs):
+    for i, pair in enumerate(op_rest_pairs):
       idx_step = pair[0]
       rest_pred = pair[1]
       next_rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_tree_combs = \
@@ -200,11 +203,11 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
     idx_placeholder = dsmng.find_placeholder(get_main_table(idx_placeholder.table))
   obj = idx_placeholder.value.get_object()
 
-  full_plans = []
+  full_plans: [PlanTreeUnion] = []
   next_level_query = []
   next_fields = []
   assoc_steps = []
-  for qf,next_query in list(query.includes.items()):
+  for qf, next_query in list(query.includes.items()):
     steps = search_steps_for_assoc(obj, dsmng, qf)
     field = qf
     next_fields.append(qf)
@@ -234,7 +237,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
           new_plan_tree.next_level_query[next_fields[j]] = next_plan
         plan_tree_combs[i].append(new_plan_tree)
     for plan_trees in itertools.product(*plan_tree_combs):
-      new_ptu = PlanTreeUnion(plan_trees)
+      new_ptu: PlanTreeUnion = PlanTreeUnion(plan_trees)
       if len(plan_trees) > 1 and query.return_var:
         new_ptu.after_steps.append(ExecUnionStep(query.return_var, query.aggrs, variable_to_set, order=query.order))
       full_plans.append(new_ptu)
@@ -343,19 +346,33 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred,
   return (rest_pred, placeholder, assoc_steps, nextlevel_fields, nextlevel_step_combs)
 
 
-def search_plans_for_one_nesting(query, dsmng):
-  thread_ctx = symbctx.create_thread_ctx()
+def search_plans_for_one_nesting(query: ReadQuery, dsmng: DSManager) -> [[ExecStepSuper]]:
+  thread_ctx: symbctx.ThreadCtx = symbctx.create_thread_ctx()
+
+  # What do these do?
   create_symbolic_obj_graph(thread_ctx, globalv.tables, globalv.associations)
   create_param_map_for_query(thread_ctx, query)
-  idx_placeholder = dsmng.find_placeholder(query.table)
-  ptunions = enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder)
-  steps = []
+  idx_placeholder = dsmng.find_placeholder(query.table) # value is a datastructure?
+
+  # This probably is the important thing.
+  ptunions: [PlanTreeUnion] = enumerate_indexes_for_query(
+      thread_ctx, query, dsmng, idx_placeholder)
+
+  # Makes a list of lists of steps.
+  steps: [[ExecStepSuper]] = []
   for ptu in ptunions:
-    steps.append(ptu.to_steps())
+    s = ptu.to_steps()
+    steps.append(s)
+
+    print('KAJKLSDJFL', s[0], 'LJSDKLFSD')
+
   print("one nesting steps = {}".format(len(steps)))
   return steps
 
+
 def thread_search_plans_for_one_nesting(query_id, tasks, results, idx):
+  raise Error("This isn't implemented/used, right? -Mingwei.")
+
   plans = []
   for query, dsmng in tasks:
     temp_plans = search_plans_for_one_nesting(query, dsmng)
@@ -411,17 +428,22 @@ def search_mincost_plan(query):
 def search_plans_for_one_query(
     query: ReadQuery, query_id: int = 0, multiprocess: bool = False,
     print_plan: bool = True) -> [PlansForOneNesting]:
+
   dsmngers: [DSManager] = enumerate_nestings_for_query(query)
+
+  #print('dsmnger')
+  #print(dsmngers[0])
+  #exit(-1)
+
   # Keep this thing above. Gives nestings. Then add indices.
   compute_mem_bound() # Prints stuff to console.
   assert(globalv.memory_bound > 1000)
   print('mem bound = {}'.format(globalv.memory_bound))
   print('all nestings = {} ({})'.format(len(dsmngers), query_id))
-  plans: [PlansForOneNesting] = []
-  if multiprocess:
-    # TODO
-    raise Error('multiprocess not implemented')
 
+  plans: [PlansForOneNesting] = []
+  if multiprocess: # TODO
+    raise Error('multiprocess not implemented')
 
   cnt: int = 0
   fail_nesting: [DSManager] = []
