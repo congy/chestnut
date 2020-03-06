@@ -131,7 +131,7 @@ def insert_indent(s, indent_level=1):
   return ('\n'.join([indent+l if len(l) > 0 else l for l in s.split('\n')])+'\n')
 
 def get_random_string(length):
-	chars = "".join( [random.choice(string.letters) for i in range(length)] )
+	chars = "".join( [random.choice(string.ascii_letters) for i in range(length)] )
 	return chars
 
 def get_random_length(minl,maxl):
