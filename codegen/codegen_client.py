@@ -23,25 +23,25 @@ ruby_template_end = """
 """
 
 
-def cgen_ruby_client(read_queries, ruby_file_dir):
+def cgen_ruby_client(path, read_queries):
   ruby_t_f = {'1':'true', 1:'true', '0':'false', 0:'false'}
   s = ''
-  path = ruby_file_dir
-  os.system('mkdir {}'.format(path))
   s += 'require \"./proto_{}_pb.rb\"\n'.format(get_db_name())
   s += 'require \"ffi-rzmq.rb\"\n'
   s += 'def time_diff_milli(start, finish)\n'
   s += '  (finish - start) * 1000.0\n'
   s += 'end\n\n'
 
-  qcnt = 0 
   for i,query in enumerate(read_queries): 
     s += 'def run_rq_{}\n'.format(i)
+    params = query.get_all_params()
     param_values = query.get_param_value_pair()
-    param_str = ', '.join([':rq_{}_{} => {}'.format(i, p.symbol, \
-            '\"{}\"'.format(param_values[p]) if is_string_type(p.tipe) or is_date_type(p.tipe) else (ruby_t_f[param_values[p]] if is_bool_type(p.tipe) else param_values[p])) \
-            for p in query.get_all_params()])
-    s += '  param = {}::QueryParam.new(:query_id => {}, {})\n'.format(get_capitalized_name(get_db_name()), qcnt, param_str)
+    param_strs = []
+    for j,p in enumerate(params):
+      param_strs.append(':q_{}_param_{}_{} => {}'.format(i, j, p.symbol, \
+            '\"{}\"'.format(param_values[p]) if is_string_type(p.tipe) or is_date_type(p.tipe) else (ruby_t_f[param_values[p]] if is_bool_type(p.tipe) else param_values[p])))
+    param_str = ', '.join(param_strs)
+    s += '  param = {}::QueryParam.new(:query_id => {}, {})\n'.format(get_capitalized_name(get_db_name()), i, param_str)
     s += '  serialized_param = {}::QueryParam.encode(param)\n'.format(get_capitalized_name(get_db_name()))
     s += ruby_template_begin
     s += '  data = {}::PQuery{}Result.decode(data)\n'.format(get_capitalized_name(get_db_name()), i)
@@ -49,7 +49,6 @@ def cgen_ruby_client(read_queries, ruby_file_dir):
     # print query result
     s += insert_indent(cgen_ruby_client_print(query, 'data'))
     s += ruby_template_end
-    qcnt += 1
     s += 'end\n'
 
   s += 'def run_queries\n'
@@ -58,7 +57,7 @@ def cgen_ruby_client(read_queries, ruby_file_dir):
   s += 'end\n'
 
   s += 'run_queries\n'
-  fp = open('{}/ruby_test.rb'.format(path, get_db_name()), 'w')
+  fp = open('{}/ruby/ruby_test.rb'.format(path), 'w')
   fp.write(s)
 
 
@@ -68,9 +67,9 @@ def cgen_ruby_client_print(query, result_var):
   for v,f in query.aggrs:
     s += 'puts \"{} = #{{{}.{}}}\"\n'.format(v.name, result_var, v.name)
   if query.return_var:
-    s += 'puts \"size = #{{{}.{}.length}}\"\n'.format(result_var, 'result')
+    s += 'puts \"size = #{{{}.{}.length}}\"\n'.format(result_var, query.table.name)
     s += 'cnt_0 = 0\n'
-    s += '{}.{}.each do |{}|\n'.format(result_var, 'result', 'x')
+    s += '{}.{}.each do |{}|\n'.format(result_var, query.table.name, 'x')
     s += 'cnt_0 = cnt_0 + 1\n'
     s += 'if cnt_0 > 20 then\n'
     s += '  break\n'

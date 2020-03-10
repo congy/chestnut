@@ -7,7 +7,7 @@ from plan_search import *
 from ilp.ilp_manager import *
 from ds_manager import *
 from query_manager import *
-# from populate_database import *
+from populate_database import *
 from codegen.protogen import *
 from codegen.codegen_test import *
 import globalv
@@ -27,7 +27,7 @@ from main_index import *
 from main_search import *
 #from ilp_solve import *
 
-workload_name = "kandan_lg"
+workload_name = "kandan_small"
 set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
@@ -40,6 +40,8 @@ associations = [channel_to_activitiy, channel_user, activity_user, attachment_us
 globalv.tables = tables
 globalv.associations = associations
 #generate_db_data_files(datafile_dir, tables, associations)
+#exit(0)
+#populate_database(datafile_dir, tables, associations, True)
 #exit(0)
 
 read_queries = [q_ai_1, q_ai_2, q_ai_3, \
@@ -69,21 +71,27 @@ q_cc_w1, q_cc_w2]
 
 #q_ci_1.assigned_param_values = {Parameter('channel_id'):'47'}
 
-search_plans_for_one_query(q_ci_1)#read_queries[8])
-exit(0)
+#search_plans_for_one_query(q_ci_1)#read_queries[8])
+#exit(0)
 #get_dsmeta(read_queries)
 
 # test_merge(q)
 #test_cost(read_queries[:1])
-#test_ilp(read_queries, membound_factor=1)
+#test_ilp(read_queries, membound_factor=2)
+
+
+globalv.set_qr_type('proto')
+test_codegen_one_query(tables, associations, q_di_1)
+exit(0)
+
 ilp_solve(read_queries, write_queries=[], membound_factor=1.7, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
 test_read_overall(tables, associations, read_queries, memfactor=1.7, read_from_file=True, read_ilp=True)
-
 exit(0)
-data_dir=datafile_dir
+
+#exit(0)
+#data_dir=datafile_dir
 #generate_proto_files(get_cpp_file_path(), tables, associations)
 #generate_db_data_files(data_dir, tables, associations)
-#populate_database(data_dir, tables, associations, False)
 #test_query(tables, associations, read_queries[0], 13)
 
 #s = create_psql_tables_script(data_dir, tables, associations)

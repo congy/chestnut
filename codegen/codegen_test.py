@@ -7,6 +7,7 @@ from codegen_sql import *
 from codegen_initialize import *
 from codegen_ir import *
 from codegen_template import *
+from codegen_client import *
 from protogen import *
 from constants import *
 #import mysql.connector
@@ -14,11 +15,12 @@ from ilp.ilp_manager import *
 
 # ====== test initialize ds ======
 
-def prepare_other_files(tables, associations):
+def prepare_other_files(tables, associations, read_queries, write_queries):
   os.system('mkdir {}'.format(get_db_name()))
-  generate_proto_files('./{}/'.format(get_db_name()), tables, associations)
+  generate_proto_files('./{}/'.format(get_db_name()), tables, associations, read_queries, write_queries)
   for f in copy_cpp_files:
     os.system('cp {}/cpp_utils/{} {}/'.format(get_cpp_file_path(), f, get_db_name()))
+  cgen_ruby_client(get_db_name()+'/', read_queries)
 
 
 def test_initialize(tables, associations, read_queries, planid=0):
@@ -47,7 +49,7 @@ def test_initialize(tables, associations, read_queries, planid=0):
   fp.close()
 
   main_body = 'read_data();\n'
-  main = cgen_for_main_test(main_body, ds_def=True, include_query=False)
+  main = cgen_for_main(main_body, ds_def=True, include_query=False)
   fp = open('{}/main.cc'.format(get_db_name()), 'w')
   fp.write(main)
   fp.close()
@@ -90,7 +92,7 @@ def test_query(tables, associations, query, planid=0):
   fp.close()
 
   main_body = 'read_data();\n' + cgen_for_query_in_main([query], [planid])
-  main = cgen_for_main_test(main_body, ds_def=True, include_query=True)
+  main = cgen_for_main(main_body, ds_def=True, include_query=True)
   fp = open('{}/main.cc'.format(get_db_name()), 'w')
   fp.write(main)
   fp.close()
@@ -197,7 +199,7 @@ def test_codegen_one_query(tables, associations, query, planid=-1):
         chosen_plan = (cost, plan, dsmng, plan_id)  
       plan_id = plan_id + 1
 
-  prepare_other_files(tables, associations)
+  prepare_other_files(tables, associations, [query], [])
   header, cpp = cgen_initialize_all(tables, associations, dsmeta)
   fp = open('{}/{}.h'.format(get_db_name(), get_db_name()), 'w')
   fp.write(header)
@@ -212,8 +214,15 @@ def test_codegen_one_query(tables, associations, query, planid=-1):
   header = (header_ + '\n')
   cpp = (cpp_ + '\n')
   
-  header = query_includes + '#include "{}.h"\n\n'.format(get_db_name()) + header 
-  cpp = '#include "{}_query.h"'.format(get_db_name()) + '\n' + cpp
+  header_include = query_includes
+  header_include += '#include "{}.h"\n\n'.format(get_db_name()) 
+  if globalv.is_qr_type_proto():
+    header_include += "#include \"proto_{}.pb.h\"\n".format(get_db_name())
+  header = header_include + header 
+  cpp_include = '#include "{}_query.h"'.format(get_db_name()) + '\n' 
+  if globalv.is_qr_type_proto():
+    cpp_include += "#include \"proto_{}.pb.h\"\n".format(get_db_name())
+  cpp = cpp_include + cpp 
 
   fp = open('{}/{}_query.h'.format(get_db_name(), get_db_name()), 'w')
   fp.write(header)
@@ -224,7 +233,7 @@ def test_codegen_one_query(tables, associations, query, planid=-1):
   fp.close()
 
   main_body = 'read_data();\n' + cgen_for_query_in_main([query], [chosen_plan[3]])
-  main = cgen_for_main_test(main_body, ds_def=True, include_query=True)
+  main = cgen_for_main(main_body, ds_def=True, include_query=True)
   fp = open('{}/main.cc'.format(get_db_name()), 'w')
   fp.write(main)
   fp.close()
@@ -233,7 +242,7 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
 
   (dsmeta, plans, plan_ds, plan_ids) = ilp_solve(queries, membound_factor=memfactor, read_from_file=read_from_file, read_ilp=read_ilp)
 
-  prepare_other_files(tables, associations)
+  prepare_other_files(tables, associations, queries, [])
 
   header, cpp = cgen_initialize_all(tables, associations, dsmeta)
 
@@ -256,8 +265,15 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
     header += (header_ + '\n')
     cpp += (cpp_ + '\n')
   
-  header = query_includes + '#include "{}.h"\n\n'.format(get_db_name()) + header 
-  cpp = '#include "{}_query.h"'.format(get_db_name()) + '\n' + cpp
+  header_include = query_includes
+  header_include += '#include "{}.h"\n\n'.format(get_db_name()) 
+  if globalv.is_qr_type_proto():
+    header_include += "#include \"proto_{}.pb.h\"\n".format(get_db_name())
+  header = header_include + header 
+  cpp_include = '#include "{}_query.h"'.format(get_db_name()) + '\n' 
+  if globalv.is_qr_type_proto():
+    cpp_include += "#include \"proto_{}.pb.h\"\n".format(get_db_name())
+  cpp = cpp_include + cpp
 
   fp = open('{}/{}_query.h'.format(get_db_name(), get_db_name()), 'w')
   fp.write(header)
@@ -268,7 +284,7 @@ def test_read_overall(tables, associations, queries, memfactor=1, read_from_file
   fp.close()
 
   main_body = 'read_data();\n' + cgen_for_query_in_main(queries, plan_ids)
-  main = cgen_for_main_test(main_body, ds_def=True, include_query=True)
+  main = cgen_for_main(main_body, ds_def=True, include_query=True)
   fp = open('{}/main.cc'.format(get_db_name()), 'w')
   fp.write(main)
   fp.close()

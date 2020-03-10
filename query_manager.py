@@ -4,6 +4,8 @@ from query import *
 from plan_search import *
 
 
+# one query & one data layout  -- > one query plan
+# one data layout--> one nesting + a set of indexes
 class RQManager(object):
   def __init__(self, query, plans=[]):
     self.query = query

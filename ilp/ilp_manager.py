@@ -11,8 +11,8 @@ from prune_plans import *
 from ds_manager import *
 import multiprocessing
 import pickle
-from ilp_fake import *
-#from gurobipy import *
+#from ilp_fake import *
+from gurobipy import *
 
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
@@ -299,7 +299,7 @@ def ilp_solve(read_queries, write_queries=[], membound_factor=1, save_to_file=Fa
       for i in range(0, len(read_queries)):
         assert(rqmanagers[i])
     else:
-      rqmanagers, dsmeta = get_dsmeta(read_queries)
+      rqmanagers, dsmeta = get_dsmeta(read_queries) # rqmanagers:- RQManager
       #prune_read_plans(rqmanagers, dsmeta)
       if save_to_file:
         for i in range(0, len(rqmanagers)):

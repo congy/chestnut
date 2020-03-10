@@ -16,6 +16,22 @@ import multiprocessing
 import pickle
 import sys
 
+# Class.where(a==?1).where(B==?2).where(exists(c.nested1, where()...))
+# index on a; (B==?2 && C==?3 ) 
+# index on b; (...)
+# index on c;
+# index on a&b
+# index on a&c
+# ...
+
+# Project.where(user==??).where(exists(issues, where(status=='open')))
+# index on Project(user), [exists(issues, where(status=="open"))]
+        # index on Issue(status)
+        # not use use index; 
+# index on Project(user, exists(issues, where(status=='open'))) , None
+# not use index on Project
+
+
 # enumerate all possible indexes to set upper_pred or answer query
 # return (index_step, next_var_state) pair
 def enumerate_indexes_for_pred(thread_ctx, upper_pred, upper_pred_var, dsmng, idx_placeholder, upper_assoc_qf=None):
@@ -224,6 +240,21 @@ def helper_get_idx_step_by_pred(thread_ctx, queried_table, pred, order, idx_plac
         op_rest_pairs[i] = (pair[0], newpred)
   return all_steps
 
+
+# enumerate_indexes_for_pred(pred)  -- index pred + rest pred
+#     enumerate_steps_for_rest_pred(rest_pred)
+#         enumerate_indexes_for_pred(next_level_pred) -- index + rest
+#             enumerate_steps_for_rest_pred
+# ...
+
+# enumerate_indexes_for_pred(pred)  -- index pred && rest pred
+# --> (C++ pseudo)
+# for obj in index.range(min, max):
+#     if (rest_pred(obj))
+#       append obj to result
+
+# || in the pred?
+# convert pred into DNF
 def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred, assoc_fields=[]):
   if idx_placeholder.value.is_main_ptr():
     idx_placeholder = dsmng.find_placeholder(get_main_table(idx_placeholder.table))
@@ -257,7 +288,7 @@ def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred,
   
   nextlevel_step_combs = []
   nextlevel_fields = []
-  for p in nextlevel_preds:
+  for p in nextlevel_preds: # exists(issues, where(status=="open"))
     field = get_query_field(p.lh)
     nextlevel_fields.append(p.lh)
     if is_assoc_field(p.lh):
