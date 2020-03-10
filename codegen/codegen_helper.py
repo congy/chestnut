@@ -393,7 +393,8 @@ def cgen_print_query_result_helper(query, element_var, level=1):
       if v.is_temp == False:
         fields.append(v)
   if len(fields) > 0:
-    s += "  printf(\"{}{}\\n\", {});\n".format(''.join(['\t' for i in range(0, level)]), ', '.join(['{} = {}'.format(f.name, get_type_to_print_symbol(f.tipe)) for f in fields]),\
+    s += "  printf(\"{}{}\\n\", {});\n".format(''.join(['\t' for i in range(0, level)]),
+                        ', '.join(['{} = {}'.format(f.name, get_type_to_print_symbol(f.tipe).replace('%s', '%.20s')) for f in fields]),\
                         ','.join(['{}.{}().c_str()'.format(element_var, f.name) if is_string_type(f.tipe) \
                               else '{}.{}()'.format(element_var, f.name) for f in fields]))
   # FIXME
