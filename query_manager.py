@@ -7,6 +7,8 @@ from plan_search import *
 # RQManager stores a (read) query.
 # the frequency of the query.
 # and the set of plans.
+# one query & one data layout  -- > one query plan
+# one data layout--> one nesting + a set of indexes
 class RQManager(object):
   def __init__(self, query, plans: [PlansForOneNesting] = []):
     self.query = query

@@ -186,7 +186,9 @@ def get_symbol_by_field(f, vname):
   return v
 
 def get_psql_type(tipe):
-  if is_date_type(tipe):
+  if is_bool_type(tipe):
+    return 'BOOLEAN'
+  elif is_date_type(tipe):
     return 'TIMESTAMP'
   elif is_int_type(tipe):
     return 'INTEGER'

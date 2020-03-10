@@ -73,8 +73,8 @@ def generate_db_data_files(data_dir, tables, associations):
     fp.close()
 
 def populate_database(data_dir, tables, associations, recreate=False):
-  #remove_db(recreate)
-  #create_db(recreate)
+  remove_db(recreate)
+  create_db(recreate)
   create_tables(tables, associations, recreate)
   populate_tables(data_dir, tables, associations, recreate)
 

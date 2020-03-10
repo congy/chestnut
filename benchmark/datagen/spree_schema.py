@@ -12,8 +12,8 @@ fake = Faker()
 workload_name = 'spree'
 data_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 
-scale = 100000
-#scale=10
+#scale = 100000
+scale=10
 
 product = Table('spree_product',scale)
 variant = Table('spree_variant',scale*20)

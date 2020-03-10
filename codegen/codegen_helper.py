@@ -156,7 +156,10 @@ def cgen_query_result_var_type(table, qid):
     return cgen_query_result_var_type(table.upper_table, qid)+\
       '::P{}In{}'.format(get_capitalized_name(table.name), get_capitalized_name(get_main_table(table.upper_table).name))
   else:
-    return cgen_query_result_type(qid)+'::P{}'.format(get_capitalized_name(table.name))
+    if globalv.is_qr_type_proto():
+      return '{}::P{}'.format(get_db_name(), get_capitalized_name(table.name))
+    else:
+      return cgen_query_result_type(qid)+'::P{}'.format(get_capitalized_name(table.name))
 
 def merge_assoc_qf(assoc, qf):
   if isinstance(assoc, QueryField):

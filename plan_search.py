@@ -71,6 +71,20 @@ import sys
 
 
 # Data layout and query plans are generated together.
+# Class.where(a==?1).where(B==?2).where(exists(c.nested1, where()...))
+# index on a; (B==?2 && C==?3 ) 
+# index on b; (...)
+# index on c;
+# index on a&b
+# index on a&c
+# ...
+
+# Project.where(user==??).where(exists(issues, where(status=='open')))
+# index on Project(user), [exists(issues, where(status=="open"))]
+        # index on Issue(status)
+        # not use use index; 
+# index on Project(user, exists(issues, where(status=='open'))) , None
+# not use index on Project
 
 
 # enumerate all possible indexes to set upper_pred or answer query
@@ -284,6 +298,20 @@ def helper_get_idx_step_by_pred(thread_ctx, queried_table, pred, order, idx_plac
 
 
 # Next levels (?)
+# enumerate_indexes_for_pred(pred)  -- index pred + rest pred
+#     enumerate_steps_for_rest_pred(rest_pred)
+#         enumerate_indexes_for_pred(next_level_pred) -- index + rest
+#             enumerate_steps_for_rest_pred
+# ...
+
+# enumerate_indexes_for_pred(pred)  -- index pred && rest pred
+# --> (C++ pseudo)
+# for obj in index.range(min, max):
+#     if (rest_pred(obj))
+#       append obj to result
+
+# || in the pred?
+# convert pred into DNF
 def enumerate_steps_for_rest_pred(thread_ctx, dsmng, idx_placeholder, rest_pred, assoc_fields=[]):
   if idx_placeholder.value.is_main_ptr():
     idx_placeholder = dsmng.find_placeholder(get_main_table(idx_placeholder.table))

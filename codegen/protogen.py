@@ -36,7 +36,7 @@ def generate_proto_files(path, tables, associations, read_queries=[], write_quer
   s += '  uint32 query_id = 1;\n'
   for i,q in enumerate(read_queries):
     for j,p in enumerate(q.get_all_params()):
-      s += '  {} rq_{}_{} = {};\n'.format(get_param_proto_type(p.tipe), i, p.symbol, cnt)
+      s += '  {} q_{}_param_{}_{} = {};\n'.format(get_param_proto_type(p.tipe), i, j, p.symbol, cnt)
       cnt += 1
   for i,q in enumerate(write_queries):
     for j,p in enumerate(q.get_all_params()):
@@ -48,6 +48,7 @@ def generate_proto_files(path, tables, associations, read_queries=[], write_quer
   fp.close()
 
   os.system("protoc -I={}/ --cpp_out={}/ {}/proto_{}.proto".format(path, path, path, db_name))
+  os.system("mkdir {}/ruby/".format(path))
   os.system("protoc --proto_path={}/ --ruby_out={}/ruby/ {}/proto_{}.proto".format(path, path, path, db_name))
 
 
