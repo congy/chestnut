@@ -42,14 +42,16 @@ globalv.associations = associations
 #generate_db_data_files(datafile_dir, tables, associations)
 #exit(0)
 
-read_queries: [ReadQuery] = [q_ai_1, q_ai_2, q_ai_3, \
-q_as_1, \
-# q_di_1, \
-q_ti_1, \
-q_ci_1, \
-q_cs_1, \
-# q_mi_1, \
-q_ms_1]
+read_queries: [ReadQuery] = [
+    #q_ai_1, q_ai_2, q_ai_3, \
+#q_as_1, \
+q_di_1, \
+#q_ti_1, \
+#q_ci_1, \
+#q_cs_1, \
+q_mi_1, \
+#q_ms_1
+]
 
 write_queries = [q_ac_w1, q_ac_w2, q_ac_w3, \
 q_du_1, \
