@@ -30,7 +30,7 @@ class ExecQueryStep(ExecStepSuper):
   def to_json(self):
     variables = [x.to_json(full_dump=True) for x in self.variables]
     steps = self.step.to_json()
-    return ("ExecQueryStep", {"queryid":self.query.id, "variables":variables, "steps":steps})
+    return { 'type': "ExecQueryStep", 'value': {"queryid":self.query.id, "variables":variables, "steps":steps}}
   def __eq__(self, other):
     return type(self) == type(other) and self.query == other.query
   def compute_cost(self):
@@ -81,9 +81,14 @@ class ExecSetVarStep(ExecStepSuper):
       cond_eq = True
     return var_eq and expr_eq and cond_eq
   def to_json(self):
-    return ("ExecSetVarStep",{"var":self.var.to_json(), \
-                "expr":self.expr.to_json() if self.expr else None, \
-                "cond":self.cond.to_json() if self.cond else None})
+    return {
+      'type': "ExecSetVarStep",
+      'value': {
+        "var": self.var.to_json(),
+        "expr": self.expr.to_json() if self.expr else None,
+        "cond": self.cond.to_json() if self.cond else None
+      }
+    }
   def compute_cost(self):
     return self.cost
   def __str__(self, short=False):
@@ -124,11 +129,11 @@ class ExecStepSeq(ExecStepSuper):
     self.steps = [s for s in steps]
     self.cost = 0
   def to_json(self):
-    return ("ExecStepSeq", [s.to_json() for s in self.steps])
+    return { 'type': "ExecStepSeq", 'value': [s.to_json() for s in self.steps] }
   def compute_cost(self, non_zero=False):
     if cost_computed(self.cost):
       return self.cost
-    c = 0 
+    c = 0
     for i in range(0, len(self.steps)):
       c = CostOp(c, COST_ADD, self.steps[i].compute_cost())
     if type(c) is int and non_zero:
@@ -370,7 +375,7 @@ class ExecScanStep(ExecStepSuper):
     es.ele_ops = self.ele_ops.fork()
     return es
   def to_json(self):
-    return ('ExecScanStep', {"idx":self.idx.id, "steps":self.ele_ops.to_json()})
+    return { 'type': 'ExecScanStep', 'value': { "idx":self.idx.id, "steps":self.ele_ops.to_json() } }
   def __eq__(self, other):
     return type(self) == type(other) and self.idx == other.idx and self.ele_ops == other.ele_ops
   def compute_cost(self):
