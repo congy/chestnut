@@ -1,8 +1,8 @@
-#include "kandan_lg.h"
-TreeIndex<oid_t, size_t, 5000> idptr_ds_1;
-SmallBasicArray<User1, 5000> user_1;
-SortedArray<ds_2_key_type, User2, 5000> ds_2;
-TreeIndex<ds_3_key_type, ItemPointer, 5000> ds_3;
+#include "kandan_small.h"
+TreeIndex<oid_t, size_t, 100> idptr_ds_1;
+SmallBasicArray<User1, 100> user_1;
+SortedArray<ds_2_key_type, User2, 100> ds_2;
+TreeIndex<ds_3_key_type, ItemPointer, 100> ds_3;
 void read_data() {
   char msg[] = "data structure loading time ";
   get_time_start();
@@ -12,7 +12,7 @@ void read_data() {
     fprintf(stderr, "mysql_init() failed\n");
     exit(1);
   }
-  if (mysql_real_connect(conn, "localhost", "root", "", "kandan_lg", 0, "/home/congy/mysqld/mysqld.sock", 0) == NULL){
+  if (mysql_real_connect(conn, "localhost", "root", "", "kandan_small", 0, "/home/congy/mysqld/mysqld.sock", 0) == NULL){
 
     fprintf(stderr, "mysql connect failed\n");
     exit(1);

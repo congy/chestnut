@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package kandan_lg;
+package kandan_small;
 
 message PUser {
   uint32 id = 1;

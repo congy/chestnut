@@ -1,7 +1,7 @@
-#include "kandan_lg.h"
-#include "kandan_lg_query.h"
+#include "kandan_small.h"
+#include "kandan_small_query.h"
 #include "util.h"
-#include "proto_kandan_lg.pb.h"
+#include "proto_kandan_small.pb.h"
 #include <zmq.h>
 int main() {
   read_data();
@@ -21,10 +21,10 @@ int main() {
       rc = zmq_msg_recv (&rmsg, responder, 0);
       buffer.assign(reinterpret_cast<char*>(zmq_msg_data(&rmsg)), zmq_msg_size(&rmsg));
       //memcpy(buffer, (char*)zmq_msg_data(&rmsg), zmq_msg_size(&rmsg));
-      kandan_lg::QueryParam qparam;
+      kandan_small::QueryParam qparam;
       qparam.ParseFromString(buffer);
       if (qparam.query_id() == 0) {
-      kandan_lg::PQuery0Result qresult;
+      kandan_small::PQuery0Result qresult;
         query_0_plan_0(qparam.q_0_param_0_uid(),qresult);
         qresult.SerializeToString(&output);
       }

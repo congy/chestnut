@@ -1,17 +1,17 @@
-#include "kandan_lg_query.h"
-#include "proto_kandan_lg.pb.h"
+#include "kandan_small_query.h"
+#include "proto_kandan_small.pb.h"
 // prepare query 0 (len param = 0)
 // Scan [1] Basic array: User, value = memobj(User-id) : 
 //   if ((user:id != Param (uid))) result_user = None
 //   
 // 
 
-void query_0_plan_0(oid_t param_uid_0, kandan_lg::PQuery0Result& qresult) {
+void query_0_plan_0(oid_t param_uid_0, kandan_small::PQuery0Result& qresult) {
   char msg[] = "query 0 plan 0 run time ";
   get_time_start();
     SMALLBASICARRAY_FOR_BEGIN(user_1_1, user_1, obj_user_1)
 
-      kandan_lg::PUser* ele_result_user_2 = nullptr;
+      kandan_small::PUser* ele_result_user_2 = nullptr;
       if ((obj_user_1.user_id != param_uid_0)) { if ((&qresult) != nullptr) {
         ele_result_user_2 = (&qresult)->add_user();
         ele_result_user_2->set_id(obj_user_1.user_id);
