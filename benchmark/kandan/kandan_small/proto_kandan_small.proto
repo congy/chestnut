@@ -141,6 +141,7 @@ message PChannel {
   uint32 updated_at = 4;
   uint32 user_id = 5;
   uint32 count = 6;
+  uint32 count = 7;
   message PActivitiesInChannel {
     uint32 id = 1;
     uint32 created_at = 2;
@@ -192,7 +193,7 @@ message PChannel {
     PUserInActivity user = 8;
   }
   
-  repeated PActivitiesInChannel activities = 7;
+  repeated PActivitiesInChannel activities = 8;
   message PUserInChannel {
     uint32 id = 1;
     string email = 2;
@@ -244,7 +245,7 @@ message PChannel {
     repeated PAttachmentsInUser attachments = 25;
   }
   
-  PUserInChannel user = 8;
+  PUserInChannel user = 9;
   message PAttachmentsInChannel {
     uint32 id = 1;
     string file_file_name = 2;
@@ -296,7 +297,7 @@ message PChannel {
     PUserInAttachment user = 11;
   }
   
-  repeated PAttachmentsInChannel attachments = 9;
+  repeated PAttachmentsInChannel attachments = 10;
 }
 
 
@@ -647,8 +648,38 @@ message PAttachment {
 }
 
 
-message PQuery0Result {
+message PQuery9Result {
+  repeated PActivity activity = 1;
+}
+
+
+message PQuery10Result {
   repeated PUser user = 1;
+}
+
+
+message PQuery16Result {
+  repeated PAttachment attachment = 1;
+}
+
+
+message PQuery19Result {
+  repeated PChannel channel = 1;
+}
+
+
+message PQuery22Result {
+  repeated PChannel channel = 1;
+}
+
+
+message PQuery23Result {
+  repeated PChannel channel = 1;
+}
+
+
+message PQuery26Result {
+  repeated PActivity activity = 1;
 }
 
 
@@ -668,7 +699,12 @@ message PAttachmentList {
 
 message QueryParam {
   uint32 query_id = 1;
-  uint32 q_0_param_0_uid = 2;
+  uint32 q_0_param_0_id = 2;
+  uint32 q_1_param_0_uid = 3;
+  uint32 q_2_param_0_channel_id = 4;
+  uint32 q_3_param_0_channel_id = 5;
+  string q_4_param_0_name = 6;
+  string q_6_param_0_keyword = 7;
 }
 
 

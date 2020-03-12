@@ -10,7 +10,7 @@ fake = Faker()
 
 #scale = 10000
 #scale = 20000 #1000
-scale = 10
+scale = 500
 channel = Table('channel', 500)
 activity = Table('activity', 500*scale)
 user = Table('user', 10*scale)

@@ -25,7 +25,37 @@ int main() {
       qparam.ParseFromString(buffer);
       if (qparam.query_id() == 0) {
       kandan_small::PQuery0Result qresult;
-        query_0_plan_0(qparam.q_0_param_0_uid(),qresult);
+        query_0_plan_4(qparam.q_0_param_0_id(),qresult);
+        qresult.SerializeToString(&output);
+      }
+      if (qparam.query_id() == 1) {
+      kandan_small::PQuery1Result qresult;
+        query_1_plan_0(qparam.q_1_param_0_uid(),qresult);
+        qresult.SerializeToString(&output);
+      }
+      if (qparam.query_id() == 2) {
+      kandan_small::PQuery2Result qresult;
+        query_2_plan_2(qparam.q_2_param_0_channel_id(),qresult);
+        qresult.SerializeToString(&output);
+      }
+      if (qparam.query_id() == 3) {
+      kandan_small::PQuery3Result qresult;
+        query_3_plan_16(qparam.q_3_param_0_channel_id(),qresult);
+        qresult.SerializeToString(&output);
+      }
+      if (qparam.query_id() == 4) {
+      kandan_small::PQuery4Result qresult;
+        query_4_plan_2(qparam.q_4_param_0_name(),qresult);
+        qresult.SerializeToString(&output);
+      }
+      if (qparam.query_id() == 5) {
+      kandan_small::PQuery5Result qresult;
+        query_5_plan_3(qresult);
+        qresult.SerializeToString(&output);
+      }
+      if (qparam.query_id() == 6) {
+      kandan_small::PQuery6Result qresult;
+        query_6_plan_0(qparam.q_6_param_0_keyword(),qresult);
         qresult.SerializeToString(&output);
       }
 
