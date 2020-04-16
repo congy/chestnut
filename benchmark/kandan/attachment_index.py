@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 
 q_ti_1 = get_all_records(attachment)
 q_ti_1.pfilter(BinOp(f('channel').f('id'), EQ, Parameter('channel_id')))

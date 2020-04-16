@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def search
 #     minimum_query_length = 3
 

@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def index
 #     # TODO can be divided into two actions
 

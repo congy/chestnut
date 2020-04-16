@@ -192,7 +192,7 @@ def get_dsmeta(read_queries: [ReadQuery]) -> ([RQManager], DSManager):
   for query in read_queries:
     print(("query {}".format(query)))
     # Search plans for a particular query. This goes into plan_search.py:search_plans_for_one_query()
-    nesting_plans = search_plans_for_one_query(query, print_plan=False)
+    nesting_plans = search_plans_for_one_query(query)
     rqmanagers.append(RQManager(query, nesting_plans))
     for i, plan_for_one_nesting in enumerate(nesting_plans):
       #print 'nesting...{}'.format(len(plan_for_one_nesting.plans))
@@ -225,6 +225,7 @@ def get_dsmeta(read_queries: [ReadQuery]) -> ([RQManager], DSManager):
       total_new_plans += len(add_plans)
       rqmanagers[qi].plans[i].plans += add_plans
       rqmanagers[qi].plans[i].dsmanagers += add_dsmngers
+
     print("finish find compatible ds for query {}, total new plan len = {}".format(qi, total_new_plans))
           
   return rqmanagers, dsmeta

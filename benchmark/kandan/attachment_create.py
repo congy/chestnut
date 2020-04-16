@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 
 q_tc_w1 = AddObject(attachment, {f('created_at'): Parameter('new_created_at'), \
                               f('updated_at'): Parameter('new_updated_at')})

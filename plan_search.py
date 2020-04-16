@@ -409,11 +409,11 @@ def search_mincost_plan(query):
 # Calls enumerate_nestings_for_query to make a bunch of nestings.
 # Then it needs to add indexes and make the query plans.
 def search_plans_for_one_query(
-    query: ReadQuery, query_id: int = 0, multiprocess: bool = False,
-    print_plan: bool = True) -> [PlansForOneNesting]:
+    query: ReadQuery, query_id: int = 0, multiprocess: bool = False) -> [PlansForOneNesting]:
+
   dsmngers: [DSManager] = enumerate_nestings_for_query(query)
   # Keep this thing above. Gives nestings. Then add indices.
-  compute_mem_bound() # Prints stuff to console.
+  _: int = compute_mem_bound() # ???
   assert(globalv.memory_bound > 1000)
   print('mem bound = {}'.format(globalv.memory_bound))
   print('all nestings = {} ({})'.format(len(dsmngers), query_id))
@@ -430,8 +430,7 @@ def search_plans_for_one_query(
     k: int
     dsmng: DSManager
     for k, dsmng in enumerate(dsmngers):
-      if print_plan:
-        print('nesting {} = {}'.format(k, dsmng))
+      print('nesting {} = {}'.format(k, dsmng))
       try:
         temp_plans = search_plans_for_one_nesting(query, dsmng)
       except NestingFailException as e:
@@ -450,26 +449,27 @@ def search_plans_for_one_query(
         set_upperds_helper(new_dsmnger.data_structures)
         plan.copy_ds_id(None, new_dsmnger)
         plands.append(new_dsmnger)
-        if print_plan:
-          print('PLAN {}'.format(cnt))
-          print(plan)
-          print('plan cost = {}'.format(to_real_value(plan.compute_cost())))
-          print('plan json')
-          print(plan.to_json())
-          print('** struct:')
-          print(new_dsmnger)
-          print()
-          print(new_dsmnger.to_json())
-          print('=============\n')
-          cnt += 1
+
+        print('PLAN {}'.format(cnt))
+        print(plan)
+        print('plan cost = {}'.format(to_real_value(plan.compute_cost())))
+        print('plan json')
+        print(plan.to_json())
+        print('** struct:')
+        print(new_dsmnger)
+        print('=============\n')
+        cnt += 1
+
       res: [ExecQueryStep] = [res[ix] for ix in range(0, len(res)) if to_real_value(plands[ix].compute_mem_cost()) <= globalv.memory_bound]
       new_count: int = len(res)
       print('pruned by memory bound: {} {}'.format(old_count, new_count))
       plans.append(p)
+
   # print '#Fail nestings: {}'.format(len(fail_nesting))
   # for i,f in enumerate(fail_nesting):
   #   print 'FAIL {}'.format(i)
   #   print f
   #   print '-----'
+
   print('query plan search time = {}'.format(time.time() - start_time))
   return plans

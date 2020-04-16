@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 
 # def show
 #     @activity = Activity.find params[:id]

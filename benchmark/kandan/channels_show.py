@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def find_channel_by_name
 #     @channel = Channel.where("LOWER(name) = ?", params['id'].downcase).first
 #   end

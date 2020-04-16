@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # @channels.each do |channel|
 #       activities = []
 #       more_activities = (channel.activities.count > Kandan::Config.options[:per_page])

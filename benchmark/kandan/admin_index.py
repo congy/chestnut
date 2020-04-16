@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def index
 #       @settings = Setting.my_settings
 #       @all_users = User.find(:all, :conditions => ["id != ?", current_user.id])

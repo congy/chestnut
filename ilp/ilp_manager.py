@@ -83,7 +83,7 @@ class ILPVariableManager(object):
     # CONSTR 5: each plan use structures/memobjs
     for i in range(0, len(self.readqv)):
       Nplans = len(self.readq_planv[i])
-      tempv = self.model.addVars(Nplans,  vtype=GRB.BINARY)
+      tempv = self.model.addVars(Nplans, vtype=GRB.BINARY)
       for j in range(0, Nplans):
         self.model.addConstr(tempv[j] == and_(self.readq_constraint[i][j].to_ilpv_lst(self.dsv, self.memobjv)))
         self.model.addConstr(self.readq_planv[i][j] <= tempv[j])
@@ -247,11 +247,11 @@ class ILPVariableManager(object):
     ret_obj.nested_objects = self.construct_result_dsmng_helper1(obj.nested_objects, upperds)
 
 
-def print_ilp_result(read_queries, ilp):
-  print('result data structures = {}'.format(ilp.ret_dsmng))
-  print('mem cost = {}'.format(to_real_value(ilp.ret_dsmng.compute_mem_cost())))
+def print_ilp_result(read_queries, ret_dsmng: DSManager, result_read_plans, result_read_ds, result_read_plan_id):
+  print('result data structures = {}'.format(ret_dsmng))
+  print('mem cost = {}'.format(to_real_value(ret_dsmng.compute_mem_cost())))
   print('cost breakdown: ')
-  ds_lst, memobj = collect_all_ds_helper1(ilp.ret_dsmng.data_structures)
+  ds_lst, memobj = collect_all_ds_helper1(ret_dsmng.data_structures)
   for ds in ds_lst:
     print('ds {} cost = {}'.format(ds.id, to_real_value(ds.compute_mem_cost())))
   for k,v in list(memobj.items()): 
@@ -261,21 +261,32 @@ def print_ilp_result(read_queries, ilp):
 
   print('result query plan:')
   for i in range(0, len(read_queries)):
-    print('QUERY {} plan {}:'.format(i, ilp.result_read_plan_id[i]))
-    print(ilp.result_read_plans[i])
-    print('time cost = {}'.format(to_real_value(ilp.result_read_plans[i].compute_cost())))
-    print('actual_ds = {}'.format(ilp.result_read_ds[i]))
+    print('QUERY {} plan {}:'.format(i, result_read_plan_id[i]))
+    print(result_read_plans[i])
+    print('time cost = {}'.format(to_real_value(result_read_plans[i].compute_cost())))
+    print('actual_ds = {}'.format(result_read_ds[i]))
     print('---------\n')
 
+def get_ilp_result_json(read_queries, ret_dsmng: DSManager, result_read_plans, result_read_ds, result_read_plan_id, dumps_kwargs = {}):
+  import json
+  out = {
+    'ds': ret_dsmng.to_json(),
+    'qp': {
+      ds_id: ds_plan.to_json()
+      for ds_id, ds_plan in zip(result_read_plan_id, result_read_plans)
+    },
+  }
+  return json.dumps(out, **dumps_kwargs)
 
 import time
 def test_ilp(read_queries: [ReadQuery], membound_factor=1):
-  ilp_solve(read_queries, membound_factor=1)
+  ilp_solve(read_queries, membound_factor = 1)
 
-def ilp_solve(read_queries: [ReadQuery], write_queries=[], membound_factor=1, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False):
+def ilp_solve(read_queries: [ReadQuery], write_queries: [...] = [], membound_factor: float = 1.0,
+    save_to_file: bool = False, read_from_file: bool = False, read_ilp: bool = False,
+    save_ilp: bool = False) -> ( DSManager, ..., ..., ... ):
   
   #prune_nestings(read_queries)
-
   # UNITS?
   mem_bound: int = compute_mem_bound(membound_factor)
 
@@ -301,7 +312,7 @@ def ilp_solve(read_queries: [ReadQuery], write_queries=[], membound_factor=1, sa
         p.join()
 
       f = open('dsmeta.pickle', 'rb')
-      dsmeta = pickle.load(f)
+      dsmeta: DSManager = pickle.load(f)
       f.close()
       assert(len(temp_rqmanagers) == len(read_queries))
       rqmanagers = [None for i in range(0, len(read_queries))]
@@ -326,7 +337,6 @@ def ilp_solve(read_queries: [ReadQuery], write_queries=[], membound_factor=1, sa
         f = open('dsmeta.pickle', 'wb')
         pickle.dump(dsmeta, f)
         f.close()
-    
     print('load time = {}'.format(time.time()-start_time))
     print(dsmeta)
 
@@ -335,8 +345,8 @@ def ilp_solve(read_queries: [ReadQuery], write_queries=[], membound_factor=1, sa
     # list of PlansPerNesting, each contains multiple plans (data layouts/queries).
     for qi, rqmng in enumerate(rqmanagers):
       Nqplans = sum([len(xxx.plans) for xxx in rqmng.plans])
-      print("query {} has {} plans ({}) nestings".format(qi, Nqplans, len(rqmng.plans)))
       total_Nplans += Nqplans
+      print("query {} has {} plans ({}) nestings".format(qi, Nqplans, len(rqmng.plans)))
     print("total: {}".format(total_Nplans))
 
   if read_ilp:
@@ -369,14 +379,15 @@ def ilp_solve(read_queries: [ReadQuery], write_queries=[], membound_factor=1, sa
       f.close()
 
   print('MEMORY BOUND = {}'.format(ilp.mem_bound))
-  print_ilp_result(read_queries, ilp)
 
-  dsmeta = ilp.ret_dsmng
+  dsmeta: DSManager = ilp.ret_dsmng
   plans = ilp.result_read_plans
   plan_ds = ilp.result_read_ds
   plan_id = ilp.result_read_plan_id
 
+  print_ilp_result(read_queries, dsmeta, plans, plan_ds, plan_id)
+
   # Return the final processed results of the ILP plan.
-  return (dsmeta, plans, plan_ds, plan_id)
+  return ( dsmeta, plans, plan_ds, plan_id )
 
 

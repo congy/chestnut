@@ -20,7 +20,7 @@ def set_data_file_dir(fdir):
   global _data_file_dir
   _data_file_dir = fdir
   if not os.path.exists(fdir):
-    os.system('mkdir {}'.format(fdir))  
+    os.makedirs(fdir.replace('/', '\\'))
 
 def get_data_file_dir():
   global _data_file_dir

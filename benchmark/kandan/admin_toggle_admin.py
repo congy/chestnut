@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def toggle_admin
 #       user_id = params[:user_id]
 

@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def create
 #     @activity = Channel.find(params[:channel_id]).activities.build(params[:activity])
 #     @activity.user_id = current_user.id if @activity.action == "message"

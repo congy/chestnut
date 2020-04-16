@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def create
 #     @channel = Channel.new(params[:channel])
 #     @channel.user_id = current_user.id

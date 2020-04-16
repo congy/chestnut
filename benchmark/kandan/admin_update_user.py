@@ -1,4 +1,4 @@
-from kandan_schema import *
+from .kandan_schema import *
 # def update_user
 #       user_id = params[:user_id]
 #       action = params[:action_taken].to_s
