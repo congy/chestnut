@@ -8,13 +8,17 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-#scale = 10000
-scale = 20000 #1000
-#scale = 10
-channel = Table('channel', 500)
-activity = Table('activity', 500*scale)
-user = Table('user', 10*scale)
-attachment = Table('attachment', 2*scale)
+try:
+    scale = float(os.environ['CHESTNUT_SCALE'])
+except:
+    #scale = 10000
+    scale = 20000 #1000
+    #scale = 10
+
+channel    = Table('channel',    max(int(50  * scale), 5))
+activity   = Table('activity',   max(int(200 * scale), 20))
+user       = Table('user',       max(int(10  * scale), 10))
+attachment = Table('attachment', max(int(2   * scale), 5))
 
 # create_table "activities", :force => true do |t|
 #     t.text     "content"

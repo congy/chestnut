@@ -10,7 +10,7 @@ from plan_search import *
 from ilp.ilp_manager import *
 from ds_manager import *
 from query_manager import *
-# from populate_database import *
+from populate_database import *
 from codegen.protogen import *
 from codegen.codegen_test import *
 import globalv
@@ -30,14 +30,18 @@ from .main_index import *
 from .main_search import *
 #from .ilp_solve import *
 
-def run(workload_name: str = "kandan_lg", gen_db: bool = False, single_query: int = -1,
+def run(workload_name: str = "kandan_lg", single_query: int = -1,
         membound_factor: float = 1.7,
+        gen_tsv: bool = False, gen_db: bool = False,
         run_test_read_overall: bool = True, quiet: bool = False):
     """
     Args:
         - run_ilp: If ILP should be run.
-        - gen_db: If db should be generated.
         - single_query: Choose a single read query to solve by index, or -1 to solve all queries.
+        - gen_tsv: If tsv files should be generated.
+        - gen_db: If db should be generated.
+        - run_test_read_overall: Run test_read_overall.
+        - quiet: If debug prints should be supressed.
     """
     old_stdout = sys.stdout
     devnull = open(os.devnull, 'w')
@@ -108,10 +112,11 @@ def run(workload_name: str = "kandan_lg", gen_db: bool = False, single_query: in
     if run_test_read_overall:
         test_read_overall(tables, associations, read_queries, memfactor=1.7, read_from_file=True, read_ilp=True)
 
-    if gen_db:
-        data_dir=datafile_dir
-        generate_proto_files(get_cpp_file_path(), tables, associations)
+    data_dir = datafile_dir
+    if gen_tsv:
         generate_db_data_files(data_dir, tables, associations)
+    if gen_db:
+        generate_proto_files(get_cpp_file_path(), tables, associations)
         populate_database(data_dir, tables, associations, False)
         test_query(tables, associations, read_queries[0], 13)
 
@@ -131,6 +136,8 @@ def run(workload_name: str = "kandan_lg", gen_db: bool = False, single_query: in
     # f = open('load_postgres_tables.sql', 'w')
     # f.write(s)
     # f.close()
+
+    print('scale', scale)
 
     sys.stdout = old_stdout
     devnull.close()
