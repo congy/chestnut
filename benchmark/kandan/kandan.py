@@ -91,10 +91,10 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     #[q_ti_1], [q_tc_w1, q_tc_w2]
 
     #q_ci_1.assigned_param_values = {Parameter('channel_id'):'47'}
-
-    if single_query != -1:
+    if single_query >= 0:
         search_plans_for_one_query(read_queries[single_query])
         results = ilp_solve([ read_queries[single_query] ], write_queries=[], membound_factor=membound_factor, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False)
+        results_json = get_ilp_result_json([ read_queries[single_query] ], *results, dumps_kwargs = { 'indent': 2 })
         #exit(0)
         #get_dsmeta(read_queries)
 
@@ -106,8 +106,8 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
         # membound_factor: memory bound vs table size (2 means mem bound is 2x table size).
         # TODO: tunable membound_factor.
         results = ilp_solve(read_queries, write_queries=[], membound_factor=membound_factor, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
+        results_json = get_ilp_result_json(read_queries, *results, dumps_kwargs = { 'indent': 2 })
 
-    results_json = get_ilp_result_json(read_queries, *results, dumps_kwargs = { 'indent': 2 })
     print(results_json, file = old_stdout)
     if run_test_read_overall:
         test_read_overall(tables, associations, read_queries, memfactor=1.7, read_from_file=True, read_ilp=True)
