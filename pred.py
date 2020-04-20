@@ -32,7 +32,7 @@ class EnvAtomicVariable(TempVariable):
   def __init__(self, name, tipe, is_temp=True, init_value=0):
     super(EnvAtomicVariable, self).__init__(name, tipe, is_temp)
     self.init_value = init_value
-  def to_json(self, full_dump=False):
+  def to_json(self, full_dump=True):
     return {"atom":True, "name":self.name, "type":self.tipe, "init":self.init_value} if full_dump else self.name
   def __hash__(self):
     return hash(self.name)
@@ -59,7 +59,7 @@ class EnvCollectionVariable(TempVariable):
       upper_var.nested_type = self.tipe
   def get_sz(self):
     return self.sz
-  def to_json(self, full_dump=False):
+  def to_json(self, full_dump=True):
     return {"atom":False, "name":self.name, "type":self.tipe.name, "fields":[f.field_class.name for f in self.fields]} if full_dump else self.name
     
 def get_envvar_name():

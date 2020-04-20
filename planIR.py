@@ -214,7 +214,13 @@ class ExecSortStep(ExecStepSuper):
   def fork(self):
     return ExecSortStep(self.var, self.order)
   def to_json(self):
-    return ('ExecSortStep',{"var":"{}".format(self.var.to_json()), "order":[f.to_json() for f in self.order]})
+    return {
+      'type': 'ExecSortStep',
+      'value': {
+        "var": self.var.to_json(),
+        "order": [ f.to_json() for f in self.order ]
+      }
+    }
   def compute_cost(self):
     if cost_computed(self.cost):
       return self.cost
