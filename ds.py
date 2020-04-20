@@ -387,6 +387,7 @@ class ObjBasicArray(IndexMeta):
     tables = [self.table.name]
     out = {
       'type': 'BasicArray',
+      'id': self.id,
       'value': self.value.to_json(),
       'table': tables,
     }
