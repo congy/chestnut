@@ -235,11 +235,11 @@ class IndexKeys(object):
     return [k.to_json() for k in self.keys]
 
 class IndexBase(IndexMeta):
-  def __init__(self, table, keys, condition, value, upper=None):
+  def __init__(self, table, keys, condition: Pred, value, upper=None):
     self.id = 0
     self.table = table #table ~ obj_type
     self.keys = keys.fork()
-    self.condition = get_idx_condition(condition, keys.keys) #used to compute cost
+    self.condition: Pred = get_idx_condition(condition, keys.keys) #used to compute cost
     self.value = value.fork()
     if self.value.is_object() and (not isinstance(value, IndexValue)):
       self.value.set_type(self.table)
@@ -253,10 +253,15 @@ class IndexBase(IndexMeta):
     if isinstance(cur_table, NestedTable):
       cur_table = cur_table.upper_table
       tables.insert(0, cur_table.name)
-    keys = self.keys.to_json()
-    condition = self.condition.to_json()
-    value = self.value.to_json()
-    return {"type":"Index","id":self.id, "table": tables, "keys":keys, "condition":condition, "value":value}
+    return {
+      "type": "Index",
+      "id": self.id,
+      "table": tables,
+      "keys": self.keys.to_json(),
+      "condition": self.condition.to_json(),
+      "condition_str": str(self.condition),
+      "value": self.value.to_json()
+    }
 
   def is_range_key(self, key):
     return self.keys.contain_range_key()

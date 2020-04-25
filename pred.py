@@ -97,7 +97,11 @@ class Parameter(object):
   def get_curlevel_fields(self, include_assoc=False):
     return []
   def to_json(self):
-    return 'param[{}]'.format(self.symbol)
+    return {
+      'expr': 'Parameter',
+      'symbol': self.symbol
+    }
+    #return 'param[{}]'.format(self.symbol)
   def get_all_fields(self):
     return []
   def is_fk(self):
@@ -164,7 +168,10 @@ class AtomValue(object):
   def get_all_atom_values(self):
     return [self]
   def to_json(self):
-    return "'{}'".format(self.v) if type(self.v) is str else str(self.v)
+    return {
+      'expr': 'AtomValue',
+      'value': "'{}'".format(self.v) if type(self.v) is str else str(self.v),
+    }
 
 class QueryField(object):
   def __init__(self, field, table=None):
@@ -227,7 +234,10 @@ class QueryField(object):
   def get_all_atom_values(self):
     return []
   def to_json(self):
-    return self.field_name
+    return {
+      'expr': 'QueryField',
+      'field': self.field_name,
+    }
 
 class KeyPath(object):
   def __init__(self, key, path=[]):
@@ -407,7 +417,12 @@ class AssocOp(Pred):
   def get_all_atom_values(self):
     return []
   def to_json(self):
-    return '{}.{}'.format(self.lh.to_json(), self.rh.to_json())
+    return {
+      'expr': 'AssocOp',
+      'lh': self.lh.to_json(),
+      'rh': self.rh.to_json(),
+    }
+    # return '{}.{}'.format(self.lh.to_json(), self.rh.to_json())
 
 class SetOp(Pred):
   def __init__(self, lh, op, rh):
@@ -519,6 +534,15 @@ class BinOp(Pred):
       self.rh.tipe = self.lh.get_type()
   def __str__(self):
     return "({} {} {})".format(self.lh, pred_op_to_cpp_map[self.op], self.rh)
+  def to_json(self):
+    return {
+      'expr': 'BinOp',
+      'lh': self.lh.to_json(),
+      'op': pred_op_to_cpp_map[self.op],
+      'rh': self.rh.to_json(),
+      # 'lh_type': str(type(self.lh)),
+      # 'rh_type': str(type(self.rh)),
+    }
   def __hash__(self):
     return hash(str(self))
   def __eq__(self, other):
@@ -561,8 +585,6 @@ class BinOp(Pred):
     else:
       rh = []
     return lh + rh
-  def to_json(self):
-    return '{} {} {}'.format(self.lh.to_json(), pred_op_to_cpp_map[self.op], self.rh.to_json())
   
 class ConnectOp(BinOp):
   def __init__(self, lh, op, rh):
@@ -587,6 +609,12 @@ class ConnectOp(BinOp):
     return self.lh.contain_exist_forall() or self.rh.contain_exist_forall()
   def __str__(self):
     return "({} {} {})".format(self.lh, pred_op_to_cpp_map[self.op], self.rh)
+  def to_json(self):
+    return {
+      **super().to_json(),
+      # 'expr': 'ConnectOp',
+    }
+    # return '({}) {} ({})'.format(self.lh.to_json(), pred_op_to_cpp_map[self.op], self.rh.to_json())
   def __hash__(self):
     return hash(str(self))
   def __eq__(self, other):
@@ -663,8 +691,6 @@ class ConnectOp(BinOp):
         if exist == False:
           return False
     return True
-  def to_json(self):
-    return '({}) {} ({})'.format(self.lh.to_json(), pred_op_to_cpp_map[self.op], self.rh.to_json())
 
 
 def is_query_field(f, include_assoc=True):
