@@ -258,8 +258,17 @@ class ExecUnionStep(ExecStepSuper):
   def __str__(self, short=False):
     return 'Union [{}]'.format(','.join([str(v) for v in self.union_vars]))
   def to_json(self):
-    return ('ExecUnionStep',{"returnv":self.return_var.to_json(), "union_vars":[], "aggrs":[(v.to_json(), f.to_json()) for v,f in self.aggrs],\
-          "order":[f.to_json() for f in self.order]})
+    return {
+      'type': 'ExecUnionStep',
+      'value': {
+        "returnv": self.return_var.to_json(),
+        #"union_vars": [],
+        "aggrs": [
+          [ v.to_json(), f.to_json() ] for v, f in self.aggrs
+        ],
+        "order": [ f.to_json() for f in self.order ]
+      }
+    }
   def compute_cost(self):
     if cost_computed(self.cost):
       return self.cost
