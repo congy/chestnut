@@ -52,7 +52,7 @@ def test_initialize(tables, associations, read_queries, planid=0):
   fp.write(main)
   fp.close()
 
-def test_query(tables, associations, query, planid=0):
+def test_query(tables, associations, query: ReadQuery, planid: int = 0):
   rqmanagers, dsmeta_ = get_dsmeta([query])
   for idx,rqmng in enumerate(rqmanagers):
     cnt = 0
@@ -229,7 +229,7 @@ def test_codegen_one_query(tables, associations, query, planid=-1):
   fp.write(main)
   fp.close()
 
-def test_read_overall(tables, associations, queries, memfactor=1, read_from_file=False, read_ilp=False):
+def test_read_overall(tables, associations, queries: [ReadQuery], memfactor=1, read_from_file=False, read_ilp=False):
 
   (dsmeta, plans, plan_ds, plan_ids) = ilp_solve(queries, membound_factor=memfactor, read_from_file=read_from_file, read_ilp=read_ilp)
 

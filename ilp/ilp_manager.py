@@ -203,7 +203,7 @@ class ILPVariableManager(object):
     # find result plan for read queries:
     self.result_read_plans = []
     self.result_read_ds = []
-    self.result_read_plan_id = []
+    self.result_read_plan_ids: [int] = []
     for i in range(0, len(rqmanagers)):
       rqmng = rqmanagers[i]
       cnt = 0
@@ -221,7 +221,7 @@ class ILPVariableManager(object):
       assert(plan)
       self.result_read_plans.append(plan)
       self.result_read_ds.append(dsmanager)
-      self.result_read_plan_id.append(planid)
+      self.result_read_plan_ids.append(planid)
 
     # find result plan for write queries:
     # TODO
@@ -247,7 +247,9 @@ class ILPVariableManager(object):
     ret_obj.nested_objects = self.construct_result_dsmng_helper1(obj.nested_objects, upperds)
 
 
-def print_ilp_result(read_queries, ret_dsmng: DSManager, result_read_plans, result_read_ds, result_read_plan_id):
+def print_ilp_result(read_queries: [ReadQuery], ret_dsmng: DSManager,
+    result_read_plans: [ExecQueryStep], result_read_ds, result_read_plan_ids: [int]):
+
   print('result data structures = {}'.format(ret_dsmng))
   print('mem cost = {}'.format(to_real_value(ret_dsmng.compute_mem_cost())))
   print('cost breakdown: ')
@@ -261,20 +263,31 @@ def print_ilp_result(read_queries, ret_dsmng: DSManager, result_read_plans, resu
 
   print('result query plan:')
   for i in range(0, len(read_queries)):
-    print('QUERY {} plan {}:'.format(i, result_read_plan_id[i]))
+    print('QUERY {} plan {}:'.format(i, result_read_plan_ids[i]))
     print(result_read_plans[i])
     print('time cost = {}'.format(to_real_value(result_read_plans[i].compute_cost())))
     print('actual_ds = {}'.format(result_read_ds[i]))
     print('---------\n')
 
-def get_ilp_result_json(read_queries, ret_dsmng: DSManager, result_read_plans, result_read_ds, result_read_plan_id, dumps_kwargs = {}):
+def get_ilp_result_json(read_queries: [ReadQuery], ret_dsmng: DSManager,
+    result_read_plans: [ExecQueryStep], result_read_ds, result_read_plan_ids: [int],
+    dumps_kwargs = {}) -> str:
+
   import json
   out = {
     'ds': ret_dsmng.to_json(),
-    'qp': {
-      ds_id: ds_plan.to_json()
-      for ds_id, ds_plan in zip(result_read_plan_id, result_read_plans)
-    },
+    'qp': [
+      {
+        'qid': query.id,
+        'inputs': [
+          p.to_json() for p in query.get_all_params()
+        ],
+        'output': query.return_var.to_json(),
+        'pid': pid,
+        'plan': plan.to_json(),
+      }
+      for query, pid, plan in zip(read_queries, result_read_plan_ids, result_read_plans)
+    ],
   }
   return json.dumps(out, **dumps_kwargs)
 
@@ -284,7 +297,7 @@ def test_ilp(read_queries: [ReadQuery], membound_factor=1):
 
 def ilp_solve(read_queries: [ReadQuery], write_queries: [...] = [], membound_factor: float = 1.0,
     save_to_file: bool = False, read_from_file: bool = False, read_ilp: bool = False,
-    save_ilp: bool = False) -> ( DSManager, ..., ..., ... ):
+    save_ilp: bool = False) -> ( DSManager, [ExecQueryStep], ..., [int] ):
   
   #prune_nestings(read_queries)
   # UNITS?
@@ -373,7 +386,7 @@ def ilp_solve(read_queries: [ReadQuery], write_queries: [...] = [], membound_fac
       new_ilp.ret_dsmng = ilp.ret_dsmng
       new_ilp.result_read_plans = ilp.result_read_plans 
       new_ilp.result_read_ds = ilp.result_read_ds
-      new_ilp.result_read_plan_id = ilp.result_read_plan_id
+      new_ilp.result_read_plan_ids = ilp.result_read_plan_ids
       new_ilp.mem_bound = ilp.mem_bound
       pickle.dump(new_ilp, f)
       f.close()
@@ -381,13 +394,13 @@ def ilp_solve(read_queries: [ReadQuery], write_queries: [...] = [], membound_fac
   print('MEMORY BOUND = {}'.format(ilp.mem_bound))
 
   dsmeta: DSManager = ilp.ret_dsmng
-  plans = ilp.result_read_plans
+  plans: [ExecQueryStep] = ilp.result_read_plans
   plan_ds = ilp.result_read_ds
-  plan_id = ilp.result_read_plan_id
+  plan_ids: [int] = ilp.result_read_plan_ids
 
-  print_ilp_result(read_queries, dsmeta, plans, plan_ds, plan_id)
+  print_ilp_result(read_queries, dsmeta, plans, plan_ds, plan_ids)
 
   # Return the final processed results of the ILP plan.
-  return ( dsmeta, plans, plan_ds, plan_id )
+  return ( dsmeta, plans, plan_ds, plan_ids )
 
 

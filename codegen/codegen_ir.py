@@ -7,8 +7,8 @@ from .codegen_state import *
 from .codegen_client import *
 import globalv
 
-def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
-  state = CodegenState()
+def cgen_for_read_query(qid: int, query: ReadQuery, plan: ExecQueryStep, dsmnger: DSManager, plan_id: int):
+  state: CodegenState = CodegenState()
   state.topquery = query
   state.dsmnger = dsmnger
   params = query.get_all_params()
@@ -20,7 +20,7 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
   #plan.copy_ds_id(None, dsmnger)
   print('\nread plan:')
   print(plan)
-  for i,p in enumerate(params):
+  for i, p in enumerate(params):
     param_str.append("{} param_{}_{}".format(get_cpp_type(p.tipe), p.symbol, i))
     param_var_map[p] = "param_{}_{}".format(p.symbol, i)
   state.param_map = param_var_map
@@ -41,9 +41,9 @@ def cgen_for_read_query(qid, query, plan, dsmnger, plan_id):
   
   code += "}\n\n"
 
-  return header,code
+  return header, code
 
-def cgen_for_one_step(step, state, print_result=False):
+def cgen_for_one_step(step: ExecQueryStep, state: CodegenState, print_result: bool = False):
   s = ''
   if isinstance(step, ExecQueryStep):
     if state.topquery.return_var:

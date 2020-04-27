@@ -11,7 +11,7 @@ from planIR import *
 class CodegenState(object):
   def __init__(self, upper=None):
     self.level = 0 if upper is None else upper.level + 1
-    self.topquery = None
+    self.topquery: ReadQuery = None
     self.ds = None
     self.qr_varmap = {}
     self.ir_varmap = {}
@@ -20,7 +20,7 @@ class CodegenState(object):
     
     self.upper = upper
     self.param_map = {}
-    self.dsmnger = None
+    self.dsmnger: DSManager = None
   def fork(self):
     news = CodegenState(self.upper)
     news.qr_varmap = {k:v for k,v in list(self.qr_varmap.items())}

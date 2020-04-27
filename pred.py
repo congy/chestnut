@@ -11,56 +11,88 @@ def f(field, table=None):
 envvar_cnt = 0
 
 class TempVariable(object):
-  def __init__(self, name, tipe, is_temp=True):
-    self.name = name
+  def __init__(self, name: str, tipe: ..., is_temp: bool = True):
+    self.name: str = name
     self.tipe = tipe
-    self.is_temp = is_temp
+    self.is_temp: bool = is_temp
+
   def get_type(self):
     return self.tipe
+
   def complete_field(self):
     pass
-  def query_pred_eq(self, other):
+
+  def query_pred_eq(self, other) -> bool:
     return self == other
-  def get_curlevel_fields(self):
+
+  def get_curlevel_fields(self) -> []:
     return []
-  def get_all_fields(self):
+
+  def get_all_fields(self) -> []:
     return []
-  def __str__(self):
+
+  def __str__(self) -> str:
     return self.name
 
+
 class EnvAtomicVariable(TempVariable):
-  def __init__(self, name, tipe, is_temp=True, init_value=0):
+  def __init__(self, name: str, tipe: ..., is_temp: bool = True, init_value: ... = 0):
     super(EnvAtomicVariable, self).__init__(name, tipe, is_temp)
     self.init_value = init_value
-  def to_json(self, full_dump=True):
-    return {"atom":True, "name":self.name, "type":self.tipe, "init":self.init_value} if full_dump else self.name
-  def __hash__(self):
+
+  def __hash__(self) -> int:
     return hash(self.name)
-  def __eq__(self, other):
+
+  def __eq__(self, other) -> bool:
     return self.name == other.name and self.tipe == other.tipe and self.is_temp == other.is_temp
 
+  def to_json(self, full_dump=True) -> ...:
+    if not full_dump:
+      return self.name
+    return {
+      "atom": True,
+      "name": self.name,
+      "type": self.tipe,
+      "init": self.init_value
+    }
+
+
 class EnvCollectionVariable(TempVariable):
-  def __init__(self, name, tipe, is_temp=True, updateptr_type=False):
+  def __init__(self, name: str, tipe: ..., is_temp: bool = True, updateptr_type: bool = False):
     super(EnvCollectionVariable, self).__init__(name, tipe, is_temp)
+
     self.order = None
     self.ascending = True
-    self.limit = 0
+    self.limit: int = 0
     # instead of array of proto objs, use a quicker/smaller optimized objs (usually to improve sorting speed)
     self.updateptr_type = updateptr_type
     # for nested_proto_obj and update obj
     self.upper_var = None
     # in reflect to upper_var: self.upper_var.nested_type == self.tipe
     self.nested_type = None
-    self.sz = 0
-    self.fields = []
+    self.sz: int = 0
+    self.fields: [...] = []
+
   def set_upper_var(self, upper_var):
     if upper_var:
       self.upper_var = upper_var
       upper_var.nested_type = self.tipe
-  def get_sz(self):
+
+  def get_sz(self) -> int:
     return self.sz
-  def to_json(self, full_dump=True):
-    return {"atom":False, "name":self.name, "type":self.tipe.name, "fields":[f.field_class.name for f in self.fields]} if full_dump else self.name
+
+  def to_json(self, full_dump=True) -> ...:
+    if not full_dump:
+      return self.name
+    return {
+      "atom": False,
+      "name": self.name,
+      "type": self.tipe.name,
+      "fields": [
+        f.field_class.name for f in self.fields
+      ]
+    }
+
     
 def get_envvar_name():
   global envvar_cnt
@@ -68,43 +100,44 @@ def get_envvar_name():
   return 'v{}'.format(envvar_cnt)
 
 class Parameter(object):
-  def __init__(self, symbol, tipe='oid', dependence=None):
-    self.symbol = symbol
-    self.tipe = tipe
-    self.dependence = dependence
-  def has_param(self):
+  def __init__(self, symbol: str, tipe: ... = 'oid', dependence: ... = None):
+    self.symbol: str = symbol
+    self.tipe: ... = tipe
+    self.dependence: ... = dependence
+  def has_param(self) -> bool:
     return True
   def complete_field(self, table):
     pass
-  def __str__(self):
+  def __str__(self) -> str:
     return "Param ({})".format(self.symbol)
-  def __hash__(self):
+  def __hash__(self) -> int:
    return hash(str(self))
-  def __eq__(self, other):
+  def __eq__(self, other) -> bool:
     return str(self) == str(other)
   def template_eq(self, other):
     return self.idx_pred_eq(other)
-  def get_type(self):
+  def get_type(self) -> ...:
     return self.tipe
-  def to_var_or_value(self, replace={}):
+  def to_var_or_value(self, replace = {}) -> str:
     return self.symbol
   def get_all_params(self):
     return [self]
   def idx_pred_eq(self, other):
     return isinstance(other, Parameter)
-  def query_pred_eq(self, other):
-    return type(self)==type(other) and (not isinstance(other, MultiParam)) and self.symbol == other.symbol
-  def get_curlevel_fields(self, include_assoc=False):
+  def query_pred_eq(self, other) -> bool:
+    return type(self) == type(other) and (not isinstance(other, MultiParam)) and self.symbol == other.symbol
+  def get_curlevel_fields(self, include_assoc: bool = False) -> []:
     return []
-  def to_json(self):
+  def to_json(self) -> ...:
     return {
       'expr': 'Parameter',
-      'symbol': self.symbol
+      'symbol': self.symbol,
+      'type': self.tipe,
     }
     #return 'param[{}]'.format(self.symbol)
-  def get_all_fields(self):
+  def get_all_fields(self) -> []:
     return []
-  def is_fk(self):
+  def is_fk(self) -> str:
     # XXX: foreign key compare in scan has the form xxx_id = Parameter(fk_xxx_id)
     if self.symbol.startswith("fk_") and self.symbol.endswith("_id"):
       return self.symbol.replace("fk_","").replace("_id","")

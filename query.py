@@ -17,9 +17,9 @@ class ReadQuery(object):
   def __init__(self, table: Table):
     global query_cnt
     query_cnt += 1
-    self.id = query_cnt
+    self.id: int = query_cnt
     self.table: Table = table
-    self.return_var = EnvCollectionVariable("result_{}".format(self.table.name), self.table, False)
+    self.return_var: EnvCollectionVariable = EnvCollectionVariable("result_{}".format(self.table.name), self.table, False)
     self.pred = None
     self.includes = {} 
     #key: field, value: ReadQuery
@@ -136,7 +136,7 @@ class ReadQuery(object):
   def get_aggr_var_prefix(self):
     return 'q{}_'.format(self.id)
 
-  def get_all_params(self):
+  def get_all_params(self) -> [...]:
     r = []
     if self.pred:
       r = r + self.pred.get_all_params()
