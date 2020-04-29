@@ -32,7 +32,7 @@ from .main_search import *
 
 def run(workload_name: str = "kandan_lg", single_query: int = -1,
         membound_factor: float = 1.7,
-        gen_tsv: bool = False, gen_db: bool = False,
+        gen_tsv: bool = False, gen_cpp: bool = False, load_sql: bool = False,
         run_test_read_overall: bool = True, quiet: bool = False):
     """
     Args:
@@ -52,7 +52,8 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
     set_data_file_dir(datafile_dir)
 
-    set_cpp_file_path('../../')
+    dr = os.path.dirname(__file__)
+    set_cpp_file_path(os.path.join(dr, '..', '..'))
 
     tables = [user, channel, activity, attachment]
     associations = [channel_to_activitiy, channel_user, activity_user, attachment_user, attachment_channel]
@@ -115,11 +116,11 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     data_dir = datafile_dir
     if gen_tsv:
         generate_db_data_files(data_dir, tables, associations)
-    if gen_db:
+    if gen_cpp:
         generate_proto_files(get_cpp_file_path(), tables, associations)
-        populate_database(data_dir, tables, associations, False)
-        test_query(tables, associations, read_queries[0], 13)
-
+        populate_database(data_dir, tables, associations, False) # TODO should this be in load_sql?
+        test_query(tables, associations, read_queries[5], 13) # TODO only one query??
+    if load_sql:
         s = create_psql_tables_script(data_dir, tables, associations)
         f = open('load_postgres_tables.sql', 'w')
         f.write(s)

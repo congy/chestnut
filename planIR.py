@@ -9,43 +9,53 @@ from ds_helper import *
 from nesting import *
 import globalv
 
+from typing import *
+
 class ExecStepSuper(object):
-  def compatible(self, other):
+  def compatible(self, other) -> bool:
     return type(self) == type(other)
 
+ExecQueryStep = 'ExecQueryStep'
 class ExecQueryStep(ExecStepSuper):
-  def __init__(self, query, steps=[], new_params={}, compute_variables=True):
-    self.query = query
-    self.step = ExecStepSeq(steps)
-    self.cost = 0
-    self.new_params = {k:v for k,v in list(new_params.items())}
-    self.variables = []
-    if compute_variables:
-      self.variables = self.step.get_all_variables()
+  def __init__(self, query: Optional[ReadQuery], steps: List[ExecStepSuper] = [],
+      new_params: ... = {}, compute_variables: bool = True):
+
+    self.query: Optional[ReadQuery] = query
+    self.step: ExecStepSeq = ExecStepSeq(steps)
+    self.cost: float = 0 #int?
+    self.new_params: ... = new_params.copy()
+    self.variables: List[TempVariable] = self.step.get_all_variables() if compute_variables else []
     #print 'Query step var length = {}'.format(len(self.variables))
-  def __str__(self, short=False):
+  def __str__(self, short: bool = False) -> str:
     s = 'prepare query {} (len param = {})\n'.format(self.query.id, len(self.new_params))
-    s += '{}'.format(self.step.__str__(short=True))
+    s += self.step.__str__(short = True)
     return s
-  def to_json(self):
-    variables = [x.to_json(full_dump=True) for x in self.variables]
-    steps = self.step.to_json()
-    return { 'type': "ExecQueryStep", 'value': {"queryid":self.query.id, "variables":variables, "steps":steps}}
-  def __eq__(self, other):
+  def to_json(self) -> ...:
+    return {
+      'type': 'ExecQueryStep',
+      'value': {
+        'queryid': self.query.id,
+        'variables': [
+          x.to_json(full_dump = True) for x in self.variables
+        ],
+        'steps': self.step.to_json()
+      }
+    }
+  def __eq__(self, other) -> bool:
     return type(self) == type(other) and self.query == other.query
-  def compute_cost(self):
+  def compute_cost(self) -> float: #int?
     if cost_computed(self.cost):
       return self.cost
     self.cost = self.step.compute_cost()
     return self.cost
-  def fork(self):
+  def fork(self) -> ExecQueryStep:
     e = ExecQueryStep(self.query, self.new_params)
     e.step = self.step.fork() if self.step else None
     assert(len(self.new_params) == 0)
     return e
   def get_read_queries(self):
     if isinstance(self.query, ReadQuery):
-      return [self.query] + self.step.get_read_queries()
+      return [ self.query ] + self.step.get_read_queries()
     else:
       return self.step.get_read_queries()
   def contain_set_entryobj_var(self):
@@ -86,7 +96,8 @@ class ExecSetVarStep(ExecStepSuper):
       'value': {
         "var": self.var.to_json(),
         "expr": self.expr.to_json() if self.expr else None,
-        "cond": self.cond.to_json() if self.cond else None
+        "cond": self.cond.to_json() if self.cond else None,
+        "cond_str": str(self.cond)  if self.cond else None,
       }
     }
   def compute_cost(self):

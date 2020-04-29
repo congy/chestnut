@@ -7,15 +7,18 @@ from .codegen_state import *
 from .codegen_client import *
 import globalv
 
-def cgen_for_read_query(qid: int, query: ReadQuery, plan: ExecQueryStep, dsmnger: DSManager, plan_id: int):
+from typing import *
+
+def cgen_for_read_query(qid: int, query: ReadQuery, plan: ExecQueryStep, dsmnger: DSManager, plan_id: int) -> Tuple[str, str]:
   state: CodegenState = CodegenState()
   state.topquery = query
   state.dsmnger = dsmnger
-  params = query.get_all_params()
-  param_var_map = {}
-  param_str = []
-  header = ""
-  code = ""
+
+  params: List[EnvAtomicVariable] = query.get_all_params()
+  param_var_map: Dict[EnvAtomicVariable, str] = {}
+  param_str: List[str] = []
+  header: str = ""
+  code: str = ""
   
   #plan.copy_ds_id(None, dsmnger)
   print('\nread plan:')
@@ -36,15 +39,18 @@ def cgen_for_read_query(qid: int, query: ReadQuery, plan: ExecQueryStep, dsmnger
   code += "  char msg[] = \"query {} plan {} run time \";\n".format(qid, plan_id)
   code += "  get_time_start();\n"
 
-  code_s, new_state = cgen_for_one_step(plan, state, print_result=True)
-  code += insert_indent(code_s)
-  
+  code_s: str
+  new_state: CodegenState
+  code_s, new_state = cgen_for_one_step(plan, state, print_result = True)
+
+  code += insert_indent(code_s)  
   code += "}\n\n"
 
   return header, code
 
-def cgen_for_one_step(step: ExecQueryStep, state: CodegenState, print_result: bool = False):
-  s = ''
+def cgen_for_one_step(step: ExecStepSuper, state: CodegenState, print_result: bool = False) -> Tuple[str, CodegenState]:
+  s: str = ''
+
   if isinstance(step, ExecQueryStep):
     if state.topquery.return_var:
       state.qr_varmap[state.topquery.return_var] = '(&qresult)'
@@ -52,8 +58,8 @@ def cgen_for_one_step(step: ExecQueryStep, state: CodegenState, print_result: bo
     print('state = {}, qr_var = {}'.format(hash(state), state.qr_var))
     next_s, temp_state = cgen_for_one_step(step.step, state)
     s += insert_indent(next_s)
-    for v,aggr in state.topquery.aggrs:
-      irvar = temp_state.find_ir_var(v)
+    for v, aggr in state.topquery.aggrs:
+      irvar: str = temp_state.find_ir_var(v)
       s += '  qresult.set_{}({});\n'.format(v.name, irvar)
     s += "  print_time_diff(msg);\n"
     if print_result:
@@ -86,10 +92,13 @@ def cgen_for_one_step(step: ExecQueryStep, state: CodegenState, print_result: bo
         s += '{}* {} = nullptr;\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery.id), ele_name)
         projections = [f for f in step.projections]
         insert_no_duplicate(projections, QueryField('id', get_main_table(step.var.tipe)))
+        # This prints more lines
+        # - Adds the if (x != nullptr) {
+        # - Adds the ele_x_4->set_y() lines.
         expr_s = cgen_add_to_qresult(step.var, ele_name, projections, state)
     if step.cond:
       print('step.cond = {}'.format(step.cond))
-      dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
+      dummp, cond_s = cgen_expr_with_placeholder(step.cond, state)
     else:
       cond_s = 'true'
     s += 'if ({}) {{ {} }}\n'.format(cond_s, expr_s)
