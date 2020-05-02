@@ -389,22 +389,34 @@ class ExecGetAssocStep(ExecStepSuper):
     return []
 
 # scan basic ary / associated obj (only 1 obj)
+ExecScanStep = 'ExecScanStep'
 class ExecScanStep(ExecStepSuper):
-  def __init__(self, idx):
-    self.idx = idx
-    self.ele_ops = ExecStepSeq() 
-    self.cost = 0
-    self.op = IndexOp(RANGE)
-    self.params = []
-  def fork(self):
+  def __init__(self, idx: int):
+    self.idx: int = idx
+    self.ele_ops: ExecStepSeq = ExecStepSeq() 
+    self.cost: float = 0 #int?
+    self.op: IndexOp = IndexOp(RANGE)
+    # Wtf triple list?
+    self.params: List[IndexParam] = []
+  def fork(self) -> ExecScanStep:
     es = ExecScanStep(self.idx)
     es.ele_ops = self.ele_ops.fork()
     return es
-  def to_json(self):
-    return { 'type': 'ExecScanStep', 'value': { "idx":self.idx.id, "steps":self.ele_ops.to_json() } }
-  def __eq__(self, other):
+  def to_json(self) -> ...:
+    assert len(self.params) in [ 0, 1, 2 ], len(self.params)
+    return {
+      'type': 'ExecScanStep',
+      'value': {
+        'idx': self.idx.id,
+        'exact': self.params[0].to_json() if len(self.params) == 1 else None,
+        'lower': self.params[0].to_json() if len(self.params) == 2 else None,
+        'upper': self.params[1].to_json() if len(self.params) == 2 else None,
+        'steps': self.ele_ops.to_json(),
+      }
+    }
+  def __eq__(self, other) -> bool:
     return type(self) == type(other) and self.idx == other.idx and self.ele_ops == other.ele_ops
-  def compute_cost(self):
+  def compute_cost(self) -> float: #int?
     if cost_computed(self.cost):
       return self.cost
     if isinstance(self.idx, ObjBasicArray):

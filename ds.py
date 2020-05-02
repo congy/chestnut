@@ -7,11 +7,21 @@ import itertools
 import globalv
 
 class IndexParam(object):
-  def __init__(self, fields=[], params=[]):
-    self.fields = [f for f in fields]
-    self.params = [p for p in params]
+  def __init__(self, fields = [], params = []):
+    self.fields = list(fields)
+    self.params = list(params)
   def to_json(self):
-    return [(self.fields[i].to_json(), self.params[i].to_json() if not value_is_basic_type(self.params[i]) else self.params[i]) for i in range(0, len(self.fields))]
+    return [
+      p if value_is_basic_type(p) else p.to_json()
+      for p in self.params
+    ]
+    # return [
+    #   (
+    #     self.fields[i].to_json(),
+    #     self.params[i].to_json() if not value_is_basic_type(self.params[i]) else self.params[i]
+    #   )
+    #   for i in range(0, len(self.fields))
+    # ]
   def add_param(self, f, p):
     self.fields.append(f)
     self.params.append(p)

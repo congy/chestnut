@@ -130,8 +130,10 @@ def cgen_for_one_step(step: ExecStepSuper, state: CodegenState, print_result: bo
         s += get_loop_define(step.idx) + \
           '({}_{}, {}, {})\n'.format(ds_name, get_random_suffix(), ary_name, ary_ele_name)
     else:
-      keys = []
-      for i,p in enumerate(step.params):
+      keys: List[str] = []
+      i: int
+      p: IndexParam
+      for i, p in enumerate(step.params):
         key_name, init_str = get_param_str(new_state, p, i)
         s += '{}{} {};\n'.format(type_prefix, step.idx.get_key_type_name(), init_str)
         keys.append(key_name)
@@ -256,7 +258,7 @@ def get_obj_from_value_type(idx, ary_ele_name, dsmnger, cxxobj=None):
   else:
     assert(False)
 
-def get_param_str(state, param, paramid=0):
+def get_param_str(state, param, paramid: int = 0) -> Tuple[str, str]:
   ds = state.ds
   key_name = cgen_cxxvar('{}_key{}'.format(state.ds.get_ds_name(), paramid))
   pstrs = []

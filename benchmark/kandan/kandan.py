@@ -63,7 +63,10 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     #generate_db_data_files(datafile_dir, tables, associations)
     #exit(0)
 
-    read_queries: [ReadQuery] = [q_ai_1, q_ai_2, q_ai_3, \
+    read_queries: [ReadQuery] = [
+        q_ai_1,
+        q_ai_2,
+        q_ai_3, \
         q_as_1,
         # q_di_1,
         q_ti_1,
