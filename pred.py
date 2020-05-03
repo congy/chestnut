@@ -5,18 +5,20 @@ import datetime
 import globalv
 import z3
 
+from typing import *
+
 def f(field, table=None):
   return QueryField(field, table)
 
 envvar_cnt = 0
 
 class TempVariable(object):
-  def __init__(self, name: str, tipe: ..., is_temp: bool = True):
+  def __init__(self, name: str, tipe: Union[Table, str], is_temp: bool = True):
     self.name: str = name
-    self.tipe = tipe
+    self.tipe: Union[Table, str] = tipe
     self.is_temp: bool = is_temp
 
-  def get_type(self):
+  def get_type(self) -> Union[Table, str]:
     return self.tipe
 
   def complete_field(self):
@@ -36,7 +38,7 @@ class TempVariable(object):
 
 
 class EnvAtomicVariable(TempVariable):
-  def __init__(self, name: str, tipe: ..., is_temp: bool = True, init_value: ... = 0):
+  def __init__(self, name: str, tipe: str, is_temp: bool = True, init_value: ... = 0):
     super(EnvAtomicVariable, self).__init__(name, tipe, is_temp)
     self.init_value = init_value
 
@@ -58,7 +60,7 @@ class EnvAtomicVariable(TempVariable):
 
 
 class EnvCollectionVariable(TempVariable):
-  def __init__(self, name: str, tipe: ..., is_temp: bool = True, updateptr_type: bool = False):
+  def __init__(self, name: str, tipe: Table, is_temp: bool = True, updateptr_type: bool = False):
     super(EnvCollectionVariable, self).__init__(name, tipe, is_temp)
 
     self.order = None
@@ -87,7 +89,7 @@ class EnvCollectionVariable(TempVariable):
     return {
       "atom": False,
       "name": self.name,
-      "type": self.tipe.name,
+      "type": get_main_table(self.tipe).name,
       "fields": [
         f.field_class.name for f in self.fields
       ]

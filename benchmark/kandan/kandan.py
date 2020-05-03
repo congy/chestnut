@@ -106,7 +106,7 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
         #test_cost(read_queries[:1])
     else:
         # Begin here.
-        # test_ilp(read_queries, membound_factor=1.7)
+        # test_ilp(read_queries, membound_factor=membound_factor)
         # membound_factor: memory bound vs table size (2 means mem bound is 2x table size).
         # TODO: tunable membound_factor.
         results = ilp_solve(read_queries, write_queries=[], membound_factor=membound_factor, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
@@ -114,7 +114,7 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
 
     print(results_json, file = old_stdout)
     if run_test_read_overall:
-        test_read_overall(tables, associations, read_queries, memfactor=1.7, read_from_file=True, read_ilp=True)
+        test_read_overall(tables, associations, read_queries, memfactor=membound_factor, read_from_file=True, read_ilp=True)
 
     data_dir = datafile_dir
     if gen_tsv:

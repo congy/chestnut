@@ -145,30 +145,30 @@ class Field(object):
       return 1
 
 class Table(object):
-  def __init__(self, name, sz, is_temp=False):
-    self.name = name
-    self.sz = sz
-    id_field = Field('id', 'oid', vrange=[1, sz])
-    self.fields = [('id', id_field)]
-    self.assocs = []
-    self.nested_tables = {} #key: assoc name
-    self.indexes = []
-    self.id_index = None
-    self.is_temp = is_temp
-    self.primary_keys = []
-  def __eq__(self, other):
-    return type(self)==type(other) and self.name == other.name
-  def __str__(self):
+  def __init__(self, name: str, sz: int, is_temp: bool = False):
+    self.name: str = name
+    self.sz: int = sz
+    id_field: Field = Field('id', 'oid', vrange=[1, sz])
+    self.fields: List[Field] = [('id', id_field)]
+    self.assocs: List[Tuple[str, Association]] = []
+    self.nested_tables: Dict[str, NestedTable] = {} #key: assoc name
+    self.indexes: ... = []
+    self.id_index: ... = None
+    self.is_temp: bool = is_temp
+    self.primary_keys: ... = []
+  def __eq__(self, other) -> bool:
+    return type(self) == type(other) and self.name == other.name
+  def __str__(self) -> str:
     return 'Table({})'.format(self.name)
-  def __hash__(self):
+  def __hash__(self) -> int:
     return hash(self.name)
-  def get_sz_for_cost(self):
+  def get_sz_for_cost(self) -> CostTableUnit:
     return CostTableUnit(self)
-  def cost_str_symbol(self):
+  def cost_str_symbol(self) -> str:
     return 'N{}'.format(self.name)
-  def cost_real_size(self):
+  def cost_real_size(self) -> int:
     return self.sz
-  def cost_all_sz(self):
+  def cost_all_sz(self) -> int:
     return self.sz
   def cost_range_size(self, take_min=True):
     return get_table_size_range(self, take_min)
@@ -188,7 +188,7 @@ class Table(object):
       r.append(f)
     return r
   #return -- 1: one; 0: many
-  def has_one_or_many_field(self, fn):
+  def has_one_or_many_field(self, fn) -> int:
     assoc = self.get_assoc_by_name(fn)
     assert(assoc)
     if assoc.assoc_type == "one_to_many" and assoc.rgt == self:
@@ -363,7 +363,7 @@ class Association:
   def __str__(self):
     return '{}-{}'.format(self.lft.name, self.rgt.name)
   def to_json(self):
-    out = {
+    return {
       'assocType': self.assoc_type,
       'leftTable': self.lft.name,
       'rightTable': self.rgt.name,
@@ -371,10 +371,8 @@ class Association:
       #'rightField': self.rgt_field_name,
       'leftFkField': self.assoc_f1,
       'rightFkField': self.assoc_f2,
+      'table': self.name if 'many_to_many' == self.assoc_type else None
     }
-    if 'many_to_many' == self.assoc_type:
-      out['table'] = self.name
-    return out
   def reset_lft_ratio(self, lft_ratio):
     self.lft_ratio = lft_ratio
     if self.assoc_type == "many_to_many":

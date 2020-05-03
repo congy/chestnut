@@ -178,10 +178,13 @@ class DSManager(object):
     return s
 
   def to_json(self):
-    x = {}
-    for i, ds in enumerate(self.data_structures):
-      x[i] = ds.to_json()
-    return x
+    return [
+      ds.to_json() for ds in self.data_structures
+    ]
+    # x = {}
+    # for i, ds in enumerate(self.data_structures):
+    #   x[i] = ds.to_json()
+    # return x
 
 
 def print_ds_with_cost(dsmnger):

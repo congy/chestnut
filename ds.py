@@ -260,17 +260,21 @@ class IndexBase(IndexMeta):
   def to_json(self):
     tables = [self.table.name]
     cur_table = self.table
+    assoc = None
     if isinstance(cur_table, NestedTable):
       cur_table = cur_table.upper_table
       tables.insert(0, cur_table.name)
+      assoc = cur_table.get_assoc_by_name(self.table.name).to_json()
     return {
-      "type": "Index",
-      "id": self.id,
-      "table": tables,
-      "keys": self.keys.to_json(),
-      "condition": self.condition.to_json(),
-      "condition_str": str(self.condition),
-      "value": self.value.to_json()
+      'type': 'Index',
+      'id': self.id,
+      'table': tables,
+      'tableType': get_main_table(self.table).name,
+      'association': assoc,
+      'keys': self.keys.to_json(),
+      'condition': self.condition.to_json(),
+      # 'condition_str': str(self.condition),
+      'value': self.value.to_json()
     }
 
   def is_range_key(self, key):
@@ -405,6 +409,7 @@ class ObjBasicArray(IndexMeta):
       'id': self.id,
       'value': self.value.to_json(),
       'table': tables,
+      'tableType': get_main_table(self.table).name,
     }
 
     cur_table = self.table
