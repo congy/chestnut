@@ -33,6 +33,7 @@ class ExecQueryStep(ExecStepSuper):
   def to_json(self) -> ...:
     return {
       'type': 'ExecQueryStep',
+      # 'stepUid': id(self),
       'value': {
         'queryid': self.query.id,
         'variables': [
@@ -93,11 +94,12 @@ class ExecSetVarStep(ExecStepSuper):
   def to_json(self):
     return {
       'type': "ExecSetVarStep",
+      # 'stepUid': id(self),
       'value': {
         "var": self.var.to_json(),
         "expr": self.expr.to_json() if self.expr else None,
         "cond": self.cond.to_json() if self.cond else None,
-        "cond_str": str(self.cond)  if self.cond else None,
+        # "cond_str": str(self.cond)  if self.cond else None,
       }
     }
   def compute_cost(self):
@@ -140,7 +142,11 @@ class ExecStepSeq(ExecStepSuper):
     self.steps = [s for s in steps]
     self.cost = 0
   def to_json(self):
-    return { 'type': "ExecStepSeq", 'value': [s.to_json() for s in self.steps] }
+    return {
+      'type': 'ExecStepSeq',
+      # 'stepUid': id(self),
+      'value': [ s.to_json() for s in self.steps ]
+    }
   def compute_cost(self, non_zero=False):
     if cost_computed(self.cost):
       return self.cost
@@ -227,6 +233,7 @@ class ExecSortStep(ExecStepSuper):
   def to_json(self):
     return {
       'type': 'ExecSortStep',
+      # 'stepUid': id(self),
       'value': {
         "var": self.var.to_json(),
         "order": [ f.to_json() for f in self.order ]
@@ -271,6 +278,7 @@ class ExecUnionStep(ExecStepSuper):
   def to_json(self):
     return {
       'type': 'ExecUnionStep',
+      # 'stepUid': id(self),
       'value': {
         "returnv": self.return_var.to_json(),
         #"union_vars": [],
@@ -406,6 +414,7 @@ class ExecScanStep(ExecStepSuper):
     assert len(self.params) in [ 0, 1, 2 ], len(self.params)
     return {
       'type': 'ExecScanStep',
+      # 'stepUid': id(self),
       'value': {
         'idx': self.idx.id,
         'exact': self.params[0].to_json() if len(self.params) == 1 else None,

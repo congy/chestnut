@@ -514,8 +514,12 @@ class SetOp(Pred):
     return [self]
   def get_curlevel_fields(self, include_assoc=False):
     return []
-  def to_json(self):
-    return 'exists({}, {})'.format(self.lh.to_json(), self.rh.to_json())
+  def to_json(self) -> ...:
+    return {
+      'expr': 'SetOp', # AKA exists op.
+      'lh': self.lh.to_json(),
+      'rh': self.rh.to_json(),
+    }
 
 
 class BinOp(Pred):
