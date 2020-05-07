@@ -16,6 +16,8 @@ import pickle
 # from .ilp_fake import *
 from gurobipy import *
 
+from typing import *
+
 class PlanUseDSConstraints(object):
   def __init__(self, ds, memobj):
     self.ds = ds
@@ -269,27 +271,33 @@ def print_ilp_result(read_queries: [ReadQuery], ret_dsmng: DSManager,
     print('actual_ds = {}'.format(result_read_ds[i]))
     print('---------\n')
 
-def get_ilp_result_json(read_queries: [ReadQuery], ret_dsmng: DSManager,
-    result_read_plans: [ExecQueryStep], result_read_ds, result_read_plan_ids: [int],
-    dumps_kwargs = {}) -> str:
+def get_ilp_result_json(read_queries: List[ReadQuery], ret_dsmng: DSManager,
+    result_read_plans: List[ExecQueryStep], result_read_ds, result_read_plan_ids: List[int]) -> Dict:
 
-  import json
+  qp = []
+  for query, pid, plan in zip(read_queries, result_read_plan_ids, result_read_plans):
+    params = query.get_all_params()
+    param_dict = query.get_param_value_pair()
+
+    qp.append({
+      'qid': query.id,
+      # 'inputValues': [ # NOT USEFUL B/C DOESN'T ACTUALLY USE TSV.
+      #   param_dict[p] for p in params
+      # ],
+      'inputs': [
+        p.to_json() for p in params
+      ],
+      'output': query.return_var.to_json(),
+      'pred': query.pred.to_json(),
+      'pid': pid,
+      'plan': plan.to_json(),
+    })
+    
   out = {
     'ds': ret_dsmng.to_json(),
-    'qp': [
-      {
-        'qid': query.id,
-        'inputs': [
-          p.to_json() for p in query.get_all_params()
-        ],
-        'output': query.return_var.to_json(),
-        'pid': pid,
-        'plan': plan.to_json(),
-      }
-      for query, pid, plan in zip(read_queries, result_read_plan_ids, result_read_plans)
-    ],
+    'qp': qp,
   }
-  return json.dumps(out, **dumps_kwargs)
+  return out
 
 import time
 def test_ilp(read_queries: [ReadQuery], membound_factor=1):

@@ -101,6 +101,7 @@ def get_envvar_name():
   envvar_cnt += 1
   return 'v{}'.format(envvar_cnt)
 
+Parameter = 'Parameter'
 class Parameter(object):
   def __init__(self, symbol: str, tipe: ... = 'oid', dependence: ... = None):
     self.symbol: str = symbol
@@ -116,19 +117,19 @@ class Parameter(object):
    return hash(str(self))
   def __eq__(self, other) -> bool:
     return str(self) == str(other)
-  def template_eq(self, other):
+  def template_eq(self, other) -> bool:
     return self.idx_pred_eq(other)
   def get_type(self) -> ...:
     return self.tipe
   def to_var_or_value(self, replace = {}) -> str:
     return self.symbol
-  def get_all_params(self):
+  def get_all_params(self) -> List[Parameter]:
     return [self]
-  def idx_pred_eq(self, other):
+  def idx_pred_eq(self, other) -> bool:
     return isinstance(other, Parameter)
   def query_pred_eq(self, other) -> bool:
     return type(self) == type(other) and (not isinstance(other, MultiParam)) and self.symbol == other.symbol
-  def get_curlevel_fields(self, include_assoc: bool = False) -> []:
+  def get_curlevel_fields(self, include_assoc: bool = False) -> List:
     return []
   def to_json(self) -> ...:
     return {
@@ -137,9 +138,9 @@ class Parameter(object):
       'type': self.tipe,
     }
     #return 'param[{}]'.format(self.symbol)
-  def get_all_fields(self) -> []:
+  def get_all_fields(self) -> List:
     return []
-  def is_fk(self) -> str:
+  def is_fk(self) -> Optional[str]:
     # XXX: foreign key compare in scan has the form xxx_id = Parameter(fk_xxx_id)
     if self.symbol.startswith("fk_") and self.symbol.endswith("_id"):
       return self.symbol.replace("fk_","").replace("_id","")
@@ -160,9 +161,10 @@ class MultiParam(Parameter):
     return type(self) == type(other) and len(self.params) == len(other.params) and \
       all([self.params[p]==other.params[p] for p in range(0, len(self.params))])
   def to_json(self):
+    raise ValueError('NOT UPDATED')
     return '[{}]'.format(', '.join([x.to_json() for x in self.params]))
 
-def DoubleParam(p1, p2):
+def DoubleParam(p1, p2) -> MultiParam:
   return MultiParam([p1, p2])
   
 class AtomValue(object):

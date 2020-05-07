@@ -3,6 +3,9 @@ script_dir = os.path.dirname(__file__)
 os.chdir(script_dir)
 sys.path.append(os.path.abspath(os.path.join(script_dir, '..', '..')))
 
+import json
+from typing import *
+
 from schema import *
 from query import *
 from pred import *
@@ -95,10 +98,11 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     #[q_ti_1], [q_tc_w1, q_tc_w2]
 
     #q_ci_1.assigned_param_values = {Parameter('channel_id'):'47'}
+    results_json: Dict
     if single_query >= 0:
         search_plans_for_one_query(read_queries[single_query])
         results = ilp_solve([ read_queries[single_query] ], write_queries=[], membound_factor=membound_factor, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False)
-        results_json = get_ilp_result_json([ read_queries[single_query] ], *results, dumps_kwargs = { 'indent': 2 })
+        results_json = get_ilp_result_json([ read_queries[single_query] ], *results)
         #exit(0)
         #get_dsmeta(read_queries)
 
@@ -110,24 +114,29 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
         # membound_factor: memory bound vs table size (2 means mem bound is 2x table size).
         # TODO: tunable membound_factor.
         results = ilp_solve(read_queries, write_queries=[], membound_factor=membound_factor, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
-        results_json = get_ilp_result_json(read_queries, *results, dumps_kwargs = { 'indent': 2 })
+        results_json = get_ilp_result_json(read_queries, *results)
 
-    print(results_json, file = old_stdout)
     if run_test_read_overall:
         test_read_overall(tables, associations, read_queries, memfactor=membound_factor, read_from_file=True, read_ilp=True)
 
     data_dir = datafile_dir
     if gen_tsv:
+        # TODO: race condition: write files, then read files
         generate_db_data_files(data_dir, tables, associations)
+        results_json['data'] = read_db_data_files(data_dir)
+
     if gen_cpp:
         generate_proto_files(get_cpp_file_path(), tables, associations)
         populate_database(data_dir, tables, associations, False) # TODO should this be in load_sql?
         test_query(tables, associations, read_queries[5], 13) # TODO only one query??
+
     if load_sql:
         s = create_psql_tables_script(data_dir, tables, associations)
         f = open('load_postgres_tables.sql', 'w')
         f.write(s)
         f.close()
+
+    print(json.dumps(results_json, indent = 2), file = old_stdout)
 
     #populate_database(data_dir, tables, associations, True)
     #test_query(tables, associations, read_queries[0], 13)

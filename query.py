@@ -20,7 +20,7 @@ class ReadQuery(object):
     self.id: int = query_cnt
     self.table: Table = table
     self.return_var: EnvCollectionVariable = EnvCollectionVariable("result_{}".format(self.table.name), self.table, False)
-    self.pred = None
+    self.pred: Optional[Pred] = None
     self.includes = {} 
     #key: field, value: ReadQuery
     self.order = None
@@ -145,13 +145,15 @@ class ReadQuery(object):
     #new_r = clean_lst([r1 if not any([r1==x for x in r]) else None for r1 in r])
     return r
 
-  def get_param_value_pair(self, upper_pairs=None):
+  def get_param_value_pair(self, upper_pairs: Optional[Dict[Parameter, Any]] = None) -> Dict[Parameter, Any]:
+    pairs: Dict[Parameter, Any]
+
     if upper_pairs is not None:
       pairs = upper_pairs
     else:
       pairs = {}
     get_param_value_pair_by_pred(self.pred, pairs, self.assigned_param_values)
-    for k,v in list(self.includes.items()):
+    for k, v in self.includes.items():
       pairs = map_union(pairs, v.get_param_value_pair(pairs))
     return pairs
 
@@ -188,7 +190,7 @@ class ReadQuery(object):
 
 
 
-def get_param_value_pair_by_pred(pred, r, assigned_values={}):
+def get_param_value_pair_by_pred(pred: Pred, r: Dict[Parameter, Any], assigned_values: Dict = {}):
   if isinstance(pred, ConnectOp):
     p_lh = get_param_value_pair_by_pred(pred.lh, r, assigned_values)
     p_rh = get_param_value_pair_by_pred(pred.rh, r, assigned_values)

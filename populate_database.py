@@ -3,15 +3,34 @@ from schema import *
 from constants import *
 #import mysql.connector
 
+from typing import *
+
 def sys_cmd(cmd):
   print(cmd)
   os.system(cmd)
 
+# ADDED BY MINGWEI
+# TODO RACE CONDITION
+def read_db_data_files(data_dir) -> Dict[str, Dict[str, Any]]:
+  out = {}
+  for f in os.listdir(data_dir):
+    if not f.endswith('.tsv'):
+      continue
+    table_name = f[:-4]
 
-def generate_db_data_files(data_dir, tables, associations):
+    path = os.path.join(data_dir, f)
+    print('Opening:', path)
+    with open(path) as fp:
+      splitlines = [ line.strip().split('|') for line in fp.readlines() ]
+    out[table_name] = {
+      'header': splitlines[0],
+      'rows': splitlines[1:],
+    }
+  return out
+
+def generate_db_data_files(data_dir: str, tables: List[Table], associations: ...):
   fpath = data_dir
-  if not os.path.exists(fpath):
-    os.system('mkdir {}'.format(fpath))
+  os.makedirs(fpath, exist_ok = True)
 
   actual_sizes = {}
   for t in tables:
