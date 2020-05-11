@@ -115,9 +115,9 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
       else:
         print("Query not found: {}".format(q))
         
-    print("Queries and weights: ")
+    print("Queries and weights: ", file=sys.stderr)
     for i,q in enumerate(read_queries):
-      print("{}: weight = {}".format(q, weights[i]))
+      print("{}: weight = {}".format(q, weights[i]), file=sys.stderr)
 
     write_queries = [
         q_ac_w1, q_ac_w2, q_ac_w3,

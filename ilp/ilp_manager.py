@@ -288,7 +288,7 @@ def get_ilp_result_json(read_queries: List[ReadQuery], ret_dsmng: DSManager,
         p.to_json() for p in params
       ],
       'output': query.return_var.to_json(),
-      'pred': query.pred.to_json(),
+      'pred': query.pred and query.pred.to_json(),
       'pid': pid,
       'plan': plan.to_json(),
     })
