@@ -36,7 +36,7 @@ from .main_search import *
 def run(workload_name: str = "kandan_lg", single_query: int = -1,
         membound_factor: float = 1.7,
         gen_tsv: bool = False, gen_cpp: bool = False, load_sql: bool = False,
-        run_test_read_overall: bool = True, quiet: bool = False):
+        run_test_read_overall: bool = True, output = sys.stdout):
     """
     Args:
         - run_ilp: If ILP should be run.
@@ -46,10 +46,6 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
         - run_test_read_overall: Run test_read_overall.
         - quiet: If debug prints should be supressed.
     """
-    old_stdout = sys.stdout
-    devnull = open(os.devnull, 'w')
-    if quiet:
-        sys.stdout = devnull
 
     set_db_name(workload_name)
     datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
@@ -136,7 +132,7 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
         f.write(s)
         f.close()
 
-    print(json.dumps(results_json, indent = 2), file = old_stdout)
+    print(json.dumps(results_json, indent = 2), file = output)
 
     #populate_database(data_dir, tables, associations, True)
     #test_query(tables, associations, read_queries[0], 13)
@@ -151,9 +147,6 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     # f.close()
 
     print('scale', scale)
-
-    sys.stdout = old_stdout
-    devnull.close()
 
 if '__main__' == __name__:
     run()
