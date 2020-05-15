@@ -6,6 +6,7 @@ from util import *
 from constants import *
 from cost import *
 from pred_cost import *
+from ds import *
 import datetime
 import globalv
 
@@ -42,6 +43,26 @@ class ReadQuery(object):
       include_s = str(v)
       s += '\n'.join(['  '+l for l in include_s.split('\n')])
     return s
+
+  def to_ds(self, upper=None):
+  
+    object = MemObject(self.table)
+    object.add_fields([f for f in self.projections])
+    for field,nested_query in self.includes.items():
+      object.add_nested_object(nested_query.to_ds(upper=self))
+   
+    # TODO: handle aggregation 
+    value = IndexValue(OBJECT, value=object)
+    pred = replace_param_with_const(self.pred) if self.pred else None
+    if self.pred is None:
+      r = ObjBasicArray(self.table, value, upper)
+    elif self.order is None:
+      r = ObjArray(self.table, pred, value, upper)
+    else:
+      keys = [] if self.order is None else [KeyPath(o) for o in self.order]
+      r = ObjSortedArray(self.table, IndexKeys(keys, keys), pred, value, upper)
+      
+    return r
 
   def project(self, fields):
     if type(fields) is str and fields == '*':
@@ -187,7 +208,6 @@ class ReadQuery(object):
     read_query.includes[f] = self
     self.upper_query = read_query
     return read_query
-
 
 
 def get_param_value_pair_by_pred(pred: Pred, r: Dict[Parameter, Any], assigned_values: Dict = {}):
@@ -354,3 +374,23 @@ class UpdateObject(WriteQuery):
 
 def get_all_records(table: Table) -> ReadQuery:
   return ReadQuery(table)
+
+
+def replace_param_with_const(pred):
+  if isinstance(pred, ConnectOp):
+    p_lh = replace_param_with_const(pred.lh)
+    p_rh = replace_param_with_const(pred.rh)
+    return ConnectOp(p_lh, pred.op, p_rh)
+  elif isinstance(pred, SetOp):
+    return SetOp(pred.lh, pred.op, replace_param_with_const(pred.rh))
+  elif isinstance(pred, UnaryOp):
+    return UnaryOp(replace_param_with_const(pred.op))
+  elif isinstance(pred, BinOp):
+    qf = get_query_field(pred.lh)
+    if isinstance(pred.rh, MultiParam):
+      new_rh = MultiParam([AtomValue(qf.field_class.generate_value()) for i in range(len(pred.rh.params))])
+    elif isinstance(pred.rh, Parameter):
+      new_rh = AtomValue(qf.field_class.generate_value())
+    else:
+      new_rh = pred.rh
+    return BinOp(pred.lh, pred.op, new_rh) 
