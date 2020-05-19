@@ -200,7 +200,7 @@ def test_codegen_one_query(tables, associations, query, planid=-1):
       plan_id = plan_id + 1
 
   prepare_other_files(tables, associations, [query], [])
-  header, cpp = cgen_initialize_all(tables, associations, dsmeta)
+  header, cpp = cgen_initialize_all(tables, associations, chosen_plan[2])
   fp = open('{}/{}.h'.format(get_db_name(), get_db_name()), 'w')
   fp.write(header)
   fp.close()

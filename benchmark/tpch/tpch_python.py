@@ -331,8 +331,8 @@ read_queries = [q1, q3, q4, q5, q6, q7, q12, q13, q14, q15]
 #prune_nesting_test(read_queries)
 #test_prune_read_plan(read_queries)
 
-search_plans_for_one_query(q3)
-test_codegen_one_query(globalv.tables, globalv.associations, q3)
+#search_plans_for_one_query(q3)
+test_codegen_one_query(globalv.tables, globalv.associations, q1)
 #test_ilp(read_queries)
 
 #ilp_solve(read_queries, write_queries=[], membound_factor=1.7, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)

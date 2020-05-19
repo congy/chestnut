@@ -93,7 +93,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
 
     # insert by key
     if isinstance(ds, ObjBasicArray) or len(ds.key_fields()) == 0:
-      insert_func = 'inline size_t insert_{}_by_key({}& v) {{\n'.format(ds_name, ds.get_value_type_name())
+      insert_func = 'inline void insert_{}_by_key({}& v) {{\n'.format(ds_name, ds.get_value_type_name())
       if ds.value.is_aggr():
         assert(False)
       elif isinstance(ds, ObjBasicArray) and ds.is_single_element():
@@ -102,7 +102,7 @@ def cgen_ds_def(ds, upper_table=None, prefix=[]):
       else:
         insert_func += '  size_t insertpos = {}.insert(v);\n'.format(ds_name)
     else:
-      insert_func = 'inline size_t insert_{}_by_key({}& key, {}& v) {{\n'.format(ds_name, ds.get_key_type_name(), ds.get_value_type_name())
+      insert_func = 'inline void insert_{}_by_key({}& key, {}& v) {{\n'.format(ds_name, ds.get_key_type_name(), ds.get_value_type_name())
       if ds.value.is_aggr():
         assert(False)
       else:

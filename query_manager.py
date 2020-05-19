@@ -199,6 +199,7 @@ def get_dsmeta(read_queries):
         plan.copy_ds_id(None, new_dsmnger)
         rqmanagers[-1].plans[i].dsmanagers.append(new_dsmnger)
 
+
   thread_ctx = symbctx.create_thread_ctx()
   create_symbolic_obj_graph(thread_ctx, globalv.tables, globalv.associations)
   for qi, query in enumerate(read_queries):
@@ -221,7 +222,7 @@ def get_dsmeta(read_queries):
       rqmanagers[qi].plans[i].plans += add_plans
       rqmanagers[qi].plans[i].dsmanagers += add_dsmngers
     print "finish find compatible ds for query {}, total new plan len = {}".format(qi, total_new_plans)
-          
+
   return rqmanagers, dsmeta
 
 def test_merge(query):
