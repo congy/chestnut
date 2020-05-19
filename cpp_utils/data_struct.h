@@ -84,10 +84,10 @@ class VarChar {
 public:
   char s[LENGTH];
   VarChar() {memset(s, 0, LENGTH);}
-  VarChar(const VarChar& x) {memcpy(s, x.s, LENGTH-1);}
-  VarChar(const char* x) {memset(s, 0, LENGTH); if (x != nullptr) {memset(s, 0, LENGTH); memcpy(s, x, LENGTH-1);}}
+  VarChar(const VarChar& x) {memcpy(s, x.s, LENGTH);}
+  VarChar(const char* x) {memset(s, 0, LENGTH); if (x != nullptr) {memset(s, 0, LENGTH); memcpy(s, x, LENGTH);}}
   VarChar(int x) {memset(s, 0, LENGTH);}
-  VarChar(const std::string& x) {memset(s, 0, LENGTH); memcpy(s, x.c_str(), LENGTH-1 > x.size()? x.size(): LENGTH-1);}
+  VarChar(const std::string& x) {memset(s, 0, LENGTH); memcpy(s, x.c_str(), LENGTH > x.size()? x.size(): LENGTH);}
   inline size_t get_hash() const { size_t x = 0; for (size_t i=0; i<LENGTH-1; i++) x += ((i+1)*size_t(s[i])); return x; }
   inline const char* c_str() const { return s; }
   inline bool operator<(const VarChar& other) const {return strcmp(s, other.s) < 0;}
