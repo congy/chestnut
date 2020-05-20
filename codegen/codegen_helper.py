@@ -347,10 +347,11 @@ def cgen_expr_with_placeholder(expr, state, init_var=None):
     s1, cond = cgen_expr_with_placeholder(expr.cond, state, init_var)
     s2, expr1 = cgen_expr_with_placeholder(expr.expr1, state, init_var)
     s3, expr2 = cgen_expr_with_placeholder(expr.expr2, state, init_var)
-    newv = get_cxxvar_name('temp')
-    s = '{} {} = 0;\n'.format(get_cpp_type(expr.expr1.get_type()), newv)
-    s += 'if ({}) {} = {};\nelse {} = {};\n'.format(cond, newv, expr1, newv, expr2)
-    return s1+s2+s3+s, newv
+    return '', '{} = {} ? {} : {};\n'.format(init_var, cond, expr1, expr2)
+    #newv = get_cxxvar_name('temp')
+    #s = '{} {} = 0;\n'.format(get_cpp_type(expr.expr1.get_type()), newv)
+    #s += 'if ({}) {} = {};\nelse {} = {};\n'.format(cond, newv, expr1, newv, expr2)
+    #return s1+s2+s3+s, newv
   else:
     assert(False)
 

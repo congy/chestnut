@@ -63,6 +63,8 @@ def cgen_read_data_general(tables, associations, dsmeta):
   }
 """
 
+  code += "  init_temp_tables(conn);\n"
+  header += cgen_populate_temp_tables(tables)
   next_header, next_cpp = cgen_init_ds_lst(dsmeta.data_structures)
   header += next_header
   code += ('  size_t cnt;\n' + insert_indent(next_cpp))
@@ -74,7 +76,8 @@ def cgen_read_data_general(tables, associations, dsmeta):
   code += "}\n"
 
   return header, code
-  
+
+
 def cgen_init_ds_lst(dslst, upper_type=None, upper_v=None):
   header = ''
   cpp = ''
@@ -142,3 +145,20 @@ def set_ds_is_refered(dslst, toplst):
           dsl.is_refered=True
     if ds.value.is_object():
       set_ds_is_refered(ds.value.get_object().nested_objects, toplst)
+
+def cgen_populate_temp_tables(tables):
+  s = "inline void init_temp_tables(MYSQL* conn) {\n"
+  s += '  std::string query_str("");\n'
+  for t in tables:
+    if t.is_temp and 'group' in t.name:
+      query_str = sql_for_group_table_query(t)
+      s += '  query_str.assign("{}");\n'.format(query_str)
+      s += '  mysql_query(conn, query_str.c_str());\n'
+#      s += """
+#  if (mysql_query(conn, query_str.c_str())) {
+#    fprintf(stderr, "mysql query failed: %s\\n", query_str.c_str());
+#    exit(1);
+#  }
+#"""
+  s += '}\n'
+  return s

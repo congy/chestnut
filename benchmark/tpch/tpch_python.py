@@ -8,6 +8,7 @@ from plan_search import *
 from ilp.ilp_manager import *
 from ds_manager import *
 from codegen.codegen_test import *
+from populate_database import *
 import globalv
 
 workload_name = "tpch"
@@ -15,8 +16,8 @@ set_db_name(workload_name)
 datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 
-scale=10000
-#scale = 10
+#scale=10000
+scale = 10
 lineitem = Table('lineitem', 6000*scale)
 customer = Table('customer', 150*scale)
 order = Table('corder', 1500*scale)
@@ -328,10 +329,13 @@ read_queries = [q1, q3, q4, q5, q6, q7, q12, q13, q14, q15]
 # q8: to be fixed
 #test_merge(q12)
 
+#generate_db_data_files(datafile_dir, globalv.tables, globalv.associations)
+#populate_database(datafile_dir, globalv.tables, globalv.associations, True)
+#exit(0)
 #prune_nesting_test(read_queries)
 #test_prune_read_plan(read_queries)
 
-#search_plans_for_one_query(q3)
+#search_plans_for_one_query(q1)
 test_codegen_one_query(globalv.tables, globalv.associations, q1)
 #test_ilp(read_queries)
 

@@ -115,6 +115,7 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
       set_steps = []
       projections = query.projections #+ query.aggrs
       if len(op_rest_pairs) == 1:
+        # initialize aggr variable
         for v,aggr in query.aggrs:
           new_aggr = replace_subexpr_with_var(aggr, placeholder)
           set_steps.append(ExecSetVarStep(v, new_aggr, cond=cond_expr))
@@ -147,9 +148,22 @@ def enumerate_indexes_for_query(thread_ctx, query, dsmng, idx_placeholder, upper
         # sort / union / distinct 
         if len(op_rest_pairs) > 1:
           ptunion.after_steps.append(ExecUnionStep(query.return_var, query.aggrs, variable_to_set, order=query.order))
+
+        # process aggr result for nested query
+        if query.upper_query:
+          for v,aggr in query.aggrs:
+            if aggr.op == AVG:
+              compute_avg_expr = IfThenElseExpr(BinOp(aggr.count_var, EQ, AtomValue(0)), AtomValue(0), BinaryExpr(aggr.sum_var, DIVIDE, aggr.count_var) )
+              ptunion.after_steps.append(ExecSetVarStep(v, compute_avg_expr))
+            if not v.is_temp:
+              ptunion.after_steps.append(ExecSetVarStep(query.upper_query.return_var, v))
+
+        # TODO: handle the case for pure aggregation query (without groupby)
+
         query_plans.append(ptunion)
 
-    # TODO: aggr result not implemented...
+
+    
 
   if len(query.includes) == 0:
     return query_plans

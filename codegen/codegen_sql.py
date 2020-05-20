@@ -33,6 +33,22 @@ def get_field_with_prefix(f, connect='.'):
     path += get_fields_from_assocop(f.key)[:-1]
   return get_path_prefix(path, get_query_field(f.key).table.name) + connect + get_query_field(f.key).field_name
 
+def sql_for_group_table_query(t):
+  table = to_plural(t.name)
+  source_table =  None
+  fields = []
+  for f in t.get_fields():
+    if f.dependent_qf:
+      source_table = to_plural(get_query_field(f.dependent_qf).table.name)
+      fields.append(get_query_field(f.dependent_qf))
+  assert(source_table)
+  fields_str = ','.join([f.field_name for f in fields])
+  sql = "delete from {}; insert into {} ({}) select distinct {} from {};".format(table, table, fields_str, fields_str, source_table)
+  sql += "SET @i = 0; update {} set id = (@i := (@i + 1));".format(table)
+  join_cond = ' AND '.join(['t.{}={}.{}'.format(f.field_name, source_table, f.field_name) for f in fields])
+  sql += "update {} INNER JOIN {} t ON {} set {}_id = t.id".format(source_table, table, join_cond, t.name)
+  return clean_sql_query(sql) 
+
 def sql_for_ds_query(ds, select_by_id=False):
   table = ds.table
   join_strs = []

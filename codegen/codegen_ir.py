@@ -75,20 +75,26 @@ def cgen_for_one_step(step, state, print_result=False):
         expr_s = '{} = {};'.format(ir_var, expr_s)
       s += inits
     elif isinstance(step.var, EnvCollectionVariable):
-      ele_name = cgen_cxxvar(step.var, True)
-      state.qr_var = ele_name
-      if type(step.expr) is str and step.expr == 'init':
+      if isinstance(step.expr, EnvAtomicVariable): # set aggregation value
+        cxx_aggr_v = state.find_ir_var(step.expr)
+        target = state.qr_var
+        s += '{}->set_{}({});\n'.format(target, step.expr.name, cxx_aggr_v)
+        return s, state
+      elif type(step.expr) is str and step.expr == 'init':
+        ele_name = cgen_cxxvar(step.var, True)
+        state.qr_var = ele_name
         qr_array = state.find_or_create_qr_var(step.var)
         # FIXME
         s += '{} {}_;\n'.format(cgen_query_result_type(state.topquery.id), qr_array)
         s += '{}* {} = &{}_;\n'.format(cgen_query_result_type(state.topquery.id), qr_array, qr_array)
       else:
+        ele_name = cgen_cxxvar(step.var, True)
+        state.qr_var = ele_name
         s += '{}* {} = nullptr;\n'.format(cgen_query_result_var_type(step.var.tipe, state.topquery.id), ele_name)
         projections = [f for f in step.projections]
         insert_no_duplicate(projections, QueryField('id', get_main_table(step.var.tipe)))
         expr_s = cgen_add_to_qresult(step.var, ele_name, projections, state)
     if step.cond:
-      print 'step.cond = {}'.format(step.cond)
       dummp,cond_s = cgen_expr_with_placeholder(step.cond, state)
     else:
       cond_s = 'true'
