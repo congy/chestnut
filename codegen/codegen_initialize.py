@@ -152,8 +152,9 @@ def cgen_populate_temp_tables(tables):
   for t in tables:
     if t.is_temp and 'group' in t.name:
       query_str = sql_for_group_table_query(t)
-      s += '  query_str.assign("{}");\n'.format(query_str)
-      s += '  mysql_query(conn, query_str.c_str());\n'
+      for single_query in query_str.split(';'):
+        s += '  query_str.assign("{}");\n'.format(single_query)
+        s += '  mysql_query(conn, query_str.c_str());\n'
 #      s += """
 #  if (mysql_query(conn, query_str.c_str())) {
 #    fprintf(stderr, "mysql query failed: %s\\n", query_str.c_str());
