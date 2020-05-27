@@ -64,7 +64,7 @@ def cgen_read_data_general(tables, associations, dsmeta):
 """
 
   code += "  init_temp_tables(conn);\n"
-  header += cgen_populate_temp_tables(tables)
+  header += cgen_populate_temp_tables(dsmeta)
   next_header, next_cpp = cgen_init_ds_lst(dsmeta.data_structures)
   header += next_header
   code += ('  size_t cnt;\n' + insert_indent(next_cpp))
@@ -146,11 +146,14 @@ def set_ds_is_refered(dslst, toplst):
     if ds.value.is_object():
       set_ds_is_refered(ds.value.get_object().nested_objects, toplst)
 
-def cgen_populate_temp_tables(tables):
+def cgen_populate_temp_tables(dsmeta):
   s = "inline void init_temp_tables(MYSQL* conn) {\n"
   s += '  std::string query_str("");\n'
-  for t in tables:
-    if t.is_temp and 'group' in t.name:
+  temp_tables = set()
+  for ds in dsmeta.data_structures: 
+    if ds.table.is_temp and 'group' in ds.table.name:
+      temp_tables.add(ds.table) 
+  for t in temp_tables:
       query_str = sql_for_group_table_query(t)
       for single_query in query_str.split(';'):
         s += '  query_str.assign("{}");\n'.format(single_query)

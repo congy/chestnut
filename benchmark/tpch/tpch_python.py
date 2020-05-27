@@ -17,7 +17,7 @@ datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
 set_data_file_dir(datafile_dir)
 
 #scale=10000
-scale = 10
+scale = 1000
 lineitem = Table('lineitem', 6000*scale)
 customer = Table('customer', 150*scale)
 order = Table('corder', 1500*scale)
@@ -233,9 +233,9 @@ q8_inner.pfilter(BinOp(f('order').f('customer').f('nation').f('region').f('name'
 q8_inner.pfilter(BinOp(f('part').f('p_type'), EQ, Parameter('ptype')))
 q8.get_include(f('lineitems')).aggr(UnaryExpr(SUM, \
 	(IfThenElseExpr(BinaryExpr(f('supplier').f('nation').f('name'), BEQ, Parameter('nation')), \
-    BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount'))), AtomValue(0)))), 'sum')
+    BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount'))), AtomValue(0)))), 'l_sum')
 q8.get_include(f('lineitems')).aggr(UnaryExpr(SUM, \
-    BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'div')
+    BinaryExpr(f('extendedprice'), MULTIPLY, BinaryExpr(AtomValue(1), MINUS, f('discount')))), 'l_div')
 q8.project('*')
 q8.complete()
 
