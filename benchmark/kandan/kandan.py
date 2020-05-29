@@ -163,7 +163,7 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     if gen_tsv:
         # TODO: race condition: write files, then read files
         generate_db_data_files(data_dir, tables, associations)
-        results_json['data'] = read_db_data_files(data_dir)
+    results_json['data'] = read_db_data_files(data_dir)
 
     if gen_cpp:
         generate_proto_files(get_cpp_file_path(), tables, associations)
