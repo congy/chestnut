@@ -75,7 +75,7 @@ q_pi_0, q_pi_1, q_pi_2, \
 q_ps_1, q_ps_2, q_ps_3, \
 q_wi_0, q_wi_1, q_wi_2, q_wi_3, q_wi_4]
 
-
+read_queries = [q_ai_1, q_ii_1, q_ii_2, q_pi_0, q_ps_1]
 #q_ai_0
 #q_ai_1
 #q_ii_2
