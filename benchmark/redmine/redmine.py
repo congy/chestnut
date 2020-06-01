@@ -113,10 +113,12 @@ def run(workload_name: str = "redmine1", single_query: int = -1,
 
     print(queries, file = sys.stderr)
     # set queries from parameter
+    queries: List[Tuple[str, int]]
     queries = [(x[1:].split(',')[0], float(x[:-1].split(',')[1])) for x in queries.split('|')]
 
-    read_queries = []
-    weights = []
+    read_queries: List[ReadQuery] = []
+    weights: List[float] = []
+    q: str; weight: int
     for q,weight in queries:
         if q == 'q_ai_1' and weight > 0:
             read_queries.append(q_ai_1)
@@ -178,11 +180,8 @@ def run(workload_name: str = "redmine1", single_query: int = -1,
         search_plans_for_one_query(read_queries[single_query])
         results = ilp_solve([ read_queries[single_query] ], write_queries=[], membound_factor=membound_factor, save_to_file=False, read_from_file=False, read_ilp=False, save_ilp=False)
         results_json = get_ilp_result_json([ read_queries[single_query] ], *results)
-        #exit(0)
-        #get_dsmeta(read_queries)
 
-        # test_merge(q)
-        #test_cost(read_queries[:1])
+        results_json['qp'][0]['hrName'] = 'query' # TODO
     else:
         # Begin here.
         # test_ilp(read_queries, membound_factor=membound_factor)
@@ -190,6 +189,9 @@ def run(workload_name: str = "redmine1", single_query: int = -1,
         # TODO: tunable membound_factor.
         results = ilp_solve(read_queries, write_queries=[], membound_factor=membound_factor, save_to_file=True, read_from_file=False, read_ilp=False, save_ilp=True)
         results_json = get_ilp_result_json(read_queries, *results)
+
+        for qp, (name, _weight) in zip(results_json['qp'], queries):
+            qp['hrName'] = name
 
     if run_test_read_overall:
         test_read_overall(tables, associations, read_queries, memfactor=membound_factor, read_from_file=True, read_ilp=True)
