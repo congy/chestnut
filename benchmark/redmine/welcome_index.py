@@ -1,4 +1,4 @@
-from redmine_schema import *
+from .redmine_schema import *
 
   # [1m[36mRole Load (0.3ms)[0m  [1m[34mSELECT  `roles`.* FROM `roles` WHERE `roles`.`builtin` = 2 ORDER BY `roles`.`id` ASC LIMIT 1[0m
   # [1m[35m (0.2ms)[0m  [1m[34mSELECT `users`.`id` FROM `users` WHERE `users`.`type` IN ('GroupAnonymous')[0m

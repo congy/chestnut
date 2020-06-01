@@ -1,4 +1,4 @@
-from redmine_schema import *
+from .redmine_schema import *
 # [1m[36mUser Load (4.4ms)[0m  [1m[34mSELECT  `users`.* FROM `users` WHERE `users`.`type` IN ('User', 'AnonymousUser') AND `users`.`status` = 1 AND `users`.`id` = 1 LIMIT 1[0m
 #   Current user: admin (id=1)
 #   [1m[36mProject Load (728.2ms)[0m  [1m[34mSELECT `projects`.* FROM `projects` WHERE (projects.status <> 9) ORDER BY `projects`.`lft` ASC[0m

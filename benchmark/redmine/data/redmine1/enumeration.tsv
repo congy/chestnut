@@ -1,0 +1,15 @@
+id|name|type|is_default|active|parent_id|position_name|project_id
+1|Daniel Castillo|IssuePriority|1|1|9|UuQIuqIKAasMHEFNhViluPhchPbFUX|6
+2|Brianna Jenkins|IssuePriority|1|0|15|AycizrHWyKxmbCoXKlwpUTXXDVMaGP|5
+3|Pamela Myers|IssuePriority|0|0|2|JCDYFpRhyrzWNngPbJSxuwwdEJsYBb|1
+4|Gabrielle Willi|IssuePriority|1|0|3|LYBHteocXnvYMHbYapzvdiGSjUOBqB|4
+5|Susan Daniels|Enumeration|1|0|2|sWnApFDOmCnlXaZKWrUrMwnyipNndI|5
+6|Sean Adams|DocumentCategory|0|1|10|EPHyjJmdbSbTNWZuYNRrtuCIkKilrh|3
+7|Colleen Cook|IssuePriority|1|0|15|gaUsSwQQoHpaSOQnetTydPtHgGxOKM|2
+8|James Lewis|DocumentCategory|0|1|10|uqnEwXIAkcahEisTwEPvIVAeBMhaCa|2
+9|Connie Davis|IssuePriority|0|0|13|lPoZMXnXwCzKKBcUtBQaQLgtZLLDRH|5
+10|Brianna Dawson|IssuePriority|0|0|4|bctRrYZFKRJOotgcZdkByTRdjXwssc|5
+11|Anthony Thomas|Enumeration|0|0|13|kwPGQZwQouhebeUeCpycawtAwERdCz|1
+12|Christopher Tho|Enumeration|1|0|12|MrpAtYawbSacpdjxSRcUUsEsWVPhcu|3
+13|Jennifer Jackso|Enumeration|0|1|10|xwOqTRwevzleJUWiHoGDJjmyOjEvmU|3
+14|Jeffrey Harris|DocumentCategory|0|1|10|qFkqHzXhoPQQSYyVEgrRUNBDObelIc|4

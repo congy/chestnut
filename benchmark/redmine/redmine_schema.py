@@ -8,54 +8,59 @@ from pred import *
 from faker import Faker
 fake = Faker()
 
-scale=4000
-#scale=40
-#scale=400
-issue = Table('issue', scale*4000)
-user = Table('user', scale)
-member = Table('member', scale*4000)
-project = Table('project', scale)
-enabled_module = Table('enabled_module', project.sz*5)
-enumeration = Table('enumeration', project.sz*50)
-version = Table('version', project.sz*20)
-news = Table('news', project.sz*80)
-board = Table('board', project.sz*20)
-message = Table('message', board.sz*20)
+try:
+    scale = float(os.environ['CHESTNUT_SCALE'])
+except:
+    scale=4000
+    #scale=40
+    #scale=400
 
-tracker = Table('tracker', 10)
-role = Table('role', 20)
-issue_status = Table('issue_status', 10)
+
+issue = Table('issue',                   max(scale * 4000,    20))
+user = Table('user',                     max(scale,           10))
+member = Table('member',                 max(scale * 4000,    20))
+project = Table('project',               max(scale,            6))
+enabled_module = Table('enabled_module', project.sz * 5  if scale > 0 else 10)
+enumeration = Table('enumeration',       project.sz * 50 if scale > 0 else 16)
+version = Table('version',               project.sz * 20 if scale > 0 else 14)
+news = Table('news',                     project.sz * 80 if scale > 0 else 18)
+board = Table('board',                   project.sz * 20 if scale > 0 else 14)
+message = Table('message',               board.sz * 20   if scale > 0 else 40)
+
+tracker = Table('tracker',               10 if scale > 0 else 8)
+role = Table('role',                     20 if scale > 0 else 8)
+issue_status = Table('issue_status',     10 if scale > 0 else 8)
 
 
 #project = Table('project', scale)
 #user = Table('user', scale*100)
 #member = Table('member', scale*4000)
 
-  # create_table "issues", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "tracker_id", null: false
-  #   t.integer "project_id", null: false
-  #   t.string "subject", default: "", null: false
-  #   t.text "description", limit: 4294967295
-  #   t.date "due_date"
-  #   t.integer "category_id"
-  #   t.integer "status_id", null: false
-  #   t.integer "assigned_to_id"
-  #   t.integer "priority_id", null: false
-  #   t.integer "fixed_version_id"
-  #   t.integer "author_id", null: false
-  #   t.integer "lock_version", default: 0, null: false
-  #   t.timestamp "created_on"
-  #   t.timestamp "updated_on"
-  #   t.date "start_date"
-  #   t.integer "done_ratio", default: 0, null: false
-  #   t.float "estimated_hours"
-  #   t.integer "parent_id"
-  #   t.integer "root_id"
-  #   t.integer "lft"
-  #   t.integer "rgt"
-  #   t.boolean "is_private", default: false, null: false
-  #   t.datetime "closed_on"
-  # end
+# create_table "issues", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+#   t.integer "tracker_id", null: false
+#   t.integer "project_id", null: false
+#   t.string "subject", default: "", null: false
+#   t.text "description", limit: 4294967295
+#   t.date "due_date"
+#   t.integer "category_id"
+#   t.integer "status_id", null: false
+#   t.integer "assigned_to_id"
+#   t.integer "priority_id", null: false
+#   t.integer "fixed_version_id"
+#   t.integer "author_id", null: false
+#   t.integer "lock_version", default: 0, null: false
+#   t.timestamp "created_on"
+#   t.timestamp "updated_on"
+#   t.date "start_date"
+#   t.integer "done_ratio", default: 0, null: false
+#   t.float "estimated_hours"
+#   t.integer "parent_id"
+#   t.integer "root_id"
+#   t.integer "lft"
+#   t.integer "rgt"
+#   t.boolean "is_private", default: false, null: false
+#   t.datetime "closed_on"
+# end
 
 subject = Field('subject', 'varchar(128)')
 subject.set_value_generator(lambda: ' '.join(fake.words(nb=2))[:127])
@@ -89,14 +94,14 @@ issue_tracker = get_new_assoc("issue_to_tracker", "one_to_many", tracker, issue,
 issue_status_issue = get_new_assoc('issue_to_statuses', 'one_to_many', issue_status, issue, 'issues', 'status')
 #issue_user = get_new_assoc('issue_user', 'one_to_many', user, issue, 'issues', 'user')
 
-  # create_table "trackers", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.string "name", limit: 30, default: "", null: false
-  #   t.boolean "is_in_chlog", default: false, null: false
-  #   t.integer "position"
-  #   t.boolean "is_in_roadmap", default: true, null: false
-  #   t.integer "fields_bits", default: 0
-  #   t.integer "default_status_id"
-  # end
+    # create_table "trackers", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.string "name", limit: 30, default: "", null: false
+    #   t.boolean "is_in_chlog", default: false, null: false
+    #   t.integer "position"
+    #   t.boolean "is_in_roadmap", default: true, null: false
+    #   t.integer "fields_bits", default: 0
+    #   t.integer "default_status_id"
+    # end
 
 name = Field('name', 'varchar(16)')
 name.set_value_generator(lambda: ' '.join(fake.words(nb=1)[:15]))
@@ -107,42 +112,42 @@ field_bits = Field('field_bits','uint')
 default_status_id = Field('default_status_id', 'int')
 tracker.add_fields([name, is_in_chlog, position, is_in_roadmap, default_status_id])
 
-  # create_table "member_roles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "member_id", null: false
-  #   t.integer "role_id", null: false
-  #   t.integer "inherited_from"
-  #   t.index ["inherited_from"], name: "index_member_roles_on_inherited_from"
-  #   t.index ["member_id"], name: "index_member_roles_on_member_id"
-  #   t.index ["role_id"], name: "index_member_roles_on_role_id"
-  # end
+    # create_table "member_roles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.integer "member_id", null: false
+    #   t.integer "role_id", null: false
+    #   t.integer "inherited_from"
+    #   t.index ["inherited_from"], name: "index_member_roles_on_inherited_from"
+    #   t.index ["member_id"], name: "index_member_roles_on_member_id"
+    #   t.index ["role_id"], name: "index_member_roles_on_role_id"
+    # end
 
-  # create_table "members", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "user_id", default: 0, null: false
-  #   t.integer "project_id", default: 0, null: false
-  #   t.timestamp "created_on"
-  #   t.boolean "mail_notification", default: false, null: false
-  #   t.index ["project_id"], name: "index_members_on_project_id"
-  #   t.index ["user_id", "project_id"], name: "index_members_on_user_id_and_project_id", unique: true
-  #   t.index ["user_id"], name: "index_members_on_user_id"
-  # end
+    # create_table "members", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.integer "user_id", default: 0, null: false
+    #   t.integer "project_id", default: 0, null: false
+    #   t.timestamp "created_on"
+    #   t.boolean "mail_notification", default: false, null: false
+    #   t.index ["project_id"], name: "index_members_on_project_id"
+    #   t.index ["user_id", "project_id"], name: "index_members_on_user_id_and_project_id", unique: true
+    #   t.index ["user_id"], name: "index_members_on_user_id"
+    # end
 
 created_on = Field('created_on', 'date')
 mail_notification = Field('mail_notification', 'bool')
 member.add_fields([created_on, mail_notification])
 member.primary_keys = [(f('project_id'), f('user_id'))]
 
-  # create_table "roles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.string "name", limit: 30, default: "", null: false
-  #   t.integer "position"
-  #   t.boolean "assignable", default: true
-  #   t.integer "builtin", default: 0, null: false
-  #   t.text "permissions"
-  #   t.string "issues_visibility", limit: 30, default: "default", null: false
-  #   t.string "users_visibility", limit: 30, default: "all", null: false
-  #   t.string "time_entries_visibility", limit: 30, default: "all", null: false
-  #   t.boolean "all_roles_managed", default: true, null: false
-  #   t.text "settings"
-  # end
+    # create_table "roles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.string "name", limit: 30, default: "", null: false
+    #   t.integer "position"
+    #   t.boolean "assignable", default: true
+    #   t.integer "builtin", default: 0, null: false
+    #   t.text "permissions"
+    #   t.string "issues_visibility", limit: 30, default: "default", null: false
+    #   t.string "users_visibility", limit: 30, default: "all", null: false
+    #   t.string "time_entries_visibility", limit: 30, default: "all", null: false
+    #   t.boolean "all_roles_managed", default: true, null: false
+    #   t.text "settings"
+    # end
 
 position = Field('position', 'smallint')
 position.range = [1, 100]
@@ -159,24 +164,24 @@ member_user = get_new_assoc('member_to_user', 'one_to_many', user, member, 'memb
 project_member = get_new_assoc("project_to_member", "one_to_many", project, member, "members", "project")
 member_roles = get_new_assoc("member_roles", 'many_to_many', member, role, 'roles', 'members', 3, 0, "member_id", "role_id")
 
-  # create_table "projects", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.string "name", default: "", null: false
-  #   t.text "description"
-  #   t.string "homepage", default: ""
-  #   t.boolean "is_public", default: true, null: false
-  #   t.integer "parent_id"
-  #   t.timestamp "created_on"
-  #   t.timestamp "updated_on"
-  #   t.string "identifier"
-  #   t.integer "status", default: 1, null: false
-  #   t.integer "lft"
-  #   t.integer "rgt"
-  #   t.boolean "inherit_members", default: false, null: false
-  #   t.integer "default_version_id"
-  #   t.integer "default_assigned_to_id"
-  #   t.index ["lft"], name: "index_projects_on_lft"
-  #   t.index ["rgt"], name: "index_projects_on_rgt"
-  # end
+    # create_table "projects", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.string "name", default: "", null: false
+    #   t.text "description"
+    #   t.string "homepage", default: ""
+    #   t.boolean "is_public", default: true, null: false
+    #   t.integer "parent_id"
+    #   t.timestamp "created_on"
+    #   t.timestamp "updated_on"
+    #   t.string "identifier"
+    #   t.integer "status", default: 1, null: false
+    #   t.integer "lft"
+    #   t.integer "rgt"
+    #   t.boolean "inherit_members", default: false, null: false
+    #   t.integer "default_version_id"
+    #   t.integer "default_assigned_to_id"
+    #   t.index ["lft"], name: "index_projects_on_lft"
+    #   t.index ["rgt"], name: "index_projects_on_rgt"
+    # end
 
 name = Field('name', 'varchar(64)')
 name.set_value_generator(lambda: ' '.join(fake.words(nb=1)[:63]))
@@ -202,18 +207,18 @@ project.add_fields([name, description, homepage, is_public, parent_id, created_o
 
 project_tracker = get_new_assoc("projects_trackers", "many_to_many", project, tracker, "trackers", "projects", 3, 0, "project_id", "tracker_id")
 
-  # create_table "news", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "project_id"
-  #   t.string "title", limit: 60, default: "", null: false
-  #   t.string "summary", default: ""
-  #   t.text "description"
-  #   t.integer "author_id", default: 0, null: false
-  #   t.timestamp "created_on"
-  #   t.integer "comments_count", default: 0, null: false
-  #   t.index ["author_id"], name: "index_news_on_author_id"
-  #   t.index ["created_on"], name: "index_news_on_created_on"
-  #   t.index ["project_id"], name: "news_project_id"
-  # end
+    # create_table "news", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.integer "project_id"
+    #   t.string "title", limit: 60, default: "", null: false
+    #   t.string "summary", default: ""
+    #   t.text "description"
+    #   t.integer "author_id", default: 0, null: false
+    #   t.timestamp "created_on"
+    #   t.integer "comments_count", default: 0, null: false
+    #   t.index ["author_id"], name: "index_news_on_author_id"
+    #   t.index ["created_on"], name: "index_news_on_created_on"
+    #   t.index ["project_id"], name: "news_project_id"
+    # end
 
 title = Field('title', 'varchar(64)')
 summary = Field('summary', 'varchar(128)')
@@ -227,28 +232,28 @@ news.add_fields([title, summary, description, created_on, comments_count, author
 
 project_news = get_new_assoc("project_news", "one_to_many", project, news, "news", "project")
 
-  # create_table "users", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.string "login", default: "", null: false
-  #   t.string "hashed_password", limit: 40, default: "", null: false
-  #   t.string "firstname", limit: 30, default: "", null: false
-  #   t.string "lastname", default: "", null: false
-  #   t.boolean "admin", default: false, null: false
-  #   t.integer "status", default: 1, null: false
-  #   t.datetime "last_login_on"
-  #   t.string "language", limit: 5, default: ""
-  #   t.integer "auth_source_id"
-  #   t.timestamp "created_on"
-  #   t.timestamp "updated_on"
-  #   t.string "type"
-  #   t.string "identity_url"
-  #   t.string "mail_notification", default: "", null: false
-  #   t.string "salt", limit: 64
-  #   t.boolean "must_change_passwd", default: false, null: false
-  #   t.datetime "passwd_changed_on"
-  #   t.index ["auth_source_id"], name: "index_users_on_auth_source_id"
-  #   t.index ["id", "type"], name: "index_users_on_id_and_type"
-  #   t.index ["type"], name: "index_users_on_type"
-  # end
+    # create_table "users", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.string "login", default: "", null: false
+    #   t.string "hashed_password", limit: 40, default: "", null: false
+    #   t.string "firstname", limit: 30, default: "", null: false
+    #   t.string "lastname", default: "", null: false
+    #   t.boolean "admin", default: false, null: false
+    #   t.integer "status", default: 1, null: false
+    #   t.datetime "last_login_on"
+    #   t.string "language", limit: 5, default: ""
+    #   t.integer "auth_source_id"
+    #   t.timestamp "created_on"
+    #   t.timestamp "updated_on"
+    #   t.string "type"
+    #   t.string "identity_url"
+    #   t.string "mail_notification", default: "", null: false
+    #   t.string "salt", limit: 64
+    #   t.boolean "must_change_passwd", default: false, null: false
+    #   t.datetime "passwd_changed_on"
+    #   t.index ["auth_source_id"], name: "index_users_on_auth_source_id"
+    #   t.index ["id", "type"], name: "index_users_on_id_and_type"
+    #   t.index ["type"], name: "index_users_on_type"
+    # end
 
 login = Field('login', 'varchar(64)')
 hashed_password = Field('hashed_password', 'varchar(40)')
@@ -275,14 +280,14 @@ passwd_changed_on = Field('passwd_changed_on', 'date')
 user.add_fields([login, hashed_password, firstname, lastname, admin, status, last_login_on, language, auth_source_id,\
 created_on, utype, identity_url, mail_notification, salt, must_change_passwd, passwd_changed_on])
 
-  # create_table "issue_statuses", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.string "name", limit: 30, default: "", null: false
-  #   t.boolean "is_closed", default: false, null: false
-  #   t.integer "position"
-  #   t.integer "default_done_ratio"
-  #   t.index ["is_closed"], name: "index_issue_statuses_on_is_closed"
-  #   t.index ["position"], name: "index_issue_statuses_on_position"
-  # end
+    # create_table "issue_statuses", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.string "name", limit: 30, default: "", null: false
+    #   t.boolean "is_closed", default: false, null: false
+    #   t.integer "position"
+    #   t.integer "default_done_ratio"
+    #   t.index ["is_closed"], name: "index_issue_statuses_on_is_closed"
+    #   t.index ["position"], name: "index_issue_statuses_on_position"
+    # end
 
 name = Field('name', 'varchar(24)')
 is_closed = Field('is_closed', 'bool')
@@ -291,11 +296,11 @@ default_done_ratio = Field('default_done_ratio', 'smallint')
 default_done_ratio.range = [1, 100]
 issue_status.add_fields([name, is_closed, position, default_done_ratio])
 
-  # create_table "enabled_modules", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "project_id"
-  #   t.string "name", null: false
-  #   t.index ["project_id"], name: "enabled_modules_project_id"
-  # end
+    # create_table "enabled_modules", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.integer "project_id"
+    #   t.string "name", null: false
+    #   t.index ["project_id"], name: "enabled_modules_project_id"
+    # end
 
 name = Field('name', 'varchar(16)')
 name_id = Field('name_id', 'smallint')
@@ -308,18 +313,18 @@ enabled_module.primary_keys = [(f('name_id'), f('project_id')), (f('name'), f('p
 
 project_enabled_module = get_new_assoc("project_to_enabled_module", "one_to_many", project, enabled_module, "enabled_modules", "project")
 
-  # create_table "enumerations", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.string "name", limit: 30, default: "", null: false
-  #   t.integer "position"
-  #   t.boolean "is_default", default: false, null: false
-  #   t.string "type"
-  #   t.boolean "active", default: true, null: false
-  #   t.integer "project_id"
-  #   t.integer "parent_id"
-  #   t.string "position_name", limit: 30
-  #   t.index ["id", "type"], name: "index_enumerations_on_id_and_type"
-  #   t.index ["project_id"], name: "index_enumerations_on_project_id"
-  # end
+    # create_table "enumerations", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.string "name", limit: 30, default: "", null: false
+    #   t.integer "position"
+    #   t.boolean "is_default", default: false, null: false
+    #   t.string "type"
+    #   t.boolean "active", default: true, null: false
+    #   t.integer "project_id"
+    #   t.integer "parent_id"
+    #   t.string "position_name", limit: 30
+    #   t.index ["id", "type"], name: "index_enumerations_on_id_and_type"
+    #   t.index ["project_id"], name: "index_enumerations_on_project_id"
+    # end
 
 name = Field('name', 'varchar(16)')
 name.set_value_generator(lambda: fake.name()[:15])
@@ -335,19 +340,19 @@ enumeration.add_fields([name, etype, is_default, active, parent_id, position_nam
 project_enumeration = get_new_assoc("project_to_enumeration", "one_to_many", project, enumeration, "enumerations", "project")
 #issue_enumeration = get_new_assoc("issue_to_enumeration", 'one_to_many', enumeration, issue, 'issues', 'enumeration')
 
-  # create_table "versions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "project_id", default: 0, null: false
-  #   t.string "name", default: "", null: false
-  #   t.string "description", default: ""
-  #   t.date "effective_date"
-  #   t.timestamp "created_on"
-  #   t.timestamp "updated_on"
-  #   t.string "wiki_page_title"
-  #   t.string "status", default: "open"
-  #   t.string "sharing", default: "none", null: false
-  #   t.index ["project_id"], name: "versions_project_id"
-  #   t.index ["sharing"], name: "index_versions_on_sharing"
-  # end
+    # create_table "versions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.integer "project_id", default: 0, null: false
+    #   t.string "name", default: "", null: false
+    #   t.string "description", default: ""
+    #   t.date "effective_date"
+    #   t.timestamp "created_on"
+    #   t.timestamp "updated_on"
+    #   t.string "wiki_page_title"
+    #   t.string "status", default: "open"
+    #   t.string "sharing", default: "none", null: false
+    #   t.index ["project_id"], name: "versions_project_id"
+    #   t.index ["sharing"], name: "index_versions_on_sharing"
+    # end
 
 name = Field('name', 'varchar(32)')
 description = Field('description', 'varchar(128)')
@@ -366,18 +371,18 @@ version.add_fields([name, description, effective_date, created_on, updated_on, w
 project_version = get_new_assoc("project_version", "one_to_many", project, version, "versions", "project")
 #issue_version = get_new_assoc('issue_version', 'one_to_many', version, issue, 'issues', 'version')
 
-  # create_table "boards", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "project_id", null: false
-  #   t.string "name", default: "", null: false
-  #   t.string "description"
-  #   t.integer "position"
-  #   t.integer "topics_count", default: 0, null: false
-  #   t.integer "messages_count", default: 0, null: false
-  #   t.integer "last_message_id"
-  #   t.integer "parent_id"
-  #   t.index ["last_message_id"], name: "index_boards_on_last_message_id"
-  #   t.index ["project_id"], name: "boards_project_id"
-  # end
+    # create_table "boards", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.integer "project_id", null: false
+    #   t.string "name", default: "", null: false
+    #   t.string "description"
+    #   t.integer "position"
+    #   t.integer "topics_count", default: 0, null: false
+    #   t.integer "messages_count", default: 0, null: false
+    #   t.integer "last_message_id"
+    #   t.integer "parent_id"
+    #   t.index ["last_message_id"], name: "index_boards_on_last_message_id"
+    #   t.index ["project_id"], name: "boards_project_id"
+    # end
 
 name = Field('name', 'varchar(32)')
 name.set_value_generator(lambda: fake.name()[:30])
@@ -393,24 +398,24 @@ board.add_fields([name, description, position, topics_count, last_message_id, pa
 
 project_board = get_new_assoc("project_board", "one_to_many", project, board, "boards", "project")
 
-  # create_table "messages", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-  #   t.integer "board_id", null: false
-  #   t.integer "parent_id"
-  #   t.string "subject", default: "", null: false
-  #   t.text "content"
-  #   t.integer "author_id"
-  #   t.integer "replies_count", default: 0, null: false
-  #   t.integer "last_reply_id"
-  #   t.datetime "created_on", null: false
-  #   t.datetime "updated_on", null: false
-  #   t.boolean "locked", default: false
-  #   t.integer "sticky", default: 0
-  #   t.index ["author_id"], name: "index_messages_on_author_id"
-  #   t.index ["board_id"], name: "messages_board_id"
-  #   t.index ["created_on"], name: "index_messages_on_created_on"
-  #   t.index ["last_reply_id"], name: "index_messages_on_last_reply_id"
-  #   t.index ["parent_id"], name: "messages_parent_id"
-  # end
+    # create_table "messages", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    #   t.integer "board_id", null: false
+    #   t.integer "parent_id"
+    #   t.string "subject", default: "", null: false
+    #   t.text "content"
+    #   t.integer "author_id"
+    #   t.integer "replies_count", default: 0, null: false
+    #   t.integer "last_reply_id"
+    #   t.datetime "created_on", null: false
+    #   t.datetime "updated_on", null: false
+    #   t.boolean "locked", default: false
+    #   t.integer "sticky", default: 0
+    #   t.index ["author_id"], name: "index_messages_on_author_id"
+    #   t.index ["board_id"], name: "messages_board_id"
+    #   t.index ["created_on"], name: "index_messages_on_created_on"
+    #   t.index ["last_reply_id"], name: "index_messages_on_last_reply_id"
+    #   t.index ["parent_id"], name: "messages_parent_id"
+    # end
 
 parent_id = Field('parent_id', 'uint')
 parent_id.range = [1, message.sz]

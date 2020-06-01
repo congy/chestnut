@@ -1,4 +1,4 @@
-from redmine_schema import *
+from .redmine_schema import *
 #   [1m[36mTracker Load (4091.7ms)[0m  [1m[34mSELECT DISTINCT `trackers`.* FROM `trackers` INNER JOIN `projects_trackers` ON `projects_trackers`.`tracker_id` = `trackers`.`id` INNER JOIN `projects` ON `projects`.`id` = `projects_trackers`.`project_id` WHERE (projects.status <> 9 AND EXISTS (SELECT 1 AS one FROM enabled_modules em WHERE em.project_id = projects.id AND em.name='issue_tracking')) ORDER BY `trackers`.`position` ASC[0m
 #   [1m[36mIssuePriority Load (0.3ms)[0m  [1m[34mSELECT `enumerations`.* FROM `enumerations` WHERE `enumerations`.`type` IN ('IssuePriority') ORDER BY `enumerations`.`position` ASC[0m
 #   [1m[35m (43087.8ms)[0m  [1m[34mSELECT COUNT(*) FROM `issues` INNER JOIN `projects` ON `projects`.`id` = `issues`.`project_id` INNER JOIN `issue_statuses` ON `issue_statuses`.`id` = `issues`.`status_id` WHERE (projects.status <> 9 AND EXISTS (SELECT 1 AS one FROM enabled_modules em WHERE em.project_id = projects.id AND em.name='issue_tracking')) AND ((issues.status_id IN (SELECT id FROM issue_statuses WHERE is_closed=TRUE)))[0m

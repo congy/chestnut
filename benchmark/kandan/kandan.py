@@ -35,7 +35,7 @@ from .main_search import *
 
 def run(workload_name: str = "kandan_lg", single_query: int = -1,
         membound_factor: float = 1.7,
-        queries: str = "(q_ai_1,1)|(q_ai_2,1)|(q_ai_3,1)|(q_as_1,1)|(q_ti_1,1)|(q_ci_1,1)|(q_cs_1,1)|(q_ms_1,1)",
+        queries: str = None,
         gen_tsv: bool = False, gen_cpp: bool = False, load_sql: bool = False,
         run_test_read_overall: bool = True, output = sys.stdout):
     """
@@ -47,6 +47,8 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
         - run_test_read_overall: Run test_read_overall.
         - quiet: If debug prints should be supressed.
     """
+    if None is queries:
+      queries = "(q_ai_1,1)|(q_ai_2,1)|(q_ai_3,1)|(q_as_1,1)|(q_ti_1,1)|(q_ci_1,1)|(q_cs_1,1)|(q_ms_1,1)"
 
     set_db_name(workload_name)
     datafile_dir = '{}/data/{}/'.format(os.getcwd(), workload_name)
@@ -82,50 +84,50 @@ def run(workload_name: str = "kandan_lg", single_query: int = -1,
     read_queries = []
     weights = []
     for q,weight in queries:
-      if q == 'q_ai_1' and weight > 0:
-        read_queries.append(q_ai_1)
-        weights.append(weight)
-      elif q == 'q_ai_2' and weight > 0:
-        read_queries.append(q_ai_2)
-        weights.append(weight)
-      elif q == 'q_ai_3' and weight > 0:
-        read_queries.append(q_ai_3)
-        weights.append(weight)
-      elif q == 'q_as_1' and weight > 0:
-        read_queries.append(q_as_1)
-        weights.append(weight)
-      elif q == 'q_di_1' and weight > 0:
-        read_queries.append(q_di_1)
-        weights.append(weight)
-      elif q == 'q_ti_1' and weight > 0:
-        read_queries.append(q_ti_1)
-        weights.append(weight)
-      elif q == 'q_ci_1' and weight > 0:
-        read_queries.append(q_ci_1)
-        weights.append(weight)
-      elif q == 'q_cs_1' and weight > 0:
-        read_queries.append(q_cs_1)
-        weights.append(weight)
-      elif q == 'q_mi_1' and weight > 0:
-        read_queries.append(q_mi_1)
-        weights.append(weight)
-      elif q == 'q_ms_1' and weight > 0:
-        read_queries.append(q_ms_1)
-        weights.append(weight)
-      else:
-        print("Query not found: {}".format(q))
+        if q == 'q_ai_1' and weight > 0:
+            read_queries.append(q_ai_1)
+            weights.append(weight)
+        elif q == 'q_ai_2' and weight > 0:
+            read_queries.append(q_ai_2)
+            weights.append(weight)
+        elif q == 'q_ai_3' and weight > 0:
+            read_queries.append(q_ai_3)
+            weights.append(weight)
+        elif q == 'q_as_1' and weight > 0:
+            read_queries.append(q_as_1)
+            weights.append(weight)
+        elif q == 'q_di_1' and weight > 0:
+            read_queries.append(q_di_1)
+            weights.append(weight)
+        elif q == 'q_ti_1' and weight > 0:
+            read_queries.append(q_ti_1)
+            weights.append(weight)
+        elif q == 'q_ci_1' and weight > 0:
+            read_queries.append(q_ci_1)
+            weights.append(weight)
+        elif q == 'q_cs_1' and weight > 0:
+            read_queries.append(q_cs_1)
+            weights.append(weight)
+        elif q == 'q_mi_1' and weight > 0:
+            read_queries.append(q_mi_1)
+            weights.append(weight)
+        elif q == 'q_ms_1' and weight > 0:
+            read_queries.append(q_ms_1)
+            weights.append(weight)
+        else:
+            print("Query not found: {}".format(q))
         
     print("Queries and weights: ", file=sys.stderr)
     for i,q in enumerate(read_queries):
       print("{}: weight = {}".format(q, weights[i]), file=sys.stderr)
 
-    write_queries = [
-        q_ac_w1, q_ac_w2, q_ac_w3,
-        q_du_1,
-        q_dt_1,
-        q_tc_w1, q_tc_w2, q_tc_w3,
-        q_cc_w1, q_cc_w2
-    ]
+    # write_queries = [
+    #     q_ac_w1, q_ac_w2, q_ac_w3,
+    #     q_du_1,
+    #     q_dt_1,
+    #     q_tc_w1, q_tc_w2, q_tc_w3,
+    #     q_cc_w1, q_cc_w2
+    # ]
 
     #test_schema(tables, association)
     #exit(0)

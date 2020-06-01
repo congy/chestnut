@@ -1,4 +1,4 @@
-from redmine_schema import *
+from .redmine_schema import *
 
 """
 p = Project.where((pending_delete == False && namespace.owner_id == ? && namespace.type == NULL) ||

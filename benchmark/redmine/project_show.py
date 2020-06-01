@@ -1,4 +1,4 @@
-from redmine_schema import *
+from .redmine_schema import *
 #  [1m[36mProject Load (0.3ms)[0m  [1m[34mSELECT  `projects`.* FROM `projects` WHERE `projects`.`id` = 118986 LIMIT 1[0m
 #   [1m[35m (0.5ms)[0m  [1m[34mSELECT `enabled_modules`.`name` FROM `enabled_modules` WHERE `enabled_modules`.`project_id` = 118986[0m
 #   [1m[36mMember Load (0.6ms)[0m  [1m[34mSELECT `members`.* FROM `members` INNER JOIN `users` ON `users`.`id` = `members`.`user_id` WHERE `members`.`project_id` = 118986 AND `users`.`type` = 'User' AND `users`.`status` = 1[0m

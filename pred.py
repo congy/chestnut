@@ -207,7 +207,10 @@ class AtomValue(object):
   def to_json(self):
     return {
       'expr': 'AtomValue',
-      'value': "'{}'".format(self.v) if type(self.v) is str else str(self.v),
+      'value':
+          "'{}'".format(self.v) if type(self.v) is str else
+          str(self.v).lower()   if type(self.v) is bool else
+          str(self.v)
     }
 
 class QueryField(object):
@@ -271,10 +274,18 @@ class QueryField(object):
   def get_all_atom_values(self):
     return []
   def to_json(self):
-    return {
+    field = self.field_name
+    table = self.table
+    out = {
       'expr': 'QueryField',
-      'field': self.field_name,
+      'field': field,
     }
+    if not table.has_field(field):
+      assoc: Association = table.get_assoc_by_name(field)
+      out['fkField'] = assoc.assoc_f2 if table.name == assoc.rgt.name else assoc.assoc_f1
+      out['fkTable'] = assoc.lft.name if table.name == assoc.rgt.name else assoc.rgt.name
+      out['assoc'] = assoc.to_json()
+    return out
 
 class KeyPath(object):
   def __init__(self, key, path=[]):
@@ -466,7 +477,7 @@ class SetOp(Pred):
     self.lh = lh
     self.rh = rh
     self.op = op
-    assert(op in [EXIST, FORALL])
+    assert(op in [ EXIST, FORALL ])
     assert(is_query_field(self.lh))
     assert(isinstance(self.rh, BinOp) or \
             isinstance(self.rh, ConnectOp) or \
@@ -518,8 +529,12 @@ class SetOp(Pred):
     return []
   def to_json(self) -> ...:
     return {
-      'expr': 'SetOp', # AKA exists op.
+      'expr': 'SetOp',
       'lh': self.lh.to_json(),
+      'op':
+          'EXIST'  if EXIST  == self.op else
+          'FORALL' if FORALL == self.op else
+          self.op,
       'rh': self.rh.to_json(),
     }
 

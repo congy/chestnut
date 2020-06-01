@@ -1,4 +1,4 @@
-from redmine_schema import *
+from .redmine_schema import *
 
 
 q_pn_1 = AddObject(project, {QueryField('name', table=project): Parameter('name')})

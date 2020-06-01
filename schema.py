@@ -211,7 +211,7 @@ class Table(object):
   def has_field(self, n):
     return self.get_field_by_name(n) != None 
   def get_assoc_by_name(self, n):
-    for an,a in self.assocs:
+    for an, a in self.assocs:
       if an == n:
         return a
     return None

@@ -79,13 +79,18 @@ def generate_db_data_files(data_dir: str, tables: List[Table], associations: ...
     fp = open("{}/{}.tsv".format(fpath, table_name), 'w')
     field_name = '|'.join(['id', a.assoc_f1, a.assoc_f2])
     fp.write('{}\n'.format(field_name))
-    for j in range(1, actual_sizes[a.lft]+1):
+    for j in range(1, actual_sizes[a.lft] + 1):
       repeat_list = []
-      start = random.randint(1, actual_sizes[a.rgt]-1)
-      for k in range(0, a.lft_ratio/2+1):
+
+      szz: int = actual_sizes[a.rgt] - 1
+      if szz <= 1:
+        raise Exception(f'Attempting to create table {table_name} with invalid size {szz}.')
+
+      start = random.randint(1, szz)
+      for k in range(0, a.lft_ratio // 2 + 1):
         rd = (start + k) % actual_sizes[a.rgt] + 1
-        fields = [i, j, rd]
-        fp.write("{}\n".format('|'.join([str(f) for f in fields])))
+        fields = [ i, j, rd ]
+        fp.write("{}\n".format('|'.join([ str(f) for f in fields ])))
         i += 1
       if j % 1000 == 0:
         print("finish {} lft".format(j))
