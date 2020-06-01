@@ -97,7 +97,9 @@ class ExecSetVarStep(ExecStepSuper):
       # 'stepUid': id(self),
       'value': {
         "var": self.var.to_json(),
-        "expr": self.expr.to_json() if self.expr else None,
+        "expr":
+            'init' if 'init' == self.expr else
+            self.expr.to_json() if self.expr else None,
         "cond": self.cond.to_json() if self.cond else None,
         # "cond_str": str(self.cond)  if self.cond else None,
       }
@@ -285,7 +287,7 @@ class ExecUnionStep(ExecStepSuper):
         "aggrs": [
           [ v.to_json(), f.to_json() ] for v, f in self.aggrs
         ],
-        "order": [ f.to_json() for f in self.order ]
+        "order": [ f.to_json() for f in self.order ] if self.order else None
       }
     }
   def compute_cost(self):
