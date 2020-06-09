@@ -10,7 +10,7 @@ as input and generates customized data layout.
 as used in database to the nested layout as used in the application) 
 with fancy indexes (to preprocess the queries as much as possible).
 
--Chestnut formulates the search of optimal layout under a memory bound
+- Chestnut formulates the search of optimal layout under a memory bound
 into ILP problem which can achieve desired tradeoff between memory and query performance. 
 
 While still under maintainance, you may check out some examples under `benchmarks/`. 
