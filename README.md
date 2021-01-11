@@ -1,4 +1,4 @@
-### Welcome to [Chestnut](https://homes.cs.washington.edu/~congy/chestnut.pdf) project! ###
+### Welcome to [Chestnut](https://congyan.org/chestnut.pdf) project! ###
 
 Chestnut is a data layout generator for
 in-memory object-oriented database applications. 
